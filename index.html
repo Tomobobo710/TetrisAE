@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+        <head>
+                <meta charset="UTF-8" />
+                <meta
+                        name="viewport"
+                        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+                <meta name="mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <title>ActionEngine Game</title>
+                <link rel="stylesheet" href="actionengine/input/css/overlay.css" />
+        </head>
+        <body>
+                <div id="appContainer">
+                        <div id="UIControlsContainer"></div>
+                </div>
+
+                <!--3rd party libs--->
+                <!--Goblin fork of https://github.com/chandlerprall/GoblinPhysics----https://github.com/Tomobobo710/GoblinPhysics-->
+                <script src="actionengine/3rdparty/goblin/goblin.js"></script>
+
+                <!------Action Engine Modules---- -->
+
+                <!--Action Engine Math-->
+                <script src="actionengine/math/geometry/triangle.js"></script>
+                <script src="actionengine/math/geometry/triangleutils.js"></script>
+                <script src="actionengine/math/geometry/geometrybuilder.js"></script>
+                <script src="actionengine/math/geometry/glbloader.js"></script>
+                <script src="actionengine/math/geometry/glbexporter.js"></script>
+                <script src="actionengine/math/geometry/modelcodegenerator.js"></script>
+                <script src="actionengine/math/vector2.js"></script>
+                <script src="actionengine/math/vector3.js"></script>
+                <script src="actionengine/math/matrix4.js"></script>
+                <script src="actionengine/math/quaternion.js"></script>
+                <script src="actionengine/math/mathutils.js"></script>
+                <script src="actionengine/math/viewfrustum.js"></script>
+
+                <!--Action Engine Rendering (Triangles)-->
+                <!--Rendererable Object-->
+                <script src="actionengine/display/graphics/renderableobject.js"></script>
+
+                <!--3D Model-->
+                <script src="actionengine/display/graphics/actionmodel3D.js"></script>
+                <script src="actionengine/display/graphics/actionsprite3D.js"></script>
+
+                <!--2D Software Renderer-->
+                <script src="actionengine/display/graphics/renderers/actionrenderer2D.js"></script>
+
+                <!--3D WebGL Renderer-->
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/actionrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/objectrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/weatherrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/waterrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/sunrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/spriterenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/debugrenderer3D.js"></script>
+                <script src="actionengine/display/graphics/renderers/actionrenderer3D/canvasmanager3D.js"></script>
+
+                <!--Action Engine Lighting-->
+                <script src="actionengine/display/graphics/lighting/lightingconstants.js"></script>
+                <script src="actionengine/display/graphics/lighting/actionlight.js"></script>
+                <script src="actionengine/display/graphics/lighting/actiondirectionalshadowlight.js"></script>
+                <script src="actionengine/display/graphics/lighting/actionomnidirectionalshadowlight.js"></script>
+                <script src="actionengine/display/graphics/lighting/lightmanager.js"></script>
+
+                <!--Action Engine Debug-->
+                <script src="actionengine/debug/basedebugpanel.js"></script>
+
+                <!--Image Texture System-->
+                <script src="actionengine/display/graphics/texture/proceduraltexture.js"></script>
+                <script src="actionengine/display/graphics/texture/texturemanager.js"></script>
+                <script src="actionengine/display/graphics/texture/textureregistry.js"></script>
+
+                <!--GL Shader Management-->
+                <!--Core shader management-->
+                <script src="actionengine/display/gl/programmanager.js"></script>
+
+                <!--Action Engine shader implementations-->
+                <script src="actionengine/display/gl/shaders/objectshader.js"></script>
+                <script src="actionengine/display/gl/shaders/lineshader.js"></script>
+                <script src="actionengine/display/gl/shaders/spriteshader.js"></script>
+                <script src="actionengine/display/gl/shaders/shadowshader.js"></script>
+                <script src="actionengine/display/gl/shaders/watershader.js"></script>
+                <script src="actionengine/display/gl/shaders/particleshader.js"></script>
+
+                <!---Action Engine Physics (goblin)-->
+                <script src="actionengine/math/physics/actionphysicsworld3D.js"></script>
+                <script src="actionengine/math/physics/actionphysicsobject3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicsplane3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicsbox3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicssphere3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicscapsule3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicscone3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicscylinder3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicscompoundshape3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicsconvexshape3D.js"></script>
+                <script src="actionengine/math/physics/shapes/actionphysicsmesh3D.js"></script>
+                <script src="actionengine/math/physics/actionraycast.js"></script>
+                <script src="actionengine/math/physics/actionphysics.js"></script>
+
+                <!--Action Engine Sound-->
+                <script src="actionengine/sound/soundfont/actionreverb.js"></script>
+                <script src="actionengine/sound/soundfont/actionparser.js"></script>
+                <script src="actionengine/sound/soundfont/actionsoundfont.js"></script>
+                <script src="actionengine/sound/soundfont/soundfont.js"></script>
+                <script src="actionengine/sound/audiomanager.js"></script>
+
+                <!--Action Engine Input-->
+                <script src="actionengine/input/inputhandler.js"></script>
+                <script src="actionengine/input/actionscrollablearea.js"></script>
+
+                <!-- ActionNet -->
+                <script src="actionengine/network/client/ActionNetManager.js"></script>
+                <script src="actionengine/network/client/SyncSystem.js"></script>
+                <script src="actionengine/network/client/ActionNetManagerGUI.js"></script>
+
+                <!--Action Engine Camera-->
+                <script src="actionengine/camera/actioncamera.js"></script>
+                <script src="actionengine/camera/cameracollisionhandler.js"></script>
+
+                <!--Action Engine 3-Layer Canvas System-->
+                <script src="actionengine/display/canvasmanager.js"></script>
+
+                <!--Action Engine Character Controller-->
+                <script src="actionengine/character/actioncharacter.js"></script>
+                <script src="actionengine/character/actioncharacter3D.js"></script>
+
+                <!--Action Engine Bootstrap-->
+                <script src="actionengine/core/app.js"></script>
+                <!--------------------------------->
+
+                <!------Game Specific Modules------>
+                <!--Game Constants-->
+                <script src="game/constants.js"></script>
+
+                <!-- Game Audio Definitions / Facade -->
+                <script src="game/soundconstants.js"></script>
+                <script src="game/AudioManager.js"></script>
+
+                <!--Game Systems-->
+                <script src="game/LayoutManager.js"></script>
+                <script src="game/player/Player.js"></script>
+                <script src="game/player/CPUPlayer.js"></script>
+                <script src="game/GameManager.js"></script>
+
+                <!--Input System Managers-->
+                <script src="game/input/UIWindowsInputManager.js"></script>
+                <script src="game/input/MenuInputManager.js"></script>
+                <script src="game/input/GameplayInputManager.js"></script>
+                <script src="game/input/WaitingMenusInputManager.js"></script>
+                <script src="game/input/ActionNetInputManager.js"></script>
+                <script src="game/InputHandler.js"></script>
+
+                <script src="game/ThemeManager.js"></script>
+                <script src="game/render/ThemeRenderer.js"></script>
+                <script src="game/render/GameRenderer.js"></script>
+                <script src="game/MenuManager.js"></script>
+
+                <!--Renderer Modules-->
+                <script src="game/render/UIRenderUtils.js"></script>
+                <script src="game/render/MenuRenderer.js"></script>
+                <script src="game/render/GameUIRenderer.js"></script>
+                <script src="game/render/OverlayRenderer.js"></script>
+                <script src="game/render/WindowRenderer.js"></script>
+                <script src="game/render/UIRenderer.js"></script>
+
+                <!--Theme System-->
+                <script src="game/themes/BaseTheme.js"></script>
+                <script src="game/themes/DefaultTheme.js"></script>
+                <script src="game/themes/NeonCityTheme.js"></script>
+                <script src="game/themes/MatrixTheme.js"></script>
+                <script src="game/themes/CrystalTheme.js"></script>
+                <script src="game/themes/FireTheme.js"></script>
+                <script src="game/themes/OceanTheme.js"></script>
+                <script src="game/themes/GameBoyTheme.js"></script>
+                <script src="game/themes/MonochromeTheme.js"></script>
+                <script src="game/themes/CyberpunkCityTheme.js"></script>
+                <script src="game/themes/FractalTheme.js"></script>
+                <script src="game/themes/BoidsTheme.js"></script>
+                <script src="game/themes/CountryDriveTheme.js"></script>
+                <script src="game/themes/ThemeRegistry.js"></script>
+
+                <!--Networking-->
+                <script src="game/player/NetworkedPlayer.js"></script>
+                <script src="game/network/NetworkSession.js"></script>
+
+                <!--Game Bootstrap-->
+                <script src="game.js"></script>
+                <!--------------------------------->
+        </body>
+</html>

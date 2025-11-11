@@ -1,0 +1,956 @@
+/**
+ * GameManager - Coordinates multiple players and handles shared game logic
+ */
+class GameManager {
+    constructor(game) {
+        this.game = game; // Reference to main Game instance
+        this.players = [];
+        this.maxPlayers = 4;
+        this.gameMode = "single"; // 'single', 'twoPlayer', 'threePlayer', 'fourPlayer'
+
+        // Battle mechanics
+        this.garbageQueue = {}; // Will be populated per player pair
+        this.pendingGarbage = new Map(); // playerNumber -> garbage count waiting to be added
+
+        // Game state
+        this.gameState = "title"; // 'title', 'playing', 'paused', 'gameOver'
+        this.winner = null;
+
+        // Line clearing state (for animations)
+        this.lineClearingPlayers = new Map(); // playerNumber -> { timer: number, lines: number[] }
+
+        // Garbage animation state
+        this.garbageAnimation = new Map(); // playerNumber -> { remaining: number, timer: number }
+
+        // Track last hole positions for strategic garbage placement
+        this.lastHolePositions = new Map(); // playerNumber -> lastHoleX
+
+        // Layout manager for UI positioning
+        this.layoutManager = new LayoutManager();
+
+        // Initialize garbage queues for all player combinations
+        this.initializeGarbageQueues();
+    }
+
+    /**
+     * Initialize garbage queues for all possible player combinations
+     */
+    initializeGarbageQueues() {
+        for (let i = 1; i <= this.maxPlayers; i++) {
+            this.garbageQueue[i] = [];
+            for (let j = 1; j <= this.maxPlayers; j++) {
+                if (i !== j) {
+                    this.garbageQueue[i][j] = [];
+                }
+            }
+        }
+    }
+
+    /**
+     * Add a human player to the game
+     */
+    addPlayer(playerNumber) {
+        if (this.players.length >= this.maxPlayers) {
+            console.warn(`Maximum players (${this.maxPlayers}) already reached`);
+            return null;
+        }
+
+        const player = new Player(playerNumber, this.game.gameSettings, this.game);
+        this.players.push(player);
+
+        // Update game mode based on player count
+        this.updateGameMode();
+
+        return player;
+    }
+
+    /**
+     * Add a CPU player to the game
+     */
+    addCPUPlayer(playerNumber, difficulty = null) {
+        if (this.players.length >= this.maxPlayers) {
+            console.warn(`Maximum players (${this.maxPlayers}) already reached`);
+            return null;
+        }
+
+        // Use difficulty from game settings if not specified
+        const cpuDifficulty = difficulty || this.game.gameSettings.cpuDifficulty;
+
+        // Create CPU player instance (check if CPUPlayer class is available)
+        let cpuPlayer;
+        if (typeof window !== "undefined" && window.CPUPlayer) {
+            cpuPlayer = new window.CPUPlayer(playerNumber, cpuDifficulty, this.game.gameSettings, this.game);
+        } else {
+            console.warn(`CPUPlayer class not available, creating regular player as fallback`);
+            cpuPlayer = new Player(playerNumber, this.game.gameSettings, this.game);
+        }
+
+        this.players.push(cpuPlayer);
+
+        // Update game mode based on player count
+        this.updateGameMode();
+
+        console.log(
+            `Added ${cpuPlayer.thinkingTimer !== undefined ? "CPU" : "Human"} player ${playerNumber} with ${cpuDifficulty} difficulty`
+        );
+        return cpuPlayer;
+    }
+
+    /**
+     * Remove a player from the game
+     */
+    removePlayer(playerNumber) {
+        const index = this.players.findIndex((p) => p.playerNumber === playerNumber);
+        if (index > -1) {
+            this.players.splice(index, 1);
+            this.updateGameMode();
+        }
+    }
+
+    /**
+     * Update game mode based on current player count
+     */
+    updateGameMode() {
+        const playerCount = this.players.length;
+        if (playerCount === 0) {
+            this.gameMode = "single";
+        } else if (playerCount === 1) {
+            this.gameMode = "single";
+        } else if (playerCount === 2) {
+            this.gameMode = "twoPlayer";
+        } else if (playerCount === 3) {
+            this.gameMode = "threePlayer";
+        } else if (playerCount === 4) {
+            this.gameMode = "fourPlayer";
+        }
+    }
+
+    /**
+     * Get a specific player by number
+     */
+    getPlayer(playerNumber) {
+        return this.players.find((p) => p.playerNumber === playerNumber) || null;
+    }
+
+    /**
+     * Get all active players
+     */
+    getActivePlayers() {
+        return this.players.filter((p) => !p.gameOver);
+    }
+
+    /**
+     * Get the primary player (for single player mode)
+     */
+    getPrimaryPlayer() {
+        return this.players[0] || null;
+    }
+
+    /**
+     * Initialize the game for multiplayer
+     */
+    initialize(numPlayers = 2) {
+        console.log(`Initializing ${numPlayers}-player game...`);
+
+        // Clear existing players
+        this.players = [];
+
+        // Clear ALL garbage-related state from previous games
+        this.pendingGarbage.clear();
+        this.garbageAnimation.clear();
+        this.lastHolePositions.clear();
+        this.lineClearingPlayers.clear();
+
+        // Add requested number of players
+        for (let i = 1; i <= numPlayers; i++) {
+            const player = this.addPlayer(i);
+            console.log(`Created player ${i}:`, player);
+        }
+
+        // Reset game state
+        this.gameState = "playing";
+        this.winner = null;
+
+        // Reset time scale (clear any slow-motion effects from previous game)
+        this.game.timeScale = 1.0;
+
+        // Reset all players
+        this.players.forEach((player) => {
+            player.reset();
+            console.log(`Reset player ${player.playerNumber}`);
+        });
+
+        // Spawn initial pieces for all players
+        this.spawnInitialPieces();
+
+        console.log(`${numPlayers}-Player mode initialized! Players:`, this.players.length);
+    }
+
+    /**
+     * Initialize a game with human player(s) versus CPU player(s)
+     */
+    initializeVersusCPU(numHumans = 1, numCPUs = 1) {
+        console.log(`Initializing ${numHumans} human vs ${numCPUs} CPU game...`);
+
+        // Clear existing players
+        this.players = [];
+
+        // Clear ALL garbage-related state from previous games
+        this.pendingGarbage.clear();
+        this.garbageAnimation.clear();
+        this.lastHolePositions.clear();
+        this.lineClearingPlayers.clear();
+
+        // Add human players first
+        for (let i = 1; i <= numHumans; i++) {
+            this.addPlayer(i);
+        }
+
+        // Add CPU players
+        for (let i = 1; i <= numCPUs; i++) {
+            const cpuPlayerNumber = numHumans + i;
+            this.addCPUPlayer(cpuPlayerNumber);
+        }
+
+        // Reset game state
+        this.gameState = "playing";
+        this.winner = null;
+
+        // Reset time scale (clear any slow-motion effects from previous game)
+        this.game.timeScale = 1.0;
+
+        // Reset all players
+        this.players.forEach((player) => {
+            if (player.reset && typeof player.reset === "function") {
+                player.reset();
+            }
+            console.log(`Reset ${player.thinkingTimer !== undefined ? "CPU" : "Human"} player ${player.playerNumber}`);
+        });
+
+        // Spawn initial pieces for all players
+        this.spawnInitialPieces();
+
+        console.log(`Versus CPU mode initialized! Total players: ${this.players.length}`);
+    }
+
+    /**
+     * Spawn initial pieces for all players
+     */
+    spawnInitialPieces() {
+        this.players.forEach((player) => {
+            // Each player now manages their own piece queue
+            player.spawnPiece(player.nextQueue.shift());
+            player.nextQueue.push(player.getNextPiece());
+            player.canHold = true;
+        });
+    }
+
+    /**
+     * Send garbage from one player to another (immediate)
+     *
+     * IMPORTANT: The third parameter is FINAL GARBAGE COUNT.
+     *            Do NOT pass "lines cleared" here.
+     *
+     * All mapping from (lines cleared + spins + B2B + combo)
+     * → garbage is done in handlePlayerLineClear().
+     */
+    sendGarbage(fromPlayer, toPlayer, garbageLines) {
+        // Never send garbage to yourself
+        if (fromPlayer === toPlayer) {
+            console.error(`BUG PREVENTED: Player ${fromPlayer} tried to send garbage to themselves!`);
+            return;
+        }
+
+        // Ignore non-positive input
+        if (!Number.isFinite(garbageLines) || garbageLines <= 0) {
+            return;
+        }
+
+        // Add final garbage amount directly
+        const currentPending = this.pendingGarbage.get(toPlayer) || 0;
+        this.pendingGarbage.set(toPlayer, currentPending + garbageLines);
+
+        // Network sync of garbage is handled by NetworkedPlayer / NetworkSession.
+    }
+
+    /**
+     * Add garbage to a player (for network sync)
+     */
+    addGarbageToPlayer(playerNumber, lines) {
+        const currentPending = this.pendingGarbage.get(playerNumber) || 0;
+        this.pendingGarbage.set(playerNumber, currentPending + lines);
+    }
+
+    /**
+     * Check if a player has pending garbage and start the animation
+     */
+    checkAndProcessPendingGarbage(playerNumber) {
+        const player = this.getPlayer(playerNumber);
+        if (!player || player.gameOver) return false;
+
+        // CRITICAL: Don't process garbage if player is clearing lines
+        if (this.lineClearingPlayers.has(playerNumber)) {
+            return false; // Wait until line clear finishes
+        }
+
+        const pendingCount = this.pendingGarbage.get(playerNumber) || 0;
+        if (pendingCount > 0) {
+            this.garbageAnimation.set(playerNumber, {
+                remaining: pendingCount,
+                timer: 0
+            });
+
+            this.pendingGarbage.set(playerNumber, 0);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Add ONE garbage line to a player's grid
+     * The entire playfield shifts up by 1 row, preserving all block colors and positions
+     */
+    addSingleGarbageLine(playerNumber) {
+        const player = this.getPlayer(playerNumber);
+        if (!player) return;
+
+        // Shift the entire grid up by 1 row
+        // The playfield moves up as-is, preserving all colors and structure
+        const newGrid = [];
+
+        // Copy rows 1 through ROWS-1 to rows 0 through ROWS-2
+        for (let y = 1; y < TETRIS.GRID.ROWS; y++) {
+            newGrid.push([...player.grid[y]]);
+        }
+
+        // Add one new garbage row at the bottom
+        const garbageRow = [];
+
+        // Strategic hole placement: 80% chance to use previous hole position, 20% random
+        let holePosition;
+        const lastHolePos = this.lastHolePositions.get(playerNumber);
+
+        if (lastHolePos === undefined || Math.random() < 0.2) {
+            // First garbage line or 20% chance: random position
+            holePosition = Math.floor(Math.random() * TETRIS.GRID.COLS);
+        } else {
+            // 80% chance: use previous hole position
+            holePosition = lastHolePos;
+        }
+
+        // Store this hole position for next time
+        this.lastHolePositions.set(playerNumber, holePosition);
+
+        for (let x = 0; x < TETRIS.GRID.COLS; x++) {
+            if (x === holePosition) {
+                garbageRow.push(null); // One hole per garbage line
+            } else {
+                garbageRow.push("garbage");
+            }
+        }
+        newGrid.push(garbageRow);
+
+        player.grid = newGrid;
+
+        // Update justLockedPositions to account for grid shift
+        // All y-coordinates shift up by 1 (decrement by 1)
+        player.justLockedPositions = player.justLockedPositions
+            .map((pos) => ({ x: pos.x, y: pos.y - 1 }))
+            .filter((pos) => pos.y >= 0); // Remove any that shifted off the top
+
+        this.game.playSound("line_clear");
+    }
+
+    /**
+     * Update all players and game logic
+     */
+    update(deltaTime) {
+        if (this.gameState !== "playing" && this.game.gameState !== "onlineMultiplayer") return;
+
+        // Update line clearing timers (respects timeScale via deltaTime)
+        this.updateLineClearing(deltaTime);
+
+        // Update garbage animations
+        this.updateGarbageAnimation(deltaTime);
+
+        // Update all players that are NOT line clearing or receiving garbage
+        this.players.forEach((player) => {
+            if (!this.lineClearingPlayers.has(player.playerNumber) && !this.garbageAnimation.has(player.playerNumber)) {
+                // Check if this is a CPU player
+                if (player.update && typeof player.thinkingTimer === "number") {
+                    // This is a CPU player - call AI update
+                    player.update(deltaTime);
+                } else {
+                    // Human or networked player - updateGameplay handles logic
+                    // NetworkedPlayer overrides this to skip for remote players
+                    player.updateGameplay(deltaTime);
+                }
+            }
+
+            // Update visual effects for all players
+            if (player.updateVisualEffects) {
+                player.updateVisualEffects(deltaTime);
+            }
+        });
+
+        // Check win conditions
+        this.checkWinConditions();
+    }
+
+    /**
+     * Update line clearing animations and timers
+     */
+    updateLineClearing(deltaTime) {
+        this.lineClearingPlayers.forEach((clearData, playerNumber) => {
+            const player = this.getPlayer(playerNumber);
+            if (!player) {
+                this.lineClearingPlayers.delete(playerNumber);
+                return;
+            }
+
+            // Decrement timer (affected by timeScale since deltaTime is scaled)
+            clearData.timer -= deltaTime * 1000;
+
+            // Update visual progress
+            player.lineClearEffect.progress = 1.0 - clearData.timer / TETRIS.TIMING.LINE_CLEAR_ANIMATION;
+
+            // When timer expires, clear the lines
+            if (clearData.timer <= 0) {
+                player.clearLines(clearData.lines);
+                this.lineClearingPlayers.delete(playerNumber);
+
+                // Reset time scaling back to normal speed
+                this.game.timeScale = 1.0;
+
+                // Spawn new piece for this player
+                if (!player.gameOver) {
+                    player.spawnNewPiece();
+                }
+            }
+        });
+    }
+
+    /**
+     * Update garbage animations - adds garbage lines one at a time
+     */
+    updateGarbageAnimation(deltaTime) {
+        this.garbageAnimation.forEach((animData, playerNumber) => {
+            const player = this.getPlayer(playerNumber);
+            if (!player) {
+                this.garbageAnimation.delete(playerNumber);
+                return;
+            }
+
+            // Decrement timer
+            animData.timer -= deltaTime * 1000;
+
+            // When timer reaches 0, add a garbage line
+            if (animData.timer <= 0) {
+                this.addSingleGarbageLine(playerNumber);
+                animData.remaining--;
+
+                // If more garbage lines remain, reset timer
+                if (animData.remaining > 0) {
+                    animData.timer = TETRIS.TIMING.GARBAGE_LINE_DELAY;
+                } else {
+                    // Animation complete, spawn new piece
+                    this.garbageAnimation.delete(playerNumber);
+                    if (!player.gameOver) {
+                        player.canHold = true;
+                        player.spawnNewPiece();
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Check if any player has won or lost
+     *
+     * IMPORTANT: Remote players do NOT execute game logic - only local players run their own
+     * game simulation. This means:
+     * - Remote player knockouts are detected on THEIR machine (where they're local)
+     * - They must send a network message to notify the opponent
+     * - We cannot detect remote player game overs by checking their state locally
+     */
+    checkWinConditions() {
+        const activePlayers = this.getActivePlayers();
+
+        // Check if any player topped out
+        // ONLY check collision for local players - remote players send gameOver via network
+        this.players.forEach((player) => {
+            // Skip collision check for remote players (they detect their own game over)
+            if (player.isRemote) return;
+
+            // Skip if already game over
+            if (player.gameOver) return;
+
+            // Check 1: Existing piece collision (normal top-out)
+            if (player.currentPiece && player.currentY <= 3) {
+                if (
+                    this.game.checkPlayerCollision(
+                        player.currentPiece,
+                        player.currentX,
+                        player.currentY,
+                        player.currentRotation,
+                        player.playerNumber
+                    )
+                ) {
+                    player.gameOver = true;
+                    player.screenShake = { intensity: 0, duration: 0 };
+
+                    // Send gameOver message to opponent if networked
+                    if (player.onGameOver) {
+                        player.onGameOver();
+                    }
+                }
+            }
+            // Check 2: Spawn failure (no piece when not in special states)
+            else if (
+                !player.currentPiece &&
+                !this.lineClearingPlayers.has(player.playerNumber) &&
+                !this.garbageAnimation.has(player.playerNumber)
+            ) {
+                // Player has no piece but should have one = spawn failed = game over
+                player.gameOver = true;
+                player.screenShake = { intensity: 0, duration: 0 };
+
+                // Send gameOver message to opponent if networked
+                if (player.onGameOver) {
+                    player.onGameOver();
+                }
+            }
+        });
+
+        // Handle single-player game over
+        if (this.players.length === 1 && activePlayers.length === 0) {
+            this.game.gameOverTransition.active = true;
+            this.game.gameOverTransition.timer = 0;
+            this.game.gameOverTransition.opacity = 0;
+            this.game.gameState = "gameOver";
+            this.game.playSound("game_over");
+
+            // Clear screen shake for all players when game ends
+            this.players.forEach((player) => {
+                player.screenShake = { intensity: 0, duration: 0 };
+            });
+            return;
+        }
+
+        // Only check for wins in multiplayer modes (2+ players)
+        if (this.players.length > 1 && activePlayers.length <= 1) {
+            // CRITICAL: Before ending game, send gameOver message if local player lost
+            this.players.forEach((player) => {
+                if (player.gameOver && player.isLocal && player.onGameOver) {
+                    console.log("[GameManager] Local player lost, sending gameOver message to opponent");
+                    player.onGameOver();
+                }
+            });
+
+            this.endGame(activePlayers[0]?.playerNumber || null);
+
+            // Clear screen shake for all players when game ends
+            this.players.forEach((player) => {
+                player.screenShake = { intensity: 0, duration: 0 };
+            });
+        }
+    }
+
+    /**
+     * End the game and declare a winner
+     */
+    endGame(winnerPlayerNumber) {
+        this.game.gameOverTransition.active = true;
+        this.game.gameOverTransition.timer = 0;
+        this.game.gameOverTransition.opacity = 0;
+        this.gameState = "gameOver";
+        this.winner = winnerPlayerNumber;
+        this.game.gameState = "gameOver";
+        console.log(`Player ${winnerPlayerNumber} wins!`);
+        this.game.playSound("victory");
+    }
+
+    /**
+     * Handle when a player clears lines
+     *
+     * Uses Player's lastClearSpinType / lastClearLines and maintains
+     * a proper Back-to-Back (B2B) chain flag on the player.
+     *
+     * Spin types from Player:
+     *   lastClearSpinType:
+     *     - 'none'
+     *     - 'tspin'      (full T-Spin)
+     *     - 'tspin_mini' (Mini T-Spin)
+     */
+    handlePlayerLineClear(player, lines) {
+        const numLines = lines.length;
+        const spinType = player.lastClearSpinType || "none"; // 'none' | 'tspin' | 'tspin_mini'
+
+        // Classify clear
+        const isTetris = spinType === "none" && numLines === 4;
+        const isTSpin = spinType === "tspin";
+        const isMiniTSpin = spinType === "tspin_mini";
+
+        // Difficult clears are the ones that can maintain/benefit from B2B
+        // (Guideline-style: Tetris, any T-Spin that clears 1+ lines, Mini T-Spin with lines.)
+        const isDifficult = isTetris || (isTSpin && numLines >= 1) || (isMiniTSpin && numLines >= 1);
+
+        let baseGarbage = 0;
+
+        if (spinType === "none") {
+            switch (numLines) {
+                case 1:
+                    baseGarbage = 0;
+                    break;
+                case 2:
+                    baseGarbage = 1;
+                    break;
+                case 3:
+                    baseGarbage = 2;
+                    break;
+                case 4:
+                    baseGarbage = 4;
+                    break; // Tetris
+            }
+        } else if (isMiniTSpin) {
+            switch (numLines) {
+                case 1:
+                    baseGarbage = 1;
+                    break; // Mini T-Spin Single
+                case 2:
+                    baseGarbage = 2;
+                    break; // Mini T-Spin Double
+                default:
+                    baseGarbage = 0;
+                    break; // 0-line or others: 0
+            }
+        } else if (isTSpin) {
+            switch (numLines) {
+                case 1:
+                    baseGarbage = 2;
+                    break; // T-Spin Single
+                case 2:
+                    baseGarbage = 4;
+                    break; // T-Spin Double
+                case 3:
+                    baseGarbage = 6;
+                    break; // T-Spin Triple
+                default:
+                    baseGarbage = 0;
+                    break; // 0-line: 0
+            }
+        }
+
+        // Compute garbage to send
+        let garbageToSend = baseGarbage;
+
+        // Snapshot previous B2B state BEFORE this clear
+        const wasBackToBack = !!player.backToBack;
+
+        // Update B2B chain based on this clear
+        if (isDifficult) {
+            // Start or keep chain alive
+            player.backToBack = true;
+        } else {
+            // Break chain on any non-difficult clear
+            player.backToBack = false;
+        }
+
+        // A true Back-to-Back clear requires:
+        // - This clear is difficult
+        // - We were already in B2B before this clear
+        const isBackToBackClear = isDifficult && wasBackToBack;
+
+        // Apply B2B garbage bonus: +1 ONLY for true B2B difficult clears
+        if (isBackToBackClear && garbageToSend > 0) {
+            garbageToSend = baseGarbage + 1;
+        }
+
+        // Send garbage to all other alive players
+        if (garbageToSend > 0) {
+            this.players.forEach((otherPlayer) => {
+                if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
+                    this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, garbageToSend);
+                }
+            });
+        }
+
+        // SCORING (guideline-style using TETRIS.SCORING)
+        const S = TETRIS.SCORING;
+        let baseScore = 0;
+
+        if (spinType === "none") {
+            // Normal line clears
+            switch (numLines) {
+                case 1:
+                    baseScore = S.SINGLE;
+                    break;
+                case 2:
+                    baseScore = S.DOUBLE;
+                    break;
+                case 3:
+                    baseScore = S.TRIPLE;
+                    break;
+                case 4:
+                    baseScore = S.TETRIS;
+                    break;
+            }
+        } else if (isMiniTSpin) {
+            // Mini T-Spins
+            switch (numLines) {
+                case 0:
+                    baseScore = S.TSPIN_MINI_0;
+                    break;
+                case 1:
+                    baseScore = S.TSPIN_MINI_SINGLE;
+                    break;
+                case 2:
+                    baseScore = S.TSPIN_MINI_DOUBLE;
+                    break;
+            }
+        } else if (isTSpin) {
+            // Full T-Spins
+            switch (numLines) {
+                case 0:
+                    baseScore = S.TSPIN_0;
+                    break;
+                case 1:
+                    baseScore = S.TSPIN_SINGLE;
+                    break;
+                case 2:
+                    baseScore = S.TSPIN_DOUBLE;
+                    break;
+                case 3:
+                    baseScore = S.TSPIN_TRIPLE;
+                    break;
+            }
+        }
+
+        // Back-to-back score multiplier for difficult clears:
+        // Only apply when this clear is truly B2B (same condition as isBackToBackClear).
+        // This multiplier is for score only; B2B garbage bonus is handled separately above.
+        if (isBackToBackClear && baseScore > 0 && S.B2B_MULTIPLIER) {
+            baseScore *= S.B2B_MULTIPLIER;
+        }
+
+        // Combo bonus (scaled by level)
+        if (player.combo > 0 && S.COMBO_BASE) {
+            baseScore += S.COMBO_BASE * player.combo * player.level;
+        }
+
+        // Apply level multiplier last (standard guideline behavior)
+        baseScore *= player.level;
+
+        player.score += Math.floor(baseScore);
+        player.lines += numLines;
+        player.combo++;
+
+        // Level up check
+        const newLevel = Math.floor(player.lines / 10) + 1;
+        if (newLevel > player.level) {
+            player.level = newLevel;
+            player.handleLevelUp();
+        }
+
+        // Audio/FX selection
+        if (isTSpin && numLines > 0) {
+            this.game.playSound("line_clear"); // You may want dedicated T-Spin sounds
+            player.screenShake = { intensity: 8, duration: 0.3 };
+        } else if (isTetris) {
+            this.game.playSound("tetris");
+            player.screenShake = { intensity: 8, duration: 0.3 };
+        } else {
+            this.game.playSound("line_clear");
+            player.screenShake = { intensity: 4, duration: 0.2 };
+        }
+
+        // Time scaling: preserve original feel, but base it on lines cleared
+        const fullSlowdown = 0.25;
+        let slowdownPercent;
+        switch (numLines) {
+            case 1:
+                slowdownPercent = 0.1;
+                break;
+            case 2:
+                slowdownPercent = 0.2;
+                break;
+            case 3:
+                slowdownPercent = 0.5;
+                break;
+            case 4:
+                slowdownPercent = 1.0;
+                break;
+            default:
+                slowdownPercent = 1.0;
+                break;
+        }
+        this.game.timeScale = fullSlowdown + (1.0 - fullSlowdown) * (1.0 - slowdownPercent);
+
+        // Visual line clear effect
+        // Pass clearType so renderer can show "T-SPIN SINGLE/DOUBLE/TRIPLE" style labels.
+        let clearType = "none";
+
+        if (isTSpin || isMiniTSpin) {
+            if (numLines === 0) {
+                // Pure T-Spin (no lines) -> special T-SPIN only text
+                clearType = "tspin_0";
+            } else if (numLines === 1) {
+                clearType = "tspin_single";
+            } else if (numLines === 2) {
+                clearType = "tspin_double";
+            } else if (numLines === 3) {
+                clearType = "tspin_triple";
+            } else {
+                clearType = "tspin";
+            }
+        } else if (isTetris) {
+            clearType = "tetris";
+        } else {
+            // Standard non-spin clears by line count
+            if (numLines === 1) clearType = "single";
+            else if (numLines === 2) clearType = "double";
+            else if (numLines === 3) clearType = "triple";
+            else if (numLines === 4) clearType = "tetris";
+        }
+
+        player.lineClearEffect = {
+            active: true,
+            lines: lines,
+            progress: 0,
+            clearType: clearType,
+            isBackToBack: !!isBackToBackClear
+        };
+
+        // Register player in line clearing map
+        this.lineClearingPlayers.set(player.playerNumber, {
+            timer: TETRIS.TIMING.LINE_CLEAR_ANIMATION,
+            lines: lines
+        });
+    }
+
+    /**
+     * Draw all players with appropriate layouts
+     */
+    draw() {
+        // Don't draw if we're at the main menu (but allow drawing during pause/game over)
+        if (this.game.gameState === "title") {
+            return;
+        }
+
+        const theme = this.game.themeManager.getCurrentTheme();
+        const renderer = new GameRenderer(this.game);
+        this.layoutManager.setPlayerCount(this.players.length);
+
+        this.players.forEach((player) => {
+            if (player.currentPiece || player.gameOver) {
+                const layout = this.layoutManager.getPlayerLayout(player.playerNumber);
+
+                // UNIFIED: Same rendering method for all players
+                this.drawPlayerUnified(player, theme, renderer, layout);
+
+                // Draw player label (using configurable layout settings)
+                if (
+                    layout.ui.playerLabel.enabled &&
+                    (!layout.ui.playerLabel.showOnlyInMultiplayer || this.players.length > 1)
+                ) {
+                    const ctx = this.game.gameCtx;
+                    const labelConfig = layout.ui.playerLabel;
+
+                    // Generate appropriate label text based on player type
+                    let labelText;
+
+                    if (player.username) {
+                        // NetworkedPlayer with username
+                        labelText = player.username;
+                    } else if (player.thinkingTimer !== undefined && player.difficulty) {
+                        // CPU player - format as "CPU1 (Easy)", "CPU2 (Medium)", etc.
+                        const difficultyCapitalized =
+                            player.difficulty.charAt(0).toUpperCase() + player.difficulty.slice(1);
+                        labelText = `CPU${player.playerNumber} (${difficultyCapitalized})`;
+                    } else {
+                        // Default player label
+                        labelText = labelConfig.template.replace("{number}", player.playerNumber);
+                    }
+
+                    // Apply styling from configuration
+                    ctx.fillStyle = labelConfig.color;
+                    ctx.font = `${labelConfig.fontWeight} ${labelConfig.fontSize} ${labelConfig.fontFamily}`;
+                    ctx.textAlign = labelConfig.alignment;
+
+                    // Calculate position based on ACTUAL rendered dimensions + offset
+                    const actualWidth = layout.gameArea.cellSize * TETRIS.GRID.COLS;
+                    const centerX = layout.gameArea.x + actualWidth / 2;
+                    const centerY = layout.gameArea.y;
+                    const x = centerX + labelConfig.position.x;
+                    const y = centerY + labelConfig.position.y;
+
+                    ctx.fillText(labelText, x, y);
+                }
+            }
+        });
+    }
+
+    /**
+     * Draw player using unified rendering system (layout-driven)
+     */
+    drawPlayerUnified(player, theme, renderer, layout) {
+        // Create a temporary game object for rendering
+        const tempGame = {
+            grid: player.grid,
+            currentPiece: player.currentPiece,
+            currentX: player.currentX,
+            currentY: player.currentY,
+            currentRotation: player.currentRotation,
+            ghostY: player.ghostY,
+            gameState: player.gameOver ? "gameOver" : "playing",
+            gameSettings: this.game.gameSettings,
+            lockFlash: player.lockFlash,
+            spawnFlash: player.spawnFlash,
+            justLockedPositions: player.justLockedPositions,
+            lineClearEffect: player.lineClearEffect,
+            levelUpAnimationTimer: player.levelUpAnimationTimer,
+            level: player.level
+        };
+
+        // UNIFIED: Always use layout + cellSize for both single and multiplayer.
+        const cellSize = layout.gameArea.cellSize;
+ 
+        renderer.drawGameLayerAt(
+            tempGame,
+            theme,
+            player.screenShake,
+            { active: false },
+            layout.gameArea.x,
+            layout.gameArea.y,
+            cellSize
+        );
+    }
+
+    /**
+     * Get the winner (for game over state)
+     */
+    getWinner() {
+        return this.winner;
+    }
+
+    /**
+     * Check if the game is over
+     */
+    isGameOver() {
+        return this.gameState === "gameOver";
+    }
+
+    /**
+     * Reset the entire game
+     */
+    reset() {
+        this.players.forEach((player) => player.reset());
+        this.gameState = "playing";
+        this.winner = null;
+        this.lineClearingPlayers.clear();
+        this.pendingGarbage.clear();
+        this.garbageAnimation.clear();
+        this.lastHolePositions.clear();
+        this.spawnInitialPieces();
+    }
+}
