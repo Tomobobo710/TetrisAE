@@ -70,7 +70,11 @@ class GameUIRenderer {
             fontWeight: "bold",
             position: { x: 0, y: 15 }
         };
-        ctx.fillStyle = theme.ui.accent;
+        // Allow themes to provide dynamic UI accents for HOLD label
+        let holdAccent = (theme && typeof theme.getDynamicUIAccent === "function")
+            ? (theme.getDynamicUIAccent({ role: "label", source: "hold" }) || theme.ui.accent)
+            : theme.ui.accent;
+        ctx.fillStyle = holdAccent;
         ctx.font = `${textConfig.fontWeight} ${textConfig.fontSize} ${textConfig.fontFamily}`;
         ctx.textAlign = "center";
         ctx.fillText(
@@ -117,7 +121,15 @@ class GameUIRenderer {
                     if (matrix[dy][dx]) {
                         const x = offsetX + dx * cellSize;
                         const y = offsetY + dy * cellSize;
-                        this.utils.drawBlockPreview(x, y, cellSize, player.heldPiece, alpha, theme);
+                        this.utils.drawBlockPreview(
+                            x,
+                            y,
+                            cellSize,
+                            player.heldPiece,
+                            alpha,
+                            theme,
+                            { source: "hold" }
+                        );
                     }
                 }
             }
@@ -141,7 +153,11 @@ class GameUIRenderer {
             fontWeight: "bold",
             position: { x: 0, y: 15 }
         };
-        ctx.fillStyle = theme.ui.accent;
+        // Allow themes to provide dynamic UI accents for NEXT label
+        let nextAccent = (theme && typeof theme.getDynamicUIAccent === "function")
+            ? (theme.getDynamicUIAccent({ role: "label", source: "next" }) || theme.ui.accent)
+            : theme.ui.accent;
+        ctx.fillStyle = nextAccent;
         ctx.font = `${textConfig.fontWeight} ${textConfig.fontSize} ${textConfig.fontFamily}`;
         ctx.textAlign = "center";
         ctx.fillText(
@@ -184,7 +200,15 @@ class GameUIRenderer {
                         if (matrix[dy][dx]) {
                             const x = offsetX + dx * cellSize;
                             const y = offsetY + dy * cellSize;
-                            this.utils.drawBlockPreview(x, y, cellSize, pieceType, alpha, theme);
+                            this.utils.drawBlockPreview(
+                                x,
+                                y,
+                                cellSize,
+                                pieceType,
+                                alpha,
+                                theme,
+                                { source: "next", index: i }
+                            );
                         }
                     }
                 }
@@ -217,6 +241,7 @@ class GameUIRenderer {
         };
 
         // SCORE label and value
+        // Text uses ui.text; keep as-is for readability
         ctx.fillStyle = theme.ui.text;
         ctx.font = `${textConfig.labelStyle.fontWeight} ${textConfig.labelStyle.fontSize} ${textConfig.labelStyle.fontFamily}`;
         ctx.textAlign = "left";
@@ -224,7 +249,12 @@ class GameUIRenderer {
         ctx.fillText(textConfig.labels.score, scorePanel.x + scoreLabelPos.x, scorePanel.y + scoreLabelPos.y);
 
         ctx.font = `${textConfig.valueStyle.fontWeight} ${textConfig.valueStyle.fontSize} ${textConfig.valueStyle.fontFamily}`;
-        ctx.fillStyle = theme.ui.accent;
+
+        // Dynamic accent for SCORE value
+        let scoreAccent = (theme && typeof theme.getDynamicUIAccent === "function")
+            ? (theme.getDynamicUIAccent({ role: "score", source: "score" }) || theme.ui.accent)
+            : theme.ui.accent;
+        ctx.fillStyle = scoreAccent;
         const scoreValuePos = textConfig.positions.scoreValue;
         ctx.fillText(player.score.toString(), scorePanel.x + scoreValuePos.x, scorePanel.y + scoreValuePos.y);
 
@@ -235,7 +265,12 @@ class GameUIRenderer {
         ctx.fillText(textConfig.labels.level, scorePanel.x + levelLabelPos.x, scorePanel.y + levelLabelPos.y);
 
         ctx.font = `${textConfig.valueStyle.fontWeight} ${textConfig.valueStyle.fontSize} ${textConfig.valueStyle.fontFamily}`;
-        ctx.fillStyle = theme.ui.accent;
+
+        // Dynamic accent for LEVEL value (fall back to score accent/ui.accent)
+        let levelAccent = (theme && typeof theme.getDynamicUIAccent === "function")
+            ? (theme.getDynamicUIAccent({ role: "level", source: "score" }) || scoreAccent || theme.ui.accent)
+            : scoreAccent || theme.ui.accent;
+        ctx.fillStyle = levelAccent;
         const levelValuePos = textConfig.positions.levelValue;
         ctx.fillText(player.level.toString(), scorePanel.x + levelValuePos.x, scorePanel.y + levelValuePos.y);
 
@@ -246,7 +281,12 @@ class GameUIRenderer {
         ctx.fillText(textConfig.labels.lines, scorePanel.x + linesLabelPos.x, scorePanel.y + linesLabelPos.y);
 
         ctx.font = `${textConfig.valueStyle.fontWeight} ${textConfig.valueStyle.fontSize} ${textConfig.valueStyle.fontFamily}`;
-        ctx.fillStyle = theme.ui.accent;
+
+        // Dynamic accent for LINES value (fall back similarly)
+        let linesAccent = (theme && typeof theme.getDynamicUIAccent === "function")
+            ? (theme.getDynamicUIAccent({ role: "lines", source: "score" }) || levelAccent || theme.ui.accent)
+            : levelAccent || theme.ui.accent;
+        ctx.fillStyle = linesAccent;
         const linesValuePos = textConfig.positions.linesValue;
         ctx.fillText(player.lines.toString(), scorePanel.x + linesValuePos.x, scorePanel.y + linesValuePos.y);
     }

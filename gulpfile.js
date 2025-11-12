@@ -145,6 +145,7 @@ gulp.task('bundle', function() {
     'game/themes/BoidsTheme.js',
     'game/themes/CountryDriveTheme.js',
     'game/themes/TravelerTheme.js',
+    'game/themes/TunnelTheme.js',
     'game/themes/ThemeRegistry.js',
     
     // Networking

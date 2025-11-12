@@ -354,14 +354,39 @@ class GameRenderer {
      */
     drawBlockNormal(x, y, size, blockType, alpha, isGhost, theme) {
         const ctx = this.ctx;
-        const colors = theme.pieces[blockType];
+
+        // Allow themes to override tetromino colors dynamically (Tunnel, etc.)
+        let colors = theme.pieces[blockType];
+        if (theme && typeof theme.getDynamicPieceColors === "function") {
+            const dynamic = theme.getDynamicPieceColors(blockType, {
+                source: isGhost ? "ghost" : "playfield",
+                alpha: alpha,
+                // Treat >1 alpha used for just-locked flash as "locked"/impact state if needed
+                state: !isGhost && alpha > 1.0 ? "locked_flash" : "normal"
+            });
+            if (dynamic && dynamic.base && dynamic.shadow) {
+                colors = dynamic;
+            }
+        }
+
         const padding = 1;
 
         ctx.save();
         ctx.globalAlpha = alpha;
 
         if (isGhost) {
-            ctx.strokeStyle = theme.playfield.shadow;
+            // Ghost piece outline color may also be themed dynamically
+            let ghostColor = theme.playfield.shadow;
+            if (theme && typeof theme.getDynamicPieceColors === "function") {
+                const dynamicGhost = theme.getDynamicPieceColors(blockType, {
+                    source: "ghost",
+                    alpha: alpha
+                });
+                if (dynamicGhost && dynamicGhost.shadow) {
+                    ghostColor = dynamicGhost.shadow;
+                }
+            }
+            ctx.strokeStyle = ghostColor;
             ctx.lineWidth = 2;
             ctx.strokeRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
         } else {

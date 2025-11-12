@@ -117,11 +117,30 @@ class UIRenderUtils {
     }
 
     /**
-     * Draw a preview block with gradient and styling
+     * Draw a preview block with gradient and styling.
+     * Optional context lets themes differentiate HOLD vs NEXT, etc.
+     *
+     * @param {Object} context - {
+     *    source?: "hold" | "next",
+     *    index?: number // for NEXT queue depth
+     * }
      */
-    drawBlockPreview(x, y, size, blockType, alpha, theme) {
+    drawBlockPreview(x, y, size, blockType, alpha, theme, context = {}) {
         const ctx = this.ctx;
-        const colors = theme.pieces[blockType];
+
+        // Allow dynamic per-theme override for preview colors
+        let colors = theme.pieces[blockType];
+        if (theme && typeof theme.getDynamicPieceColors === "function") {
+            const dynamic = theme.getDynamicPieceColors(blockType, {
+                source: context.source || "next",
+                index: context.index,
+                alpha
+            });
+            if (dynamic && dynamic.base && dynamic.shadow) {
+                colors = dynamic;
+            }
+        }
+
         const padding = 1;
 
         ctx.save();

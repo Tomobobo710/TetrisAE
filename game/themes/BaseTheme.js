@@ -75,6 +75,46 @@ class BaseTheme {
         // Child themes can override to run multiple update cycles
     }
 
+    /**
+     * Optional hook: allow themes to provide dynamic per-piece colors.
+     *
+     * Any theme can override this to derive tetromino colors from its own
+     * internal state (e.g. tunnel palette, matrix rain, etc).
+     *
+     * Return:
+     * - null/undefined to fall back to this.pieces[pieceType]
+     * - or an object: { base, glow, shadow }
+     *
+     * @param {string} pieceType - "I","O","T","S","Z","J","L","garbage"
+     * @param {Object} context   - {
+     *      source: "playfield" | "hold" | "next" | "ghost" | "locked",
+     *      alpha?: number,
+     *      index?: number
+     *   }
+     */
+    getDynamicPieceColors(pieceType, context) {
+        return null;
+    }
+
+    /**
+     * Optional hook: allow themes to provide dynamic UI accent colors.
+     *
+     * Used for labels, frames, score text, etc., so a theme can keep HUD
+     * elements visually in sync with its background/effects.
+     *
+     * Return:
+     * - null/undefined to fall back to this.ui.accent
+     * - or a CSS color string.
+     *
+     * @param {Object} context - {
+     *      role: "label" | "frame" | "score" | "lines" | "level" | "misc",
+     *      source: "hold" | "next" | "score" | "system"
+     *   }
+     */
+    getDynamicUIAccent(context) {
+        return null;
+    }
+
 
 
 
