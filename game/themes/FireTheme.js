@@ -1,5 +1,18 @@
 /**
- * FireTheme - Advanced Fire theme with volumetric flames and particle physics
+ * FireTheme
+ *
+ * CPU-based fire background + blur/embers, inspired by classic fire pixel demos
+ * and the same visual sources as TunnelTheme:
+ * - "x-mode" by Justin Greisiger Frost (https://jdfio.com / https://github.com/gneissguise)
+ * - fireDemo-style 2D buffer fire techniques
+ *
+ * Integrated as a BaseTheme:
+ * - Uses TETRIS.WIDTH / TETRIS.HEIGHT for the fire buffer
+ * - Updates internal fire state via update(deltaTime) with a fixed-step accumulator
+ * - Renders via drawBackground(ctx, opacity) using:
+ *      - pulsing radial glow
+ *      - fire buffer drawn into an offscreen canvas + blur
+ *      - sharp embers/particles on top
  */
 class FireTheme extends BaseTheme {
     constructor() {
@@ -35,14 +48,28 @@ class FireTheme extends BaseTheme {
             intensity: 0.9
         };
 
-        // Initialize advanced fire systems
+        // Initialize visuals
         this.visuals = {};
         this.visuals.fireParticles = this.createFireParticleSystem();
-        this.visuals.volumetricFlames = this.createVolumetricFlames();
         this.visuals.radialGlow = { phase: 0, speed: 0.5 };
-        
+
         // Turbulence field for organic movement
         this.turbulenceTime = 0;
+
+        // CPU fire buffer (fireDemo-style core) at even lower resolution.
+        // Halve again: 0.125x width and 0.25x height (≈1/32 pixels), then scale up.
+        const width = Math.max(32, Math.floor(TETRIS.WIDTH * 0.125));
+        const height = Math.max(32, Math.floor(TETRIS.HEIGHT * 0.25));
+        this.fire = {
+            width,
+            height,
+            fireBuffer: new Uint8Array(width * height),
+            palette: this.createFirePalette(),
+            imageData: null,
+            lastWidth: 0,
+            lastHeight: 0,
+            updateAccumulator: 0
+        };
 
         // Enable BaseTheme animated UI colors
         this.uiAnimation.enabled = true;
@@ -64,12 +91,12 @@ class FireTheme extends BaseTheme {
     }
     
     /**
-     * Setup - fast-forward to populate particle systems
+     * Setup - fast-forward to populate particle systems and fire buffer.
+     * Uses ~30 seconds of simulated time so the fire field is fully "mature" on first frame.
      */
     setup() {
         const frameTime = 1 / 60;
         const numFrames = 30 * 60;
-        
         for (let i = 0; i < numFrames; i++) {
             this.update(frameTime);
         }
@@ -99,8 +126,8 @@ class FireTheme extends BaseTheme {
         
         // Fire/Ember-specific settings for longer travel distance
         const isFireOrEmber = type === 'fire' || type === 'ember';
-        const upwardSpeed = isFireOrEmber ? (-150 - Math.random() * 150) : (-50 - Math.random() * 100); // Much faster upward
-        const lifeDecay = isFireOrEmber ? (0.08 + Math.random() * 0.07) : 0.3; // Much slower decay = lives longer
+        const upwardSpeed = isFireOrEmber ? (-150 - Math.random() * 150) : (-50 - Math.random() * 100);
+        const lifeDecay = isFireOrEmber ? (0.08 + Math.random() * 0.07) : 0.3;
         
         return {
             x: Math.random() * TETRIS.WIDTH,
@@ -108,14 +135,14 @@ class FireTheme extends BaseTheme {
             vx: (Math.random() - 0.5) * 30,
             vy: upwardSpeed,
             ax: 0,
-            ay: isFireOrEmber ? -30 : -20, // Strong upward buoyancy to counteract drag
-            size: type === 'smoke' ? 15 + Math.random() * 25 : (1 + Math.random() * 2), // 3x smaller (was 3-8, now 1-3)
+            ay: isFireOrEmber ? -30 : -20,
+            size: type === 'smoke' ? 15 + Math.random() * 25 : (1 + Math.random() * 2),
             maxSize: type === 'smoke' ? 40 : 4,
             opacity: type === 'smoke' ? 0.4 : 0.9,
             life: 1.0,
             lifeDecay: lifeDecay,
             type: type,
-            hue: type === 'smoke' ? 30 : 0, // All fire/ember start red, will change based on height
+            hue: type === 'smoke' ? 30 : 0,
             saturation: type === 'smoke' ? 10 : 100,
             lightness: type === 'smoke' ? 20 : 50,
             rotation: Math.random() * Math.PI * 2,
@@ -124,53 +151,24 @@ class FireTheme extends BaseTheme {
     }
     
     /**
-     * Create individual flame tongues
+     * Initialize fire palette (0..255) for buffer-based fire rendering.
      */
-    createVolumetricFlames() {
-        const flames = [];
-        const numFlames = 60;
-        const spacing = TETRIS.WIDTH / numFlames; // Evenly space across width
-        
-        for (let i = 0; i < numFlames; i++) {
-            flames.push({
-                x: spacing * i + spacing / 2, // Center each flame in its slot
-                baseY: TETRIS.HEIGHT,
-                height: 80 + Math.random() * 120,
-                width: 20 + Math.random() * 35,
-                swayPhase: Math.random() * Math.PI * 2,
-                swaySpeed: 2 + Math.random() * 3,
-                swayAmount: 8 + Math.random() * 15,
-                flickerPhase: Math.random() * Math.PI * 2,
-                flickerSpeed: 3 + Math.random() * 4,
-                scalePhase: Math.random() * Math.PI * 2,
-                scaleSpeed: 2 + Math.random() * 2
+    createFirePalette() {
+        const palette = [];
+        for (let i = 0; i < 256; i++) {
+            const normVal = i / 255;
+            const r = 255 * Math.min(1.5 * normVal, 1);
+            const g = 255 * Math.max(0, Math.min(2 * (normVal - 0.25), 1));
+            const b = 255 * Math.max(0, Math.min(5 * (normVal - 0.8), 1));
+            palette.push({
+                r: r | 0,
+                g: g | 0,
+                b: b | 0
             });
         }
-        
-        return flames;
+        return palette;
     }
-    
 
-    
-    /**
-     * Create heat distortion field
-     */
-    createHeatDistortion() {
-        const waves = [];
-        const numWaves = 8;
-        
-        for (let i = 0; i < numWaves; i++) {
-            waves.push({
-                y: (TETRIS.HEIGHT / numWaves) * i,
-                amplitude: 2 + Math.random() * 4,
-                frequency: 0.015 + Math.random() * 0.01,
-                phase: Math.random() * Math.PI * 2,
-                speed: 3 + Math.random() * 2
-            });
-        }
-        
-        return { waves };
-    }
     
     /**
      * Get turbulence offset for organic movement
@@ -197,7 +195,6 @@ class FireTheme extends BaseTheme {
         // Emit new particles
         if (particleSystem.emitTimer >= particleSystem.emitRate) {
             particleSystem.emitTimer = 0;
-            // Replace dead particles
             const deadIndex = particleSystem.particles.findIndex(p => p.life <= 0);
             if (deadIndex !== -1) {
                 particleSystem.particles[deadIndex] = this.createFireParticle();
@@ -214,19 +211,19 @@ class FireTheme extends BaseTheme {
             particle.vx += particle.ax * deltaTime;
             particle.vy += particle.ay * deltaTime;
             
-            // Apply drag (much less for fire/ember so they can reach the top)
+            // Apply drag
             particle.vx *= 0.98;
             if (particle.type === 'smoke') {
-                particle.vy *= 0.99; // Smoke slows down
+                particle.vy *= 0.99;
             } else {
-                particle.vy *= 0.995; // Fire/ember maintains momentum better
+                particle.vy *= 0.995;
             }
             
             // Update position
             particle.x += particle.vx * deltaTime;
             particle.y += particle.vy * deltaTime;
             
-            // Update size (grow for smoke, stay for fire)
+            // Update size (grow for smoke)
             if (particle.type === 'smoke') {
                 particle.size = Math.min(particle.maxSize, particle.size + 15 * deltaTime);
             }
@@ -234,130 +231,190 @@ class FireTheme extends BaseTheme {
             // Update rotation
             particle.rotation += particle.rotationSpeed * deltaTime;
             
-            // Update color based on height for all fire/ember particles (color transition effect)
+            // Height-based color tweak for fire/embers
             if (particle.type === 'fire' || particle.type === 'ember') {
-                // Calculate height progress: 0 at bottom, 1 at top
                 const heightProgress = Math.max(0, Math.min(1, 1 - (particle.y / TETRIS.HEIGHT)));
-                
-                // Transition: white (bottom) -> yellow -> orange -> red -> dark (top)
-                particle.hue = 60 - heightProgress * 60; // 60 (yellow) to 0 (red) degrees
-                particle.lightness = 90 - heightProgress * 60; // 90% (white/bright) to 30% (dark)
-                particle.saturation = 20 + heightProgress * 80; // 20% (desaturated/white) to 100% (saturated red)
+                particle.hue = 60 - heightProgress * 60;
+                particle.lightness = 90 - heightProgress * 60;
+                particle.saturation = 20 + heightProgress * 80;
             }
             
-            // Update life
+            // Life
             particle.life -= particle.lifeDecay * deltaTime;
             
-            // Reset if dead or way off-screen (allow particles to go to top)
+            // Reset if dead or off-screen
             if (particle.life <= 0 || particle.y < -200) {
                 Object.assign(particle, this.createFireParticle());
             }
         });
         
-        // Update volumetric flames
-        this.visuals.volumetricFlames.forEach(flame => {
-            flame.swayPhase += flame.swaySpeed * deltaTime;
-            flame.flickerPhase += flame.flickerSpeed * deltaTime;
-            flame.scalePhase += flame.scaleSpeed * deltaTime;
-        });
-        
-
-        
         // Update radial glow
         this.visuals.radialGlow.phase += this.visuals.radialGlow.speed * deltaTime;
 
-        // Animated UI colors handled by BaseTheme
+        // Advance fire buffer (fireDemo-style)
+        this.updateFireBuffer(deltaTime);
     }
 
     /**
-     * Draw advanced fire background
+     * Ensure fire ImageData matches current buffer dimensions.
+     */
+    ensureFireImageData(ctx) {
+        const f = this.fire;
+        const width = f.width;
+        const height = f.height;
+        if (!f.imageData || f.lastWidth !== width || f.lastHeight !== height) {
+            f.imageData = ctx.createImageData(width, height);
+            f.lastWidth = width;
+            f.lastHeight = height;
+        }
+        return f.imageData;
+    }
+
+    /**
+     * Advance the fire buffer using a fireDemo-style cellular update.
+     */
+    updateFireBuffer(deltaTime) {
+        const f = this.fire;
+        if (!f || !f.fireBuffer) return;
+
+        const w = f.width;
+        const h = f.height;
+        const buf = f.fireBuffer;
+
+        // Fixed update step for stable behavior
+        const updateInterval = 1 / 50;
+        f.updateAccumulator += deltaTime;
+        if (f.updateAccumulator < updateInterval) {
+            return;
+        }
+        f.updateAccumulator -= updateInterval;
+
+        // Seed bottom row with new "heat"
+        const baseRow = (h - 1) * w;
+        for (let x = 0; x < w; x++) {
+            const rand = Math.random();
+            let value;
+            if (rand > 0.98) {
+                value = 255 + Math.random() * 1300;
+            } else if (rand > 0.6) {
+                value = 128 + Math.random() * 200;
+            } else {
+                value = 80;
+            }
+            buf[baseRow + x] = value;
+        }
+
+        // Propagate upwards
+        for (let y = 0; y < h - 1; y++) {
+            const rowIndex = y * w;
+            const belowY = y + 1;
+            const belowRow = belowY * w;
+            const below2Y = y + 2 < h ? y + 2 : y + 1;
+            const below2Row = below2Y * w;
+
+            for (let x = 0; x < w; x++) {
+                const i = rowIndex + x;
+
+                const p1 = buf[belowRow + ((x - 1 + w) % w)];
+                const p2 = buf[belowRow + x];
+                const p3 = buf[belowRow + ((x + 1) % w)];
+                const p4 = buf[below2Row + x];
+
+                const average = (p1 + p2 + p2 + p3 + p4) / 5.04;
+                buf[i] = average > 0 ? average : 0;
+            }
+        }
+    }
+
+    /**
+     * Draw the fire buffer into the given context (no blur).
+     * The caller controls overall opacity via ctx.globalAlpha.
+     */
+    drawFireBuffer(ctx) {
+        const f = this.fire;
+        if (!f || !f.fireBuffer || !f.palette) return;
+
+        const imageData = this.ensureFireImageData(ctx);
+        const data = imageData.data;
+        const buf = f.fireBuffer;
+        const palette = f.palette;
+        const w = f.width;
+        const h = f.height;
+
+        const len = buf.length;
+        for (let i = 0; i < len; i++) {
+            const fireValue = buf[i] | 0;
+            const idx = fireValue < 256 ? fireValue : 255;
+            const color = palette[idx];
+
+            const p = i * 4;
+            data[p] = color.r;
+            data[p + 1] = color.g;
+            data[p + 2] = color.b;
+            data[p + 3] = 255;
+        }
+
+        // Draw the low-res fire buffer stretched to full canvas; blur pass will hide pixels.
+        const scaleX = TETRIS.WIDTH / w;
+        const scaleY = TETRIS.HEIGHT / h;
+
+        const tmpCanvas = document.createElement("canvas");
+        tmpCanvas.width = w;
+        tmpCanvas.height = h;
+        const tmpCtx = tmpCanvas.getContext("2d");
+        tmpCtx.putImageData(imageData, 0, 0);
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tmpCanvas, 0, 0, w, h, 0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.restore();
+    }
+
+    /**
+     * Draw advanced fire background:
+     * - pulsing radial glow
+     * - blurred fire buffer (fireDemo-style)
+     * - subtle sharp overlay
+     * - embers/particles on top
+     * - optional heat distortion bands
      */
     drawBackground(ctx, opacity) {
-        // Draw pulsing radial glow first (background layer)
+        if (opacity <= 0) return;
+
+        // 1) Pulsing radial glow
         this.drawRadialGlow(ctx, opacity);
-        
-        // Create off-screen canvas for blur effect
-        const tempCanvas = document.createElement('canvas');
+
+        // 2) Off-screen canvas for fire buffer + blur
+        const tempCanvas = document.createElement("canvas");
         tempCanvas.width = TETRIS.WIDTH;
         tempCanvas.height = TETRIS.HEIGHT;
-        const tempCtx = tempCanvas.getContext('2d');
-        
-        // Draw volumetric flames to temp canvas (will be blurred)
-        this.drawVolumetricFlames(tempCtx, opacity);
-        
-        // Apply blur to flames and draw back to main canvas
+        const tempCtx = tempCanvas.getContext("2d");
+
+        // Render scaled-up low-res fire buffer into temp canvas, with a slight vertical offset
+        // so the flame base sits a bit below the playfield (e.g. push from ~Y800 to ~Y820).
+        tempCtx.save();
+        const baseOffsetY = Math.floor(TETRIS.HEIGHT * 0.025); // ~2.5% of height; tweak if needed
+        tempCtx.translate(0, baseOffsetY);
+        this.drawFireBuffer(tempCtx);
+        tempCtx.restore();
+
+        // 3) Blur the flames onto main canvas
         ctx.save();
-        ctx.filter = 'blur(8px)';
-        ctx.drawImage(tempCanvas, 0, 0);
-        ctx.restore();
-        
-        // Draw a sharper version of flames on top at lower opacity for detail
-        ctx.save();
-        ctx.globalAlpha = 0.05;
-        ctx.drawImage(tempCanvas, 0, 0);
-        ctx.restore();
-        
-        // Draw fire particles directly to main canvas (no blur - keeps embers sharp)
-        this.drawFireParticles(ctx, opacity);
-    }
-    
-    /**
-     * Draw individual layered flame tongues
-     */
-    drawVolumetricFlames(ctx, opacity) {
-        const flames = this.visuals.volumetricFlames;
-        
-        // Draw in 3 passes: yellow base, orange middle, red tips
-        const passes = [
-            { color: '#ffff00', heightPercent: 1.0, opacity: 0.6 },    // Yellow - full height
-            { color: '#ff8800', heightPercent: 0.7, opacity: 0.7 },    // Orange - 70% height
-            { color: '#ff3300', heightPercent: 0.4, opacity: 0.8 }     // Red - 40% height (tips)
-        ];
-        
-        passes.forEach(pass => {
-            flames.forEach(flame => {
-                this.drawFlameTongue(ctx, flame, pass.color, pass.heightPercent, pass.opacity * opacity);
-            });
-        });
-    }
-    
-    /**
-     * Draw a single flame tongue with bezier curves
-     */
-    drawFlameTongue(ctx, flame, color, heightPercent, opacity) {
-        const flicker = Math.sin(flame.flickerPhase) * 0.3 + 0.7; // 0.4 to 1.0
-        const scale = Math.sin(flame.scalePhase) * 0.15 + 0.85; // 0.7 to 1.0
-        const sway = Math.sin(flame.swayPhase) * flame.swayAmount;
-        
-        const currentHeight = flame.height * heightPercent * flicker * scale;
-        const currentWidth = flame.width * scale;
-        
-        ctx.save();
+        ctx.filter = "blur(8px)";
         ctx.globalAlpha = opacity;
-        
-        // Draw flame tongue shape
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        
-        // Start at base left
-        ctx.moveTo(flame.x - currentWidth / 2, flame.baseY);
-        
-        // Left curve up
-        const leftControlX = flame.x - currentWidth / 3 + sway * 0.3;
-        const leftControlY = flame.baseY - currentHeight * 0.5;
-        const tipX = flame.x + sway;
-        const tipY = flame.baseY - currentHeight;
-        ctx.quadraticCurveTo(leftControlX, leftControlY, tipX, tipY);
-        
-        // Right curve down
-        const rightControlX = flame.x + currentWidth / 3 + sway * 0.3;
-        const rightControlY = flame.baseY - currentHeight * 0.5;
-        ctx.quadraticCurveTo(rightControlX, rightControlY, flame.x + currentWidth / 2, flame.baseY);
-        
-        ctx.closePath();
-        ctx.fill();
-        
+        ctx.drawImage(tempCanvas, 0, 0);
         ctx.restore();
+
+        // 4) Very soft sharp overlay for additional detail
+        ctx.save();
+        ctx.globalAlpha = 0.05 * opacity;
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.restore();
+
+        // 5) Heat distortion removed for cleaner fire; no extra wave bands.
+
+        // 6) Fire particles / embers on top (no blur)
+        this.drawFireParticles(ctx, opacity);
     }
     
     /**
@@ -374,11 +431,10 @@ class FireTheme extends BaseTheme {
             
             ctx.save();
             
-            const lifeOpacity = Math.min(1, particle.life * 2); // Fade out in last 50% of life
+            const lifeOpacity = Math.min(1, particle.life * 2);
             const currentOpacity = particle.opacity * lifeOpacity * opacity;
             
             if (particle.type === 'smoke') {
-                // Draw smoke
                 const gradient = ctx.createRadialGradient(
                     particle.x, particle.y, 0,
                     particle.x, particle.y, particle.size
@@ -392,7 +448,6 @@ class FireTheme extends BaseTheme {
                 ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
                 ctx.fill();
             } else {
-                // Draw fire/ember with glow
                 const gradient = ctx.createRadialGradient(
                     particle.x, particle.y, 0,
                     particle.x, particle.y, particle.size * 2
@@ -407,7 +462,6 @@ class FireTheme extends BaseTheme {
                 ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Bright core
                 if (particle.type === 'fire') {
                     ctx.globalAlpha = currentOpacity * 0.8;
                     ctx.fillStyle = '#ffffff';
@@ -421,78 +475,33 @@ class FireTheme extends BaseTheme {
         });
     }
     
-
-    
-    /**
-     * Draw heat distortion effect
-     */
-    drawHeatDistortion(ctx, opacity) {
-        const waves = this.visuals.heatDistortion.waves;
-        
-        ctx.save();
-        ctx.globalAlpha = opacity * 0.15;
-        
-        waves.forEach((wave, index) => {
-            // Create wavy distortion bands
-            const gradient = ctx.createLinearGradient(0, wave.y - 20, 0, wave.y + 20);
-            gradient.addColorStop(0, 'transparent');
-            gradient.addColorStop(0.5, `rgba(255, 100, 0, ${0.2 * opacity})`);
-            gradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(0, wave.y - 20);
-            
-            for (let x = 0; x <= TETRIS.WIDTH; x += 5) {
-                const distortion = Math.sin(x * wave.frequency + wave.phase) * wave.amplitude;
-                const y = wave.y + distortion;
-                ctx.lineTo(x, y);
-            }
-            
-            ctx.lineTo(TETRIS.WIDTH, wave.y + 20);
-            
-            for (let x = TETRIS.WIDTH; x >= 0; x -= 5) {
-                const distortion = Math.sin(x * wave.frequency + wave.phase) * wave.amplitude;
-                const y = wave.y + distortion + 20;
-                ctx.lineTo(x, y);
-            }
-            
-            ctx.closePath();
-            ctx.fill();
-        });
-        
-        ctx.restore();
-    }
     
     /**
      * Draw pulsing radial glow background
      */
     drawRadialGlow(ctx, opacity) {
         const glow = this.visuals.radialGlow;
-        const pulse = Math.sin(glow.phase) * 0.3 + 0.7; // 0.4 to 1.0 - noticeable pulse
+        const pulse = Math.sin(glow.phase) * 0.3 + 0.7;
         
-        // Full size glow, pulsing opacity only
         const maxRadius = Math.sqrt(TETRIS.WIDTH * TETRIS.WIDTH + TETRIS.HEIGHT * TETRIS.HEIGHT);
-        const currentRadius = maxRadius; // Full size, no expansion
+        const currentRadius = maxRadius;
         
         const centerX = TETRIS.WIDTH / 2;
         const centerY = TETRIS.HEIGHT;
         
-        // Create radial gradient from center bottom
         const gradient = ctx.createRadialGradient(
             centerX, centerY, 0,
             centerX, centerY, currentRadius
         );
         
-        // Add tons of color stops to eliminate banding
         const baseOpacity = opacity * pulse;
         const numStops = 30;
         for (let i = 0; i < numStops; i++) {
-            const t = i / (numStops - 1); // 0 to 1
-            const r = 255 - t * 205; // 255 to 50
-            const g = Math.max(0, 120 - t * 120); // 120 to 0
+            const t = i / (numStops - 1);
+            const r = 255 - t * 205;
+            const g = Math.max(0, 120 - t * 120);
             const b = 0;
-            const a = (0.4 - t * 0.4) * baseOpacity; // Fade opacity
+            const a = (0.4 - t * 0.4) * baseOpacity;
             gradient.addColorStop(t, `rgba(${r}, ${g}, ${b}, ${a})`);
         }
         
@@ -501,5 +510,4 @@ class FireTheme extends BaseTheme {
         ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
         ctx.restore();
     }
-
 }
