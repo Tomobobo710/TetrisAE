@@ -44,7 +44,7 @@ class CountryDriveTheme extends BaseTheme {
             layers: [],
             heightmap: new Array(10000), // Global heightmap for terrain
             sceneTimer: 0,
-            sceneDuration: 45, // seconds per scene
+            sceneDuration: 5, // seconds per scene (was 45)
             currentScene: 0,
             transitionProgress: 1.0 // 1.0 = scene fully loaded
         };
@@ -60,7 +60,8 @@ class CountryDriveTheme extends BaseTheme {
                 accentHue: 280,
                 snow: 0,
                 stars: 0,
-                reflection: 0.3
+                reflection: 0.3,
+                treeColor: 'hsl(110, 40%, 25%)' // Lush green
             },
             {
                 name: 'Sunset',
@@ -71,7 +72,8 @@ class CountryDriveTheme extends BaseTheme {
                 accentHue: 350,
                 snow: 0,
                 stars: 0.3,
-                reflection: 0.6
+                reflection: 0.6,
+                treeColor: 'hsl(30, 55%, 28%)' // Warm autumn orange/brown
             },
             {
                 name: 'Night',
@@ -82,7 +84,8 @@ class CountryDriveTheme extends BaseTheme {
                 accentHue: 200,
                 snow: 0,
                 stars: 1.0,
-                reflection: 0.8
+                reflection: 0.8,
+                treeColor: 'hsl(160, 25%, 18%)' // Deep evergreen/teal
             },
             {
                 name: 'Snowy Day',
@@ -93,7 +96,8 @@ class CountryDriveTheme extends BaseTheme {
                 accentHue: 180,
                 snow: 1.0,
                 stars: 0,
-                reflection: 0.2
+                reflection: 0.2,
+                treeColor: 'hsl(150, 15%, 80%)' // Pale frosted trees
             },
             {
                 name: 'Rainy Evening',
@@ -104,7 +108,8 @@ class CountryDriveTheme extends BaseTheme {
                 accentHue: 240,
                 snow: 0,
                 stars: 0.2,
-                reflection: 1.0
+                reflection: 1.0,
+                treeColor: 'hsl(150, 25%, 20%)' // Dark wet green
             }
         ];
 
@@ -165,6 +170,9 @@ class CountryDriveTheme extends BaseTheme {
     generateScene() {
         const scene = this.scenes[this.visuals.currentScene];
         const layers = [];
+
+        // Cache per-scene tree color so drawTerrainLayer can use it
+        this.visuals.currentTreeColor = scene.treeColor || null;
         
         // Random color variations within scene palette
         const skyHue = scene.skyHue + (Math.random() - 0.5) * 80;
@@ -188,7 +196,10 @@ class CountryDriveTheme extends BaseTheme {
             const isSky = i === 0;
             const layerCanvas = document.createElement('canvas');
             const scrollSpeed = isSky ? 0 : i * i / (i === 5 ? 2 : 8);
-            const width = TETRIS.WIDTH + 400 * scrollSpeed;
+
+            // IMPORTANT: use the raw logical width; seam handling is done in drawBackground.
+            // If you've tweaked this before, this resets it.
+            const width = Math.floor(TETRIS.WIDTH + 400 * scrollSpeed);
             const height = TETRIS.HEIGHT;
             
             layerCanvas.width = width;
@@ -217,28 +228,32 @@ class CountryDriveTheme extends BaseTheme {
     }
 
     /**
-     * Create sprite for clouds and trees
+     * Create a sprite used like in Train Window:
+     * a generic noisy blob built from tiny rects, used for clouds & trees.
      */
     createSprite(accentColor, skyColor) {
         const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 60;
+        canvas.width = 60;
+        canvas.height = 120;
         const ctx = canvas.getContext('2d');
-        
-        // Create gradient for sprite
+    
+        // Vertical gradient like the original sprite
         const gradient = ctx.createLinearGradient(0, 0, 0, 120);
         gradient.addColorStop(0, accentColor);
         gradient.addColorStop(1, skyColor);
         ctx.fillStyle = gradient;
-        
-        // Draw circular pattern (parameterized circle)
-        for (let angle = 0; angle < 300; angle++) {
-            for (let radius = 30; radius > 0 && angle / 9 < radius; radius--) {
-                const x = 30 + radius * Math.cos(angle) * Math.cos(angle * Math.sin(angle));
-                const y = 30 + radius * Math.sin(angle);
-                ctx.fillRect(x, y, 0.9, 0.9);
+    
+        // Port of the js1k parametric blob:
+        // for(f=300;f--;) for(x=30; f/9 < x--;)
+        //   s.fillRect(30 + x * cos(f)*cos(f*sin(f)), 30 + x*sin(f), .9, .9);
+        for (let f = 300; f--;) {
+            for (let x = 30; f / 9 < x--; ) {
+                const px = 30 + x * Math.cos(f) * Math.cos(f * Math.sin(f));
+                const py = 30 + x * Math.sin(f);
+                ctx.fillRect(px, py, 0.9, 0.9);
             }
         }
-        
+    
         return canvas;
     }
 
@@ -270,98 +285,138 @@ class CountryDriveTheme extends BaseTheme {
      * Draw terrain layer with heightmap, trees, and effects
      */
     drawTerrainLayer(ctx, width, height, skyColor, accentColor, terrainColor, sprite, cloudOpacity, snowIntensity, terrainOverlayAlpha, layerIndex) {
-        const scaleFactor = 80 * (7 - layerIndex) / height;
-        const baseY = height / 2 + layerIndex * height / 20;
-        const isFrontLayer = layerIndex === 5;
-        
-        // Generate heightmap for this layer - make it wrap seamlessly
-        const layerHeightmap = new Array(10000);
-        for (let i = 0; i < layerHeightmap.length - 1; i++) {
-            layerHeightmap[i] = Math.random();
+        // NOTE: This is now a direct structural port of Train Window's terrain:
+        // - Per-layer random heightmap b[]
+        // - W(x) = N(x/50) + 5N(x/200) + 10N(x/400)
+        // - BaseY shifts with layerIndex to create vertical parallax
+        const o = height;
+        const baseY = o / 2 + layerIndex * o / 20 * (layerIndex === 5 ? 1.5 : 1.0);
+
+        // Build per-layer heightmap like original (size 1e4)
+        const b = new Array(10001);
+        for (let i = 0; i < 10000; i++) {
+            b[i] = Math.random();
         }
-        // Make last value equal to first for seamless wrapping
-        layerHeightmap[layerHeightmap.length - 1] = layerHeightmap[0];
-        
-        const sampleLayerHeight = (pos) => {
-            const index = Math.floor(pos) % 10000;
-            const fraction = pos - Math.floor(pos);
-            const h1 = layerHeightmap[index];
-            const h2 = layerHeightmap[(index + 1) % 10000];
-            return h1 * (1 - fraction) + h2 * fraction;
+        b[10000] = b[0]; // wrap
+
+        // 1D linear interpolation N(x) over b
+        const N = (x) => {
+            const i = Math.floor(x);
+            const f = x - i;
+            const i0 = i % 10000;
+            const i1 = (i0 + 1) % 10000;
+            return b[i0] * (1 - f) + b[i1] * f;
         };
-        
-        // Clear background
+
+        // Clear
         ctx.clearRect(0, 0, width, height);
-        
-        // Atmospheric perspective: far layers are lighter/hazier, close layers are darker
-        // Layer 1 = furthest (lightest), Layer 5 = closest (darkest)
-        const depthFactor = (layerIndex - 1) / 4; // 0 (far) to 1 (close)
-        
-        // Terrain base color with depth - NO TRANSPARENCY
-        const terrainLightness = 70 - (depthFactor * 40); // Far=70%, Close=30%
-        
-        // Extract hue from terrainColor (it's in format hsl(hue, sat%, light%))
+
+        // Color / depth: keep your styling but applied to this geometry
+        const depthFactor = (layerIndex - 1) / 4;
+        const terrainLightness = 70 - depthFactor * 40;
+
         const terrainHueMatch = terrainColor.match(/hsl\((\d+)/);
         const terrainHue = terrainHueMatch ? parseInt(terrainHueMatch[1]) : 100;
-        
-        // Calculate a single height that will be used at BOTH ends for seamless wrapping
-        const edgeHeightValue = height / 80 * (
-            sampleLayerHeight(0) +
-            5 * sampleLayerHeight(0) +
-            10 * sampleLayerHeight(0)
-        );
-        const edgeY = baseY - edgeHeightValue;
-        
-        // Draw terrain with clear silhouette - NO TRANSPARENCY
+
+        // 1. Terrain polygon using the js1k W(x) formula
+        // Keep trees perfectly aligned with hills:
+        // - Use a shared, dense height sample array for both terrain and trees.
+        // - Apply the same endpoint correction to that array so start/end Y match.
         ctx.fillStyle = `hsl(${terrainHue}, 40%, ${terrainLightness}%)`;
-        ctx.beginPath();
-        
-        // Start from bottom right corner
-        ctx.moveTo(width, height);
-        
-        // Start terrain at right edge with the SAME height as left edge
-        ctx.lineTo(width, edgeY);
-        
-        // Draw terrain contour from right to left
-        for (let x = width - 5; x > 5; x -= 5) {
-            const heightValue = height / 80 * (
-                sampleLayerHeight(x / 50) +
-                5 * sampleLayerHeight(x / 200) +
-                10 * sampleLayerHeight(x / 400)
-            );
-            const y = baseY - heightValue;
-            ctx.lineTo(x, y);
+
+        // High-detail sampling (4x original: 5px -> 1.25px approx).
+        const step = 1.25;
+        const sampleCount = Math.max(2, Math.floor(width / step)); // ensure at least 2 samples
+
+        // Build shared raw height samples and track endpoints
+        const heights = new Array(sampleCount + 1);
+        let firstY = null;
+        let lastY = null;
+
+        for (let i = 0; i <= sampleCount; i++) {
+            // Clamp last sample exactly to width so indices stay valid
+            const x = (i === sampleCount) ? width : i * step;
+            const W =
+                N(x / 50) +
+                5 * N(x / 200) +
+                10 * N(x / 400);
+            const y = baseY - (o / 80) * W;
+            heights[i] = { x, y };
+            if (firstY === null) firstY = y;
+            lastY = y;
         }
-        
-        // End terrain at left edge with the SAME height as right edge
-        ctx.lineTo(0, edgeY);
-        
-        // Close path to bottom
+
+        // Linear endpoint correction so y(0) == y(width)
+        const diff = lastY - firstY;
+        for (let i = 0; i <= sampleCount; i++) {
+            const t = heights[i].x / width;            // 0..1
+            heights[i].y -= diff * t;                  // smoothly remove mismatch
+        }
+
+        // Helper: sample corrected terrain Y at arbitrary X for trees, etc.
+        const terrainYAt = (x) => {
+            if (x <= 0) return heights[0].y;
+            if (x >= width) return heights[sampleCount].y;
+            const idx = x / step;
+            const i0 = Math.min(sampleCount - 1, Math.max(0, Math.floor(idx)));
+            const f = idx - i0;
+            const h0 = heights[i0];
+            const h1 = heights[i0 + 1];
+            return h0.y + (h1.y - h0.y) * f;
+        };
+
+        // Draw terrain polygon using corrected heights
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        for (let i = 0; i <= sampleCount; i++) {
+            const h = heights[i];
+            ctx.lineTo(h.x, h.y);
+        }
+        ctx.lineTo(width, height);
         ctx.lineTo(0, height);
         ctx.closePath();
         ctx.fill();
-        
-        // Draw trees on terrain (skip front layer) - NO TRANSPARENCY
-        if (layerIndex < 5) {
-            ctx.fillStyle = `hsl(${terrainHue + 20}, 50%, ${Math.max(0, terrainLightness - 15)}%)`;
-            
-            for (let x = width; x > 0; x -= 20 / scaleFactor) {
-                if (Math.random() > 0.7) {
-                    const heightValue = height / 80 * (
-                        sampleLayerHeight(x / 50) +
-                        5 * sampleLayerHeight(x / 200) +
-                        10 * sampleLayerHeight(x / 400)
-                    );
-                    const treeY = baseY - heightValue;
-                    const treeHeight = 20 / scaleFactor;
-                    const treeWidth = 4 / scaleFactor;
-                    
-                    ctx.fillRect(x - treeWidth/2, treeY - treeHeight, treeWidth, treeHeight);
-                }
+
+        // 2. Trees: direct analogue of Train Window's simple skinny rects,
+        // using the shared corrected terrain so they line up with the hills.
+        if (layerIndex && (6 ^ layerIndex)) {
+            // Use explicit per-season tree color when provided; otherwise fall back to terrain-based hue.
+            if (this.visuals && this.visuals.currentTreeColor) {
+                ctx.fillStyle = this.visuals.currentTreeColor;
+            } else {
+                const baseHue = terrainHue + 10;
+                ctx.fillStyle = `hsl(${baseHue}, 35%, ${Math.max(5, terrainLightness - 30)}%)`;
+            }
+
+            const stepTree = 0.08; // original dense spacing
+
+            for (let x = width; x > 0; x -= stepTree) {
+                // Same W combo for distribution gating (keeps original feel)
+                const W =
+                    N(x / 50) +
+                    5 * N(x / 200) +
+                    10 * N(x / 400);
+
+                const gate = N(x / 300);
+                const bias = 0.25 + layerIndex * 0.08;
+                if (gate + bias > Math.random()) continue;
+
+                // Trees sit on the corrected terrain
+                const terrainY = terrainYAt(x);
+
+                const treeHeight = 2 + Math.random() * 4; // small, varied
+                const treeWidth = 0.5; // skinny (about 1px)
+
+                ctx.fillRect(
+                    x - treeWidth / 2,
+                    terrainY - treeHeight,
+                    treeWidth,
+                    treeHeight
+                );
             }
         }
-        
-        // Snow particles - NO TRANSPARENCY
+
+        // 3. Snow: leave as your stylistic choice
         if (snowIntensity > 0.5) {
             ctx.fillStyle = '#ffffff';
             for (let i = 0; i < 200; i++) {
@@ -399,75 +454,42 @@ class CountryDriveTheme extends BaseTheme {
     drawBackground(ctx, opacity) {
         // Draw all layers
         this.visuals.layers.forEach((layer, index) => {
-            const offset = -this.visuals.scrollOffset * layer.scrollSpeed;
-            
+            // core scroll in pixels
+            const rawOffset = -this.visuals.scrollOffset * layer.scrollSpeed;
+
             ctx.save();
-            ctx.globalAlpha = opacity;
-            
-            // Draw layer with wrapping
-            const wrappedOffset = offset % layer.canvas.width;
+            // Force fully opaque when drawing layer textures to avoid alpha blend seams.
+            ctx.globalAlpha = 1.0;
+
+            const w = layer.canvas.width - 1;
+
+            // EXACT WRAP MATH (this is the part that must make sense):
+            //
+            // We want:
+            //   screen_x = wrappedOffset        to show source_x in [0, w)
+            //   screen_x = wrappedOffset + w    to show the next copy immediately after
+            // So the seam is at:
+            //   screen_x = wrappedOffset + w
+            // and the following must hold:
+            //   (wrappedOffset + w) - wrappedOffset = w   (no gap, no overlap)
+            //
+            // Implementation:
+            // 1. Reduce rawOffset into a single-period offset t in [0, w).
+            // 2. Shift into [-w, 0) so the first drawn tile always starts at/before x=0.
+            //
+            // This guarantees tiles are spaced by EXACTLY w.
+            let t = rawOffset % w;
+            if (t < 0) t += w;        // t in [0, w)
+            let wrappedOffset = t - w; // in [-w, 0)
+
+            // 3 COPIES, EXACT BUTT-JOINED:
+            // - Second starts exactly w px after first.
+            // - Third exactly w px before first.
             ctx.drawImage(layer.canvas, wrappedOffset, 0);
-            
-            // Draw second copy for seamless wrapping
-            if (wrappedOffset > 0) {
-                ctx.drawImage(layer.canvas, wrappedOffset - layer.canvas.width, 0);
-            } else {
-                ctx.drawImage(layer.canvas, wrappedOffset + layer.canvas.width, 0);
-            }
-            
-            // Draw water reflections for terrain layers
-            if (index > 0 && layer.reflection > 0.5 && layer.heightmapValue > 0.8 && index % 2 === 1) {
-                const reflectionY = TETRIS.HEIGHT / 2 - index * TETRIS.HEIGHT / 20;
-                const reflectionHeight = TETRIS.HEIGHT - reflectionY;
-                
-                ctx.save();
-                ctx.globalAlpha = opacity * 0.5;
-                ctx.translate(0, TETRIS.HEIGHT + reflectionY);
-                ctx.scale(1, -1);
-                
-                // Draw reflected layer
-                ctx.drawImage(
-                    layer.canvas,
-                    0,
-                    2 * index * TETRIS.HEIGHT / 20,
-                    layer.canvas.width,
-                    reflectionY,
-                    wrappedOffset,
-                    reflectionY,
-                    layer.canvas.width,
-                    reflectionHeight
-                );
-                
-                // Draw second copy for wrapping
-                if (wrappedOffset > 0) {
-                    ctx.drawImage(
-                        layer.canvas,
-                        0,
-                        2 * index * TETRIS.HEIGHT / 20,
-                        layer.canvas.width,
-                        reflectionY,
-                        wrappedOffset - layer.canvas.width,
-                        reflectionY,
-                        layer.canvas.width,
-                        reflectionHeight
-                    );
-                } else {
-                    ctx.drawImage(
-                        layer.canvas,
-                        0,
-                        2 * index * TETRIS.HEIGHT / 20,
-                        layer.canvas.width,
-                        reflectionY,
-                        wrappedOffset + layer.canvas.width,
-                        reflectionY,
-                        layer.canvas.width,
-                        reflectionHeight
-                    );
-                }
-                
-                ctx.restore();
-            }
-            
+            ctx.drawImage(layer.canvas, wrappedOffset + w, 0);
+            ctx.drawImage(layer.canvas, wrappedOffset - w, 0);
+
+
             ctx.restore();
         });
     }
