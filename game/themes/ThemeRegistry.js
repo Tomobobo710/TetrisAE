@@ -3,7 +3,7 @@
  * Works with HTML script loading (no modules)
  */
 
-// Create global theme instances
+ // Create global theme instances
 const defaultTheme = new DefaultTheme();
 const neonCityTheme = new NeonCityTheme();
 const matrixTheme = new MatrixTheme();
@@ -16,6 +16,7 @@ const cyberpunkCityTheme = new CyberpunkCityTheme();
 const fractalTheme = new FractalTheme();
 const boidsTheme = new BoidsTheme();
 const countryDriveTheme = new CountryDriveTheme();
+const travelerTheme = new TravelerTheme();
 
 // Warm-start all themes (fast-forward animations to populate initial state)
 defaultTheme.setup();
@@ -30,6 +31,8 @@ cyberpunkCityTheme.setup();
 fractalTheme.setup();
 boidsTheme.setup();
 countryDriveTheme.setup();
+travelerTheme.setup();
+
 // Global theme registry (replaces TETRIS.THEMES)
 window.TETRIS_THEMES = {
     'DEFAULT': defaultTheme,
@@ -43,7 +46,8 @@ window.TETRIS_THEMES = {
     'CYBERPUNK_CITY': cyberpunkCityTheme,
     'FRACTAL': fractalTheme,
     'BOIDS': boidsTheme,
-    'COUNTRY_DRIVE': countryDriveTheme
+    'COUNTRY_DRIVE': countryDriveTheme,
+    'TRAVELER': travelerTheme
 };
 
 // Theme names array for cycling

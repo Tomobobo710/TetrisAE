@@ -143,6 +143,8 @@ gulp.task('bundle', function() {
     'game/themes/CyberpunkCityTheme.js',
     'game/themes/FractalTheme.js',
     'game/themes/BoidsTheme.js',
+    'game/themes/CountryDriveTheme.js',
+    'game/themes/TravelerTheme.js',
     'game/themes/ThemeRegistry.js',
     
     // Networking
