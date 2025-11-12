@@ -115,8 +115,14 @@ class GameRenderer {
                 this.drawCurrentPieceAt(game, theme, gridX, gridY, cellSize);
             }
 
+            // Draw line clear effect
             if (game.lineClearEffect.active) {
                 this.drawLineClearEffectAt(game.lineClearEffect, theme, gridX, gridY, cellSize, gridWidth);
+            }
+            
+            // Draw T-SPIN text effect (completely separate)
+            if (game.tSpinTextEffect?.active) {
+                this.drawTSpinOnlyText(game.tSpinTextEffect, theme, gridX, gridY, cellSize, gridWidth);
             }
         }
 
@@ -450,8 +456,7 @@ class GameRenderer {
         }
 
         // Support T-SPIN labeling via effect.clearType (if provided by GameManager):
-        // If any T-Spin that clears lines, prefix with "T-SPIN ".
-        // We intentionally do NOT distinguish mini vs full here.
+        // If any T-Spin that clears lines, prefix with "T-SPIN"
         let clearText = baseText;
         if (effect.clearType && typeof effect.clearType === "string") {
             const type = effect.clearType.toLowerCase();
@@ -460,17 +465,16 @@ class GameRenderer {
             }
         }
 
-        // Special handling: pure T-SPIN (0-line) highlight.
-        // If clearType is 'tspin_0' or 'tspin' with no lines, draw ONLY the text effect once,
-        // without per-line flashes/particles.
-        if (effect.clearType && effect.lines.length === 0) {
-            const type = String(effect.clearType).toLowerCase();
-            if (type === "tspin_0" || type === "tspin") {
-                this.drawTSpinOnlyText(effect, theme, gridX, gridY, cellSize, gridWidth);
-                ctx.globalAlpha = 1.0;
-                return;
-            }
+        // Draw T-SPIN text from separate tSpinTextEffect (not coupled to line clearing)
+        // This is passed separately by the caller
+        
+        // For 0-line T-spins, we're done (no line clear animation needed)
+        if (effect.lines.length === 0) {
+            ctx.globalAlpha = 1.0;
+            return;
         }
+        
+        // For T-spins with lines, continue to draw the line clear animation below
 
         // Determine if this clear is marked as Back-to-Back for visual purposes
         const hasBackToBack = !!effect.isBackToBack;

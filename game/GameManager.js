@@ -372,6 +372,18 @@ class GameManager {
 
         // Update garbage animations
         this.updateGarbageAnimation(deltaTime);
+        
+        // Update T-SPIN text effects (completely separate from line clearing)
+        this.players.forEach((player) => {
+            if (player.tSpinTextEffect?.active) {
+                player.tSpinTextEffect.progress += (deltaTime * 1000) / player.tSpinTextEffect.duration;
+                
+                // Clear when done
+                if (player.tSpinTextEffect.progress >= 1.0) {
+                    player.tSpinTextEffect.active = false;
+                }
+            }
+        });
 
         // Update all players that are NOT line clearing or receiving garbage
         this.players.forEach((player) => {
@@ -411,7 +423,7 @@ class GameManager {
             // Decrement timer (affected by timeScale since deltaTime is scaled)
             clearData.timer -= deltaTime * 1000;
 
-            // Update visual progress
+            // Update visual progress for line clear animation
             player.lineClearEffect.progress = 1.0 - clearData.timer / TETRIS.TIMING.LINE_CLEAR_ANIMATION;
 
             // When timer expires, clear the lines
@@ -585,6 +597,7 @@ class GameManager {
     handlePlayerLineClear(player, lines) {
         const numLines = lines.length;
         const spinType = player.lastClearSpinType || "none"; // 'none' | 'tspin' | 'tspin_mini'
+        console.log('[GAMEMANAGER DEBUG] handlePlayerLineClear - spinType:', spinType, 'numLines:', numLines);
 
         // Classify clear
         const isTetris = spinType === "none" && numLines === 4;
@@ -849,7 +862,6 @@ class GameManager {
             clearType = "perfect_clear";
         } else if (isTSpin || isMiniTSpin) {
             if (numLines === 0) {
-                // Pure T-Spin (no lines) -> special T-SPIN only text
                 clearType = "tspin_0";
             } else if (numLines === 1) {
                 clearType = "tspin_single";
@@ -870,6 +882,9 @@ class GameManager {
             else if (numLines === 4) clearType = "tetris";
         }
 
+        console.log('[GAMEMANAGER DEBUG] Setting clearType:', clearType, 'isTSpin:', isTSpin, 'isMiniTSpin:', isMiniTSpin);
+        
+        // Set up line clear effect
         player.lineClearEffect = {
             active: true,
             lines: lines,
@@ -878,12 +893,46 @@ class GameManager {
             isBackToBack: !!isBackToBackClear,
             isPerfectClear: !!isPerfectClear
         };
+        
+        // Set up SEPARATE T-SPIN text effect if this is a T-spin
+        if (isTSpin || isMiniTSpin) {
+            player.tSpinTextEffect = {
+                active: true,
+                progress: 0,
+                duration: 800,
+                clearType: clearType
+            };
+        }
 
         // Register player in line clearing map
         this.lineClearingPlayers.set(player.playerNumber, {
             timer: TETRIS.TIMING.LINE_CLEAR_ANIMATION,
             lines: lines
         });
+    }
+
+    /**
+     * Handle 0-line T-spins - show visual and score without blocking gameplay
+     */
+    handleTSpinNoLines(player, spinType) {
+        // Set up ONLY the T-SPIN text effect (no line clearing needed)
+        player.tSpinTextEffect = {
+            active: true,
+            progress: 0,
+            duration: 800,
+            clearType: 'tspin_0'
+        };
+        
+        // Score the 0-line T-spin
+        const S = TETRIS.SCORING;
+        let baseScore = spinType === 'tspin' ? S.TSPIN_0 : S.TSPIN_MINI_0;
+        baseScore *= player.level;
+        player.score += Math.floor(baseScore);
+        
+        // 0-line T-spins don't break combo or trigger B2B
+        // Just spawn the next piece immediately
+        player.canHold = true;
+        player.spawnNewPiece();
     }
 
     /**
@@ -966,6 +1015,7 @@ class GameManager {
             spawnFlash: player.spawnFlash,
             justLockedPositions: player.justLockedPositions,
             lineClearEffect: player.lineClearEffect,
+            tSpinTextEffect: player.tSpinTextEffect,
             levelUpAnimationTimer: player.levelUpAnimationTimer,
             level: player.level
         };

@@ -125,14 +125,14 @@ class Player {
     movePiece(dx) {
         if (!this.currentPiece || this.gameOver) return false;
 
-        // Any horizontal move invalidates spin-final condition
-        this.lastMoveWasRotation = false;
-        this.lastRotationKick = { x: 0, y: 0 };
-
         const newX = this.currentX + dx;
         if (!this.checkCollision(this.currentPiece, newX, this.currentY, this.currentRotation)) {
             this.currentX = newX;
             this.calculateGhostPosition();
+            // Only clear rotation flag if the piece actually moved
+            console.log('[MOVE DEBUG] Horizontal move succeeded, clearing lastMoveWasRotation');
+            this.lastMoveWasRotation = false;
+            this.lastRotationKick = { x: 0, y: 0 };
             this.lockTimer = 0;
             return true;
         }
@@ -169,6 +169,7 @@ class Player {
                 // Track spin info: last action was rotation and record kick offset
                 this.lastMoveWasRotation = true;
                 this.lastRotationKick = { x: appliedKickX, y: appliedKickY };
+                console.log('[ROTATION DEBUG] Set lastMoveWasRotation = true, kick:', appliedKickX, appliedKickY);
 
                 return true;
             }
@@ -183,9 +184,8 @@ class Player {
     softDrop() {
         if (!this.currentPiece || this.gameOver) return false;
 
-        // Movement invalidates last-rotation condition
-        this.lastMoveWasRotation = false;
-        this.lastRotationKick = { x: 0, y: 0 };
+        // Soft drop doesn't invalidate T-spin detection in modern Tetris
+        // (only lateral movement does)
 
         if (!this.checkCollision(this.currentPiece, this.currentX, this.currentY + 1, this.currentRotation)) {
             this.currentY++;
@@ -207,9 +207,8 @@ class Player {
             return null;
         }
 
-        // Hard drop is a movement action; clear last-rotation flag
-        this.lastMoveWasRotation = false;
-        this.lastRotationKick = { x: 0, y: 0 };
+        // Hard drop doesn't invalidate T-spin detection in modern Tetris
+        // (only lateral movement does)
 
         let dropDistance = 0;
         while (!this.checkCollision(this.currentPiece, this.currentX, this.currentY + 1, this.currentRotation)) {
@@ -354,6 +353,9 @@ class Player {
 
         if (wasTPiece && this.lastMoveWasRotation) {
             spinType = this.detectTSpinPlacement(lockX, lockY, lockRotation, this.lastRotationKick);
+            console.log('[T-SPIN DEBUG] Detected spin type:', spinType, 'at position', lockX, lockY, 'rotation', lockRotation);
+        } else if (wasTPiece) {
+            console.log('[T-SPIN DEBUG] T-piece but lastMoveWasRotation =', this.lastMoveWasRotation);
         }
 
         // Expose for GameManager / scoring / visuals
@@ -372,9 +374,12 @@ class Player {
                 // Fallback for single player
                 this.handleLineClears(clearedLines);
             }
+        } else if (spinType !== 'none' && this.game.gameManager) {
+            // 0-line T-spin! Just show visual and score, don't block the game
+            console.log('[T-SPIN DEBUG] 0-line T-spin detected, showing visual only');
+            this.game.gameManager.handleTSpinNoLines(this, spinType);
         } else {
-            // No lines cleared: GameManager will treat T-Spin 0-line via lastClearSpinType,
-            // but no garbage / B2B, etc., should be applied.
+            // No lines cleared and no T-spin
             this.combo = -1;
 
             // Check for pending garbage and process it before spawning new piece
