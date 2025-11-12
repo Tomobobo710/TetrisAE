@@ -68,7 +68,7 @@ class UIRenderer {
 
             // Draw countdown overlay if active (shared for offline/online)
             if (game.countdown && game.countdown.active) {
-                this.overlayRenderer.drawOnlineCountdownOverlay(game, theme);
+                this.overlayRenderer.drawCountdownOverlay(game, theme);
             }
 
             // Settings menu as its own modal when in-game and current === settings

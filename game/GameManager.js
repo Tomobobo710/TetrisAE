@@ -666,7 +666,44 @@ class GameManager {
             garbageToSend = baseGarbage + 1;
         }
 
-        // Send garbage to all other alive players
+        // PERFECT CLEAR DETECTION
+        // Simulate the grid after this clear to check if it will be completely empty.
+        let isPerfectClear = false;
+        if (numLines > 0) {
+            const sortedLines = [...lines].sort((a, b) => a - b);
+            const clearedCount = sortedLines.length;
+            const newGrid = [];
+
+            // For each row from top to bottom:
+            for (let y = 0; y < TETRIS.GRID.ROWS; y++) {
+                // If this row is cleared, we don't copy it; it will be replaced at the top.
+                if (sortedLines.includes(y)) {
+                    continue;
+                }
+                newGrid.push([...player.grid[y]]);
+            }
+
+            // Add empty rows at the top equal to the number of cleared lines
+            for (let i = 0; i < clearedCount; i++) {
+                const emptyRow = new Array(TETRIS.GRID.COLS).fill(null);
+                newGrid.unshift(emptyRow);
+            }
+
+            // If every cell is null after this transformation, it's a Perfect Clear.
+            let allEmpty = true;
+            outer: for (let y = 0; y < newGrid.length; y++) {
+                for (let x = 0; x < TETRIS.GRID.COLS; x++) {
+                    if (newGrid[y][x] !== null) {
+                        allEmpty = false;
+                        break outer;
+                    }
+                }
+            }
+
+            isPerfectClear = allEmpty;
+        }
+
+        // Send base garbage to all other alive players (existing behavior)
         if (garbageToSend > 0) {
             this.players.forEach((otherPlayer) => {
                 if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
@@ -738,12 +775,26 @@ class GameManager {
             baseScore += S.COMBO_BASE * player.combo * player.level;
         }
 
+        // Perfect Clear bonus (flat 1800) - applied AFTER base + combo, BEFORE level multiplier.
+        if (isPerfectClear) {
+            baseScore += 1800;
+        }
+
         // Apply level multiplier last (standard guideline behavior)
         baseScore *= player.level;
 
         player.score += Math.floor(baseScore);
         player.lines += numLines;
         player.combo++;
+
+        // If Perfect Clear, send additional garbage: +10 to every other alive player.
+        if (isPerfectClear) {
+            this.players.forEach((otherPlayer) => {
+                if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
+                    this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, 10);
+                }
+            });
+        }
 
         // Level up check
         const newLevel = Math.floor(player.lines / 10) + 1;
@@ -753,7 +804,11 @@ class GameManager {
         }
 
         // Audio/FX selection
-        if (isTSpin && numLines > 0) {
+        if (isPerfectClear) {
+            // Stronger feedback for Perfect Clear
+            this.game.playSound("line_clear");
+            player.screenShake = { intensity: 10, duration: 0.4 };
+        } else if (isTSpin && numLines > 0) {
             this.game.playSound("line_clear"); // You may want dedicated T-Spin sounds
             player.screenShake = { intensity: 8, duration: 0.3 };
         } else if (isTetris) {
@@ -790,7 +845,9 @@ class GameManager {
         // Pass clearType so renderer can show "T-SPIN SINGLE/DOUBLE/TRIPLE" style labels.
         let clearType = "none";
 
-        if (isTSpin || isMiniTSpin) {
+        if (isPerfectClear) {
+            clearType = "perfect_clear";
+        } else if (isTSpin || isMiniTSpin) {
             if (numLines === 0) {
                 // Pure T-Spin (no lines) -> special T-SPIN only text
                 clearType = "tspin_0";
@@ -818,7 +875,8 @@ class GameManager {
             lines: lines,
             progress: 0,
             clearType: clearType,
-            isBackToBack: !!isBackToBackClear
+            isBackToBack: !!isBackToBackClear,
+            isPerfectClear: !!isPerfectClear
         };
 
         // Register player in line clearing map

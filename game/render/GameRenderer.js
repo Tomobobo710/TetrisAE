@@ -419,7 +419,14 @@ class GameRenderer {
         gridWidth = TETRIS.GRID.WIDTH
     ) {
         const ctx = this.ctx;
-        const progress = effect.progress;
+        const progress = effect.progress || 0;
+
+        // PERFECT CLEAR: standalone "PERFECT CLEAR!" effect overrides normal per-line visuals.
+        if (effect.clearType === "perfect_clear") {
+            this.drawPerfectClearText(effect, theme, gridX, gridY, cellSize, gridWidth);
+            ctx.globalAlpha = 1.0;
+            return;
+        }
 
         // Determine base text from number of lines cleared
         const numLines = effect.lines.length;
@@ -838,6 +845,61 @@ class GameRenderer {
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         ctx.fillText(clearText, textX, textY);
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw a "PERFECT CLEAR!" effect, constrained to the playfield with no background band.
+     * Smaller text so it never spills outside the grid area.
+     */
+    drawPerfectClearText(effect, theme, gridX, gridY, cellSize = TETRIS.GRID.CELL_SIZE, gridWidth = TETRIS.GRID.WIDTH) {
+        const ctx = this.ctx;
+        const progress = effect.progress || 0;
+
+        const text = "PERFECT CLEAR!";
+
+        // Center within the visible playfield area
+        const textX = gridX + gridWidth / 2;
+        const textY = gridY + (TETRIS.GRID.VISIBLE_ROWS * cellSize) * 0.5;
+
+        ctx.save();
+
+        // Simple timing: quick appear, short hold, smooth fade
+        const appear = Math.min(1, progress / 0.1);
+        let fade = 0;
+        if (progress > 0.5) {
+            fade = (progress - 0.5) / 0.5;
+        }
+
+        // Fixed, smaller scale and font to avoid clipping
+        const scale = 1.0;
+        const alpha = Math.max(0, Math.min(1, appear * (1 - fade)));
+
+        ctx.translate(textX, textY);
+        ctx.scale(scale, scale);
+        ctx.translate(-textX, -textY);
+
+        ctx.globalAlpha = alpha;
+
+        // Smaller, clean text
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 22px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Light outline / glow for readability, no giant band/flash
+        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(text, textX, textY);
+
+        ctx.shadowColor = theme.ui.accent;
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.fillText(text, textX, textY);
 
         ctx.restore();
     }

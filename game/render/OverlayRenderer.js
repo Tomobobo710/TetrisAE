@@ -73,9 +73,9 @@ class OverlayRenderer {
     }
 
     /**
-     * Draw countdown overlay for online multiplayer (3-2-1)
+     * Draw the unified countdown overlay (3-2-1, GO) for both offline and online modes.
      */
-    drawOnlineCountdownOverlay(game, theme) {
+    drawCountdownOverlay(game, theme) {
         const ctx = this.ctx;
 
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";

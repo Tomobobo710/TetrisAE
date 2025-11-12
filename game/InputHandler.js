@@ -121,10 +121,13 @@ class InputHandler {
         }
 
         // Block input during OFFLINE countdown (shared 3-2-1)
-        if (this.game.gameState === "countdown" &&
-            this.game.onlineCountdown &&
-            this.game.onlineCountdown.active &&
-            this.game.onlineCountdown.phase === "countdown") {
+        // Block all gameplay/menu input while the unified countdown overlay is active.
+        if (
+            this.game.gameState === "countdown" &&
+            this.game.countdown &&
+            this.game.countdown.active &&
+            this.game.countdown.phase === "countdown"
+        ) {
             return;
         }
 
