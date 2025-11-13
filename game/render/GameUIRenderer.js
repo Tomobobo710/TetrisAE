@@ -32,6 +32,12 @@ class GameUIRenderer {
         this.drawPlayerNextPanel(player, layout.gameArea, layout.ui, theme);
         this.drawPlayerScorePanel(player, layout.gameArea, layout.ui, theme);
 
+        // Minimal targeting indicators (3-4 player only):
+        // On the player who is being targeted, draw "NP>" tags showing which players target them.
+        if (game.gameManager && game.gameManager.players.length >= 3 && game.gameManager.players.length <= 4) {
+            this.drawTargetIndicators(game, player, layout, theme);
+        }
+
         // When SyncSystem reports the remote side as stale, show a strong visual indicator
         // above that opponent's name/panel so it's obvious they stopped responding.
         if (
@@ -290,6 +296,138 @@ class GameUIRenderer {
         const linesValuePos = textConfig.positions.linesValue;
         ctx.fillText(player.lines.toString(), scorePanel.x + linesValuePos.x, scorePanel.y + linesValuePos.y);
     }
+
+    /**
+     * Draw compact NP> targeting indicators for a player being targeted.
+     * For the given defender "player", find all attackers whose targetMap points to this player,
+     * and render small "XP>" labels between that player's HOLD and SCORE panels.
+     */
+    drawTargetIndicators(game, player, layout, theme) {
+        const gm = game.gameManager;
+        if (!gm || !gm.targetMap || typeof gm.targetMap.forEach !== "function") {
+            return;
+        }
+
+        const totalPlayers = gm.players.length;
+        if (totalPlayers < 3 || totalPlayers > 4) {
+            return; // Only show in 3-4P modes
+        }
+
+        // Defender is this player's number
+        const defenderNumber = player.playerNumber;
+        const defenderPlayer = gm.getPlayer(defenderNumber);
+        if (!defenderPlayer) return;
+
+        // Collect attackers that currently target this defender
+        const attackers = [];
+        gm.targetMap.forEach((target, attacker) => {
+            const attackerPlayer = gm.getPlayer(attacker);
+            if (
+                attackerPlayer &&
+                !attackerPlayer.gameOver &&
+                target === defenderNumber &&
+                attacker !== defenderNumber
+            ) {
+                attackers.push(attacker);
+            }
+        });
+
+        if (attackers.length === 0) {
+            return; // No one targeting this player: draw nothing (minimal design)
+        }
+
+        // Limit to a small number to avoid clutter; this is a minimal indicator.
+        attackers.sort((a, b) => a - b);
+        const maxIcons = 3;
+        const visibleAttackers = attackers.slice(0, maxIcons);
+
+        const ui = layout.ui || {};
+        const hold = ui.hold;
+        const score = ui.score;
+        if (!hold || !score) {
+            return;
+        }
+
+        const ctx = this.ctx;
+
+        // Compute strip rectangle between HOLD and SCORE horizontally.
+        const stripY = hold.y + hold.height + 6;
+        const stripHeight = Math.max(22, score.y - stripY - 6); // a bit taller for label + rows
+        const stripLeft = Math.min(hold.x + hold.width, score.x);
+        const stripRight = Math.max(hold.x, score.x + score.width);
+        const stripWidth = Math.max(60, stripRight - stripLeft);
+
+        // Slightly inset to avoid overlapping borders.
+        const x = stripLeft;
+        const y = stripY;
+        const w = stripWidth - 4;
+        const h = stripHeight;
+
+        ctx.save();
+
+        // Background pill: stronger than before so it reads as a dedicated widget.
+        const bgColor =
+            (theme && theme.ui && (theme.ui.panelBackground || theme.ui.background)) ||
+            "rgba(0,0,0,0.75)";
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = bgColor;
+        const radius = 5;
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Divider line under the title for structure
+        const accent =
+            (theme && theme.ui && theme.ui.accent) ||
+            "#ffffff";
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1;
+        const titleBaselineY = y + 9;
+        ctx.beginPath();
+        ctx.moveTo(x + 6, titleBaselineY + 4);
+        ctx.lineTo(x + w - 6, titleBaselineY + 4);
+        ctx.stroke();
+
+        // Title: "ATTACKERS"
+        ctx.fillStyle = accent;
+        ctx.font = "bold 9px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        const arrowGlyph = "▶"; // Unicode arrow for per-attacker rows
+        ctx.fillText("ATTACKERS", x + w / 2, titleBaselineY);
+
+        // Rows: list attackers as "1P ▶" etc, vertically centered in remaining space.
+        ctx.font = "16px Arial"; // ~2x previous size for better readability without crowding
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const iconCount = visibleAttackers.length;
+        const rowLineHeight = 18; // tuned for 16px font
+        const availableHeight = h - (titleBaselineY + 6 - y);
+        const totalRowsHeight = iconCount * rowLineHeight;
+        const baseY = y + (titleBaselineY + 6 - y) + (availableHeight / 2) - (totalRowsHeight / 2) + rowLineHeight / 2;
+        const centerX = x + w / 2;
+
+        let currentY = baseY;
+        visibleAttackers.forEach((attacker) => {
+            const label = `${attacker}P ${arrowGlyph}`;
+            ctx.fillText(label, centerX, currentY);
+            currentY += rowLineHeight;
+        });
+
+        ctx.restore();
+    }
+
     /**
      * Draw a pulsing red wifi icon above the opponent name when remote client is stale.
      * Uses SyncSystem.isRemoteStale so it directly matches the console log.

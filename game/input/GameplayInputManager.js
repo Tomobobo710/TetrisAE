@@ -13,16 +13,19 @@ class GameplayInputManager {
      * Handle multiplayer gameplay input using the new player-based architecture
      */
     handleMultiplayerGameplayInput(deltaTime) {
+        const gm = this.game.gameManager;
+        const playerCount = gm.players.length;
+
         // Handle input for each player based on their assigned input device
-        this.game.gameManager.players.forEach((player) => {
-            this.handlePlayerInput(player, deltaTime);
+        gm.players.forEach((player) => {
+            this.handlePlayerInput(player, deltaTime, playerCount);
         });
     }
 
     /**
      * Handle input for a specific player
      */
-    handlePlayerInput(player, deltaTime) {
+    handlePlayerInput(player, deltaTime, playerCount) {
         // Skip input handling for CPU players
         if (player.thinkingTimer !== undefined) {
             return; // This is a CPU player, skip input handling
@@ -53,6 +56,16 @@ class GameplayInputManager {
                 this.game.playSound("hold");
             } else {
                 this.game.playSound("hold_failed");
+            }
+        }
+
+        // Handle target cycle input (3-4 player modes only, minimal: one button per player)
+        // This does NOT apply to 1P vs CPU, 2P, or any non-3/4P modes.
+        if (playerCount >= 3 && playerCount <= 4) {
+            if (this.isTargetCycleInputPressed(inputDevice, player.playerNumber)) {
+                if (this.game.gameManager && typeof this.game.gameManager.cyclePlayerTarget === "function") {
+                    this.game.gameManager.cyclePlayerTarget(player.playerNumber);
+                }
             }
         }
 
@@ -336,5 +349,33 @@ class GameplayInputManager {
             }
         }
         return -1; // No active gamepad found
+    }
+
+    /**
+     * Check if target-cycle input is pressed for this player.
+     *
+     * Mapping:
+     *  - Keyboard: Player 1 uses Action3 (separate from global theme Action4).
+     *  - Gamepad: Assigned gamepad uses button index 2 (X / Square style).
+     * Only active meaningfully in 3-4P modes (call sites already guard by player count).
+     */
+    isTargetCycleInputPressed(inputDevice, playerNumber) {
+        let keyboardPressed = false;
+
+        // Only allow keyboard-based target cycling for Player 1 to avoid conflicts.
+        if (playerNumber === 1) {
+            if (this.input.isKeyJustPressed("Action3")) {
+                keyboardPressed = true;
+            }
+        }
+
+        let gamepadPressed = false;
+        if (inputDevice.type === "gamepad" && this.input.isGamepadConnected(inputDevice.gamepadIndex)) {
+            // Use a distinct button from theme-cycling (which uses button 2).
+            // Here we choose button 3 (commonly Y / Triangle) for target swap.
+            gamepadPressed = this.input.isGamepadButtonJustPressed(3, inputDevice.gamepadIndex);
+        }
+
+        return keyboardPressed || gamepadPressed;
     }
 }

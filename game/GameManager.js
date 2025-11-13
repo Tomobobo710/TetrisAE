@@ -9,8 +9,12 @@ class GameManager {
         this.gameMode = "single"; // 'single', 'twoPlayer', 'threePlayer', 'fourPlayer'
 
         // Battle mechanics
-        this.garbageQueue = {}; // Will be populated per player pair
         this.pendingGarbage = new Map(); // playerNumber -> garbage count waiting to be added
+
+        // Targeting: for 3-4 player modes only.
+        // Maps attackerPlayerNumber -> defenderPlayerNumber.
+        // In 1P / 2P modes this is ignored; garbage routing uses legacy behavior.
+        this.targetMap = new Map();
 
         // Game state
         this.gameState = "title"; // 'title', 'playing', 'paused', 'gameOver'
@@ -27,24 +31,8 @@ class GameManager {
 
         // Layout manager for UI positioning
         this.layoutManager = new LayoutManager();
-
-        // Initialize garbage queues for all player combinations
-        this.initializeGarbageQueues();
     }
 
-    /**
-     * Initialize garbage queues for all possible player combinations
-     */
-    initializeGarbageQueues() {
-        for (let i = 1; i <= this.maxPlayers; i++) {
-            this.garbageQueue[i] = [];
-            for (let j = 1; j <= this.maxPlayers; j++) {
-                if (i !== j) {
-                    this.garbageQueue[i][j] = [];
-                }
-            }
-        }
-    }
 
     /**
      * Add a human player to the game
@@ -133,6 +121,145 @@ class GameManager {
     }
 
     /**
+     * Internal: get list of alive players (not game over)
+     */
+    getAlivePlayers() {
+        return this.players.filter((p) => !p.gameOver);
+    }
+
+    /**
+     * Targeting: initialize targetMap for all players (3-4P only).
+     * Each player targets the next available player in numeric order, skipping themselves.
+     */
+    initializeTargets() {
+        this.targetMap.clear();
+
+        // Only relevant for 3-4 players; 1P/2P use direct/legacy routing.
+        if (this.players.length < 3) {
+            return;
+        }
+
+        const alive = this.getAlivePlayers()
+            .map((p) => p.playerNumber)
+            .sort((a, b) => a - b);
+
+        alive.forEach((attacker) => {
+            const target = this.getNextTargetPlayer(attacker, alive);
+            if (target !== null) {
+                this.targetMap.set(attacker, target);
+            }
+        });
+    }
+
+    /**
+     * Targeting: given an attacker and an ordered list of alive playerNumbers,
+     * find the next valid target (first other player after attacker, wrapping).
+     * Returns null if no other players exist.
+     */
+    getNextTargetPlayer(attackerNumber, aliveList = null) {
+        const alive = (aliveList || this.getAlivePlayers().map((p) => p.playerNumber)).filter(
+            (n) => !this.getPlayer(n)?.gameOver
+        );
+        if (alive.length <= 1) {
+            return null;
+        }
+
+        alive.sort((a, b) => a - b);
+
+        const idx = alive.indexOf(attackerNumber);
+        // If attacker not found (shouldn't happen), just use first alive as fallback target.
+        if (idx === -1) {
+            return alive[0];
+        }
+
+        // Scan forward for the next different player, wrapping around.
+        for (let offset = 1; offset < alive.length + 1; offset++) {
+            const candidate = alive[(idx + offset) % alive.length];
+            if (candidate !== attackerNumber) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Targeting: cycle an attacker's target to the next alive opponent (3-4P only).
+     * Safe to call even in 2P: it becomes a no-op.
+     */
+    cyclePlayerTarget(attackerNumber) {
+        if (this.players.length < 3) {
+            // No dedicated targeting logic for 1P/2P modes.
+            return;
+        }
+
+        const attacker = this.getPlayer(attackerNumber);
+        if (!attacker || attacker.gameOver) {
+            return;
+        }
+
+        const alive = this.getAlivePlayers()
+            .map((p) => p.playerNumber)
+            .sort((a, b) => a - b);
+
+        if (alive.length <= 1) {
+            return;
+        }
+
+        const currentTarget = this.targetMap.get(attackerNumber);
+        let nextTarget = null;
+
+        if (!currentTarget || !alive.includes(currentTarget) || currentTarget === attackerNumber) {
+            // Current target invalid; pick a fresh one.
+            nextTarget = this.getNextTargetPlayer(attackerNumber, alive);
+        } else {
+            // Advance from current target forward.
+            const idx = alive.indexOf(currentTarget);
+            for (let offset = 1; offset < alive.length + 1; offset++) {
+                const candidate = alive[(idx + offset) % alive.length];
+                if (candidate !== attackerNumber) {
+                    nextTarget = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (nextTarget !== null) {
+            this.targetMap.set(attackerNumber, nextTarget);
+        }
+    }
+
+    /**
+     * Targeting: ensure all attackers pointing at a KO'd player retarget.
+     */
+    retargetAllFromKo(koPlayerNumber) {
+        if (this.players.length < 3) {
+            return;
+        }
+
+        const alive = this.getAlivePlayers()
+            .map((p) => p.playerNumber)
+            .sort((a, b) => a - b);
+
+        this.targetMap.forEach((target, attacker) => {
+            const attackerPlayer = this.getPlayer(attacker);
+            if (!attackerPlayer || attackerPlayer.gameOver) {
+                this.targetMap.delete(attacker);
+                return;
+            }
+
+            if (target === koPlayerNumber || !alive.includes(target) || target === attacker) {
+                const newTarget = this.getNextTargetPlayer(attacker, alive);
+                if (newTarget !== null) {
+                    this.targetMap.set(attacker, newTarget);
+                } else {
+                    this.targetMap.delete(attacker);
+                }
+            }
+        });
+    }
+
+    /**
      * Get all active players
      */
     getActivePlayers() {
@@ -160,6 +287,7 @@ class GameManager {
         this.garbageAnimation.clear();
         this.lastHolePositions.clear();
         this.lineClearingPlayers.clear();
+        this.targetMap.clear();
 
         // Add requested number of players
         for (let i = 1; i <= numPlayers; i++) {
@@ -183,6 +311,9 @@ class GameManager {
         // Spawn initial pieces for all players
         this.spawnInitialPieces();
 
+        // Initialize targets for 3-4 player games
+        this.initializeTargets();
+
         console.log(`${numPlayers}-Player mode initialized! Players:`, this.players.length);
     }
 
@@ -200,6 +331,7 @@ class GameManager {
         this.garbageAnimation.clear();
         this.lastHolePositions.clear();
         this.lineClearingPlayers.clear();
+        this.targetMap.clear();
 
         // Add human players first
         for (let i = 1; i <= numHumans; i++) {
@@ -229,6 +361,9 @@ class GameManager {
 
         // Spawn initial pieces for all players
         this.spawnInitialPieces();
+
+        // Initialize targets for 3-4 player games (if versus CPU is ever 3-4P capable)
+        this.initializeTargets();
 
         console.log(`Versus CPU mode initialized! Total players: ${this.players.length}`);
     }
@@ -490,6 +625,8 @@ class GameManager {
 
         // Check if any player topped out
         // ONLY check collision for local players - remote players send gameOver via network
+        const preKoAlive = this.getAlivePlayers().map((p) => p.playerNumber);
+
         this.players.forEach((player) => {
             // Skip collision check for remote players (they detect their own game over)
             if (player.isRemote) return;
@@ -515,6 +652,9 @@ class GameManager {
                     if (player.onGameOver) {
                         player.onGameOver();
                     }
+
+                    // Update targeting for this KO
+                    this.retargetAllFromKo(player.playerNumber);
                 }
             }
             // Check 2: Spawn failure (no piece when not in special states)
@@ -531,6 +671,9 @@ class GameManager {
                 if (player.onGameOver) {
                     player.onGameOver();
                 }
+
+                // Update targeting for this KO
+                this.retargetAllFromKo(player.playerNumber);
             }
         });
 
@@ -716,13 +859,39 @@ class GameManager {
             isPerfectClear = allEmpty;
         }
 
-        // Send base garbage to all other alive players (existing behavior)
+        // Route garbage:
+        // - For 1P/2P: legacy behavior (all-vs-one; effectively "other player" only).
+        // - For 3-4P: use targeting; each player has exactly one current target.
         if (garbageToSend > 0) {
-            this.players.forEach((otherPlayer) => {
-                if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
-                    this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, garbageToSend);
+            if (this.players.length <= 2) {
+                // Legacy: send to all other alive players (practically one opponent).
+                this.players.forEach((otherPlayer) => {
+                    if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
+                        this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, garbageToSend);
+                    }
+                });
+            } else {
+                // 3-4P targeting behavior
+                const attackerNumber = player.playerNumber;
+                let target = this.targetMap.get(attackerNumber);
+
+                // If no valid target (or target KO'd), recompute once.
+                if (
+                    !target ||
+                    target === attackerNumber ||
+                    !this.getPlayer(target) ||
+                    this.getPlayer(target).gameOver
+                ) {
+                    target = this.getNextTargetPlayer(attackerNumber);
+                    if (target !== null) {
+                        this.targetMap.set(attackerNumber, target);
+                    }
                 }
-            });
+
+                if (target !== null) {
+                    this.sendGarbage(attackerNumber, target, garbageToSend);
+                }
+            }
         }
 
         // SCORING (guideline-style using TETRIS.SCORING)
@@ -800,13 +969,36 @@ class GameManager {
         player.lines += numLines;
         player.combo++;
 
-        // If Perfect Clear, send additional garbage: +10 to every other alive player.
+        // If Perfect Clear, apply bonus garbage:
+        // - For 1P/2P: unchanged - send +10 to the opponent.
+        // - For 3-4P: minimal design = respect current target (no global fanout).
         if (isPerfectClear) {
-            this.players.forEach((otherPlayer) => {
-                if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
-                    this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, 10);
+            if (this.players.length <= 2) {
+                this.players.forEach((otherPlayer) => {
+                    if (otherPlayer.playerNumber !== player.playerNumber && !otherPlayer.gameOver) {
+                        this.sendGarbage(player.playerNumber, otherPlayer.playerNumber, 10);
+                    }
+                });
+            } else {
+                const attackerNumber = player.playerNumber;
+                let target = this.targetMap.get(attackerNumber);
+
+                if (
+                    !target ||
+                    target === attackerNumber ||
+                    !this.getPlayer(target) ||
+                    this.getPlayer(target).gameOver
+                ) {
+                    target = this.getNextTargetPlayer(attackerNumber);
+                    if (target !== null) {
+                        this.targetMap.set(attackerNumber, target);
+                    }
                 }
-            });
+
+                if (target !== null) {
+                    this.sendGarbage(attackerNumber, target, 10);
+                }
+            }
         }
 
         // Level up check
@@ -1059,6 +1251,8 @@ class GameManager {
         this.pendingGarbage.clear();
         this.garbageAnimation.clear();
         this.lastHolePositions.clear();
+        this.targetMap.clear();
         this.spawnInitialPieces();
+        this.initializeTargets();
     }
 }
