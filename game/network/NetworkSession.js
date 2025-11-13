@@ -16,6 +16,7 @@ class NetworkSession {
         // State management
         this.state = "WAITING";
         this.countdownTimer = 3;
+        this.countdownFinished = false; // Tracks completion of online 3-2-1 + GO! cycle
         this.ready = false; // Ready to start countdown
         this.hostWaiting = true; // Host is actively waiting for players (new)
 
@@ -295,15 +296,11 @@ class NetworkSession {
      * Update session each frame
      */
     update(deltaTime) {
-        const state = this.state;
+        // Always let countdown code run to clean up any stale GO! overlay.
+        this.updateCountdown(deltaTime);
 
-        switch (state) {
-            case "COUNTDOWN":
-                this.updateCountdown(deltaTime);
-                break;
-            case "PLAYING":
-                this.updatePlaying(deltaTime);
-                break;
+        if (this.state === "PLAYING") {
+            this.updatePlaying(deltaTime);
         }
     }
 
@@ -314,6 +311,7 @@ class NetworkSession {
         this.state = "COUNTDOWN";
         {
             this.countdownTimer = 3;
+            this.countdownFinished = false;
             console.log("[NetworkSession] Starting countdown...");
 
             // Reset game state for both players before countdown
@@ -331,19 +329,102 @@ class NetworkSession {
     }
 
     /**
-     * Update countdown
+     * Update countdown (online 3-2-1 -> GO -> clear)
+     *
+     * Robust against:
+     * - Desynced countdown state between peers
+     * - Countdown object being left active across rematches
+     * - GO! overlay persisting after game start
      */
     updateCountdown(deltaTime) {
-        this.countdownTimer -= deltaTime;
-
-        // Update game countdown display
-        if (this.game.countdown) {
-            this.game.countdown.countdownNumber = Math.ceil(this.countdownTimer);
-            this.game.countdown.timer += deltaTime; // For UI animations
+        const cd = this.game && this.game.countdown ? this.game.countdown : null;
+        if (!cd) {
+            return;
         }
 
-        if (this.countdownTimer <= 0) {
-            this.startGame();
+        // Once the full cycle completed, never touch countdown again until a new startCountdown().
+        if (this.countdownFinished) {
+            return;
+        }
+
+        // If countdown was somehow left active while we're not actually in COUNTDOWN or GO, keep it only for GO.
+        if (cd.active) {
+            const inCountdownState = this.state === "COUNTDOWN";
+            const inPlayingState = this.state === "PLAYING";
+
+            // Allow:
+            // - "countdown" phase only while state === COUNTDOWN
+            // - "go" phase only while state === PLAYING (so GO! overlays during early play)
+            if (cd.phase === "countdown" && !inCountdownState) {
+                // Invalid: countdown numbers outside COUNTDOWN -> clear.
+                cd.active = false;
+                cd.phase = "waiting";
+                cd.countdownNumber = 3;
+                cd.timer = 0;
+                cd.waitingForOpponent = false;
+                return;
+            }
+
+            if (cd.phase === "go" && !inPlayingState) {
+                // Invalid: GO! outside PLAYING -> clear.
+                cd.active = false;
+                cd.phase = "waiting";
+                cd.countdownNumber = 3;
+                cd.timer = 0;
+                cd.waitingForOpponent = false;
+                return;
+            }
+        }
+
+        // If not explicitly active for online countdown, do nothing.
+        if (!cd.active) {
+            return;
+        }
+
+        // Online flow drives both 3-2-1 and GO! using its own phases:
+        // "countdown" -> "go" -> inactive.
+        if (cd.phase === "countdown") {
+            this.countdownTimer -= deltaTime;
+            const remaining = Math.max(0, this.countdownTimer);
+
+            if (remaining > 0) {
+                cd.countdownNumber = Math.max(1, Math.ceil(remaining));
+            }
+
+            // Pulse anim driver
+            cd.timer += deltaTime;
+
+            if (remaining <= 0) {
+                // Start gameplay on both peers
+                this.startGame();
+
+                // Switch to GO! phase and let it fade out
+                cd.phase = "go";
+                cd.timer = 0;
+                cd.countdownNumber = null;
+            }
+        } else if (cd.phase === "go") {
+            // Important: use a fixed duration and then CLEAR EVERYTHING.
+            cd.timer += deltaTime;
+            const GO_DURATION = 0.7;
+
+            if (cd.timer >= GO_DURATION) {
+                console.log("[NetworkSession] Online GO! complete - clearing countdown overlay");
+                cd.active = false;
+                cd.phase = "waiting";       // reset to neutral so offline logic doesn't mis-read it
+                cd.countdownNumber = 3;     // reset for next countdown
+                cd.timer = 0;
+                cd.waitingForOpponent = false;
+                this.countdownFinished = true;
+            }
+        } else {
+            // Any unknown/legacy phase while active -> fail-safe clear.
+            console.warn("[NetworkSession] Unexpected countdown.phase during online countdown:", cd.phase);
+            cd.active = false;
+            cd.phase = "waiting";
+            cd.countdownNumber = 3;
+            cd.timer = 0;
+            cd.waitingForOpponent = false;
         }
     }
 
@@ -352,14 +433,9 @@ class NetworkSession {
      */
     startGame() {
         this.state = "PLAYING";
-        {
-            console.log("[NetworkSession] Game started!");
-
-            // Update game countdown state
-            if (this.game.countdown) {
-                this.game.countdown.active = false;
-            }
-        }
+        console.log("[NetworkSession] Game started!");
+        // Do not touch game.countdown here.
+        // updateCountdown() already transitions to GO and clears it.
     }
 
     /**

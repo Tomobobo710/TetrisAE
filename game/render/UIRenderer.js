@@ -66,8 +66,12 @@ class UIRenderer {
                 this.menuRenderer.drawWaitingForHostMenu(game, theme);
             }
 
-            // Draw countdown overlay if active (shared for offline/online)
-            if (game.countdown && game.countdown.active) {
+            // Draw countdown overlay only for countdown/GO phases (prevents stale GO! in other states)
+            if (
+                game.countdown &&
+                game.countdown.active &&
+                (game.countdown.phase === "countdown" || game.countdown.phase === "go")
+            ) {
                 this.overlayRenderer.drawCountdownOverlay(game, theme);
             }
 

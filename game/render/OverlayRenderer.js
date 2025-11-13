@@ -73,33 +73,131 @@ class OverlayRenderer {
     }
 
     /**
-     * Draw the unified countdown overlay (3-2-1, GO) for both offline and online modes.
+     * Draw per-player countdown overlays (3-2-1, GO) centered on each grid.
+     * Uses LayoutManager so it automatically respects 1P/2P/3P/4P layouts.
      */
     drawCountdownOverlay(game, theme) {
         const ctx = this.ctx;
+        const countdown = game.countdown;
 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        if (!countdown || !countdown.active || !game.gameManager) {
+            return;
+        }
+
+        const gm = game.gameManager;
+        const players = gm.players;
+        if (!players || players.length === 0) {
+            return;
+        }
+
+        // Ensure layout manager is configured for current player count
+        gm.layoutManager.setPlayerCount(players.length);
+
+        // Semi-transparent global dim so countdowns pop without fully nuking background
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
         ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
 
-        let displayText = "";
-        let fontSize = "bold 48px Arial";
+        const phase = countdown.phase;
 
-        if (game.countdown && game.countdown.phase === "countdown") {
-            displayText = game.countdown.countdownNumber.toString();
-            fontSize = "bold 72px Arial";
+        players.forEach((player) => {
+            const layout = gm.layoutManager.getPlayerLayout(player.playerNumber);
+            if (!layout || !layout.gameArea) return;
 
-            // Add pulsing effect for countdown numbers
-            const pulse = 1.0 + Math.sin(game.countdown.timer * Math.PI * 2) * 0.2;
+            const cellSize = layout.gameArea.cellSize;
+            const gridWidth = cellSize * TETRIS.GRID.COLS;
+            const gridHeight = cellSize * TETRIS.GRID.VISIBLE_ROWS;
+            const centerX = layout.gameArea.x + gridWidth / 2;
+            const centerY = layout.gameArea.y + gridHeight / 2;
+
+            // Scale fonts based on grid size so 1P > 2P > 3/4P naturally.
+            const baseNumberSize = Math.max(28, Math.min(72, cellSize * 3.2));
+            const baseLabelSize = Math.max(12, Math.min(28, cellSize * 1.4));
+
+            let mainText = "";
+            let mainFont = `bold ${baseNumberSize}px Arial`;
+            let labelText = "";
+            let labelFont = `bold ${baseLabelSize}px Arial`;
+            let alpha = 1.0;
+            let pulsing = false;
+
+            if (phase === "countdown") {
+                // 3, 2, 1 phase
+                mainText = countdown.countdownNumber != null
+                    ? countdown.countdownNumber.toString()
+                    : "";
+                labelText = "GET READY!";
+                pulsing = true;
+            } else if (phase === "go") {
+                // GO phase with fade out based on timer (0..1s typical)
+                mainText = "GO!";
+                labelText = "";
+                const t = Math.max(0, Math.min(1, countdown.timer || 0));
+                alpha = 1.0 - t; // fade out over configured timer window
+            } else {
+                return;
+            }
+
+            if (!mainText && !labelText) {
+                return;
+            }
+
             ctx.save();
-            ctx.translate(TETRIS.WIDTH / 2, TETRIS.HEIGHT / 2);
-            ctx.scale(pulse, pulse);
-            ctx.translate(-TETRIS.WIDTH / 2, -TETRIS.HEIGHT / 2);
-        }
+            ctx.globalAlpha *= alpha;
 
-        this.utils.drawTextBackdrop(displayText, TETRIS.WIDTH / 2, TETRIS.HEIGHT / 2, fontSize, theme.ui.accent, theme);
+            // "GET READY!" label above number
+            if (labelText) {
+                ctx.fillStyle = theme.ui.text || "#FFFFFF";
+                ctx.font = labelFont;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "bottom";
+                this.utils.drawTextBackdrop(
+                    labelText,
+                    centerX,
+                    centerY - baseNumberSize * 0.9,
+                    ctx.font,
+                    theme.ui.text || "#FFFFFF",
+                    theme
+                );
+            }
 
-        if (game.countdown && game.countdown.phase === "countdown") {
+            // Main countdown / GO text
+            if (mainText) {
+                ctx.fillStyle = theme.ui.accent || "#FFFFFF";
+                ctx.font = mainFont;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                if (pulsing) {
+                    const pulse = 1.0 + Math.sin((countdown.timer || 0) * Math.PI * 2) * 0.12;
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.scale(pulse, pulse);
+                    ctx.translate(-centerX, -centerY);
+                    this.utils.drawTextBackdrop(
+                        mainText,
+                        centerX,
+                        centerY,
+                        ctx.font,
+                        theme.ui.accent || "#FFFFFF",
+                        theme
+                    );
+                    ctx.restore();
+                } else {
+                    this.utils.drawTextBackdrop(
+                        mainText,
+                        centerX,
+                        centerY,
+                        ctx.font,
+                        theme.ui.accent || "#FFFFFF",
+                        theme
+                    );
+                }
+            }
+
             ctx.restore();
-        }
+        });
+
+        ctx.restore();
     }
 }

@@ -250,9 +250,23 @@ class Game {
             }
 
             if (this.countdown.timer >= 3) {
-                // Countdown complete
+                // Switch into GO phase for a short fade, then auto-clear.
+                this.countdown.phase = "go";
+                this.countdown.timer = 0;
+            }
+        } else if (
+            this.gameState === "countdown" &&
+            this.countdown &&
+            this.countdown.active &&
+            this.countdown.phase === "go"
+        ) {
+            // GO! fade-out lasts 0.7s, then we start actual play and hide overlay.
+            this.countdown.timer += rawDeltaTime;
+            const GO_DURATION = 0.7;
+            if (this.countdown.timer >= GO_DURATION) {
                 this.countdown.active = false;
                 this.countdown.phase = "ready";
+                this.countdown.timer = 0;
                 this.gameState = this._pendingPostCountdownState || "playing";
                 this._pendingPostCountdownState = null;
             }
