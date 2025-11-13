@@ -657,24 +657,6 @@ class GameManager {
                     this.retargetAllFromKo(player.playerNumber);
                 }
             }
-            // Check 2: Spawn failure (no piece when not in special states)
-            else if (
-                !player.currentPiece &&
-                !this.lineClearingPlayers.has(player.playerNumber) &&
-                !this.garbageAnimation.has(player.playerNumber)
-            ) {
-                // Player has no piece but should have one = spawn failed = game over
-                player.gameOver = true;
-                player.screenShake = { intensity: 0, duration: 0 };
-
-                // Send gameOver message to opponent if networked
-                if (player.onGameOver) {
-                    player.onGameOver();
-                }
-
-                // Update targeting for this KO
-                this.retargetAllFromKo(player.playerNumber);
-            }
         });
 
         // Handle single-player game over

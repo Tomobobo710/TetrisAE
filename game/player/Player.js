@@ -285,13 +285,6 @@ class Player {
         this.currentX = Math.floor((TETRIS.GRID.COLS - pieceSize) / 2);
         this.currentY = 3;
 
-        if (this.checkCollision(pieceType, this.currentX, this.currentY, 0)) {
-            // Don't set gameOver here - let checkWinConditions() handle it consistently
-            // Just clear the piece and return failure
-            this.currentPiece = null;
-            return false;
-        }
-
         this.calculateGhostPosition();
         this.lockTimer = 0;
         this.dropTimer = 0;
