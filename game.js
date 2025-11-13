@@ -323,18 +323,29 @@ class Game {
     action_draw() {
         const theme = this.themeManager.getCurrentTheme();
 
-        // Handle multiplayer login screen
+        // Handle multiplayer login / lobby screen
         if (this.gameState === "multiplayerLogin") {
             // Draw background for GUI
             this.gameCtx.fillStyle = "#000000";
             this.gameCtx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
             this.backgroundRenderer.draw(this.gameCtx, theme);
 
-            // Clear GUI layer and let ActionNetManagerGUI draw
+            // Clear GUI layer and let ActionNetManagerGUI draw login/lobby UI
             this.guiCtx.clearRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
-
-            // Let GUI draw login/lobby
             this.gui.action_draw();
+
+            // IMPORTANT:
+            // Keep the theme button visible and interactive even while the
+            // ActionNetManagerGUI owns the rest of the multiplayer UI.
+            // We do this entirely within the Tetris scope, without touching
+            // ActionEngine / ActionNetManagerGUI, by rendering just the
+            // theme button on top of their GUI.
+            if (this.inputHandler && this.inputHandler.themeButton && this.inputHandler.themeButton.enabled) {
+                // drawThemeButton only uses the provided rect + theme, so this is safe
+                this.uiRenderer.utils.drawThemeButton(this.inputHandler.themeButton, theme);
+            }
+
+            // Short-circuit the rest of the Tetris UI; ActionNet GUI + theme button only.
             return;
         }
 

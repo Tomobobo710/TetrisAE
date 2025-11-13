@@ -130,7 +130,6 @@ class Player {
             this.currentX = newX;
             this.calculateGhostPosition();
             // Only clear rotation flag if the piece actually moved
-            console.log('[MOVE DEBUG] Horizontal move succeeded, clearing lastMoveWasRotation');
             this.lastMoveWasRotation = false;
             this.lastRotationKick = { x: 0, y: 0 };
             this.lockTimer = 0;
@@ -169,7 +168,6 @@ class Player {
                 // Track spin info: last action was rotation and record kick offset
                 this.lastMoveWasRotation = true;
                 this.lastRotationKick = { x: appliedKickX, y: appliedKickY };
-                console.log('[ROTATION DEBUG] Set lastMoveWasRotation = true, kick:', appliedKickX, appliedKickY);
 
                 return true;
             }
@@ -353,9 +351,7 @@ class Player {
 
         if (wasTPiece && this.lastMoveWasRotation) {
             spinType = this.detectTSpinPlacement(lockX, lockY, lockRotation, this.lastRotationKick);
-            console.log('[T-SPIN DEBUG] Detected spin type:', spinType, 'at position', lockX, lockY, 'rotation', lockRotation);
         } else if (wasTPiece) {
-            console.log('[T-SPIN DEBUG] T-piece but lastMoveWasRotation =', this.lastMoveWasRotation);
         }
 
         // Expose for GameManager / scoring / visuals
@@ -376,7 +372,6 @@ class Player {
             }
         } else if (spinType !== 'none' && this.game.gameManager) {
             // 0-line T-spin! Just show visual and score, don't block the game
-            console.log('[T-SPIN DEBUG] 0-line T-spin detected, showing visual only');
             this.game.gameManager.handleTSpinNoLines(this, spinType);
         } else {
             // No lines cleared and no T-spin

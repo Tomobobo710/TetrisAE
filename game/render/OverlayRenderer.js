@@ -93,12 +93,15 @@ class OverlayRenderer {
         // Ensure layout manager is configured for current player count
         gm.layoutManager.setPlayerCount(players.length);
 
-        // Semi-transparent global dim so countdowns pop without fully nuking background
         ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
 
         const phase = countdown.phase;
+
+        // Semi-transparent global dim only during 3-2-1; remove it for GO!
+        if (phase === "countdown") {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+            ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        }
 
         players.forEach((player) => {
             const layout = gm.layoutManager.getPlayerLayout(player.playerNumber);

@@ -740,7 +740,6 @@ class GameManager {
     handlePlayerLineClear(player, lines) {
         const numLines = lines.length;
         const spinType = player.lastClearSpinType || "none"; // 'none' | 'tspin' | 'tspin_mini'
-        console.log('[GAMEMANAGER DEBUG] handlePlayerLineClear - spinType:', spinType, 'numLines:', numLines);
 
         // Classify clear
         const isTetris = spinType === "none" && numLines === 4;
@@ -1074,7 +1073,6 @@ class GameManager {
             else if (numLines === 4) clearType = "tetris";
         }
 
-        console.log('[GAMEMANAGER DEBUG] Setting clearType:', clearType, 'isTSpin:', isTSpin, 'isMiniTSpin:', isMiniTSpin);
         
         // Set up line clear effect
         player.lineClearEffect = {

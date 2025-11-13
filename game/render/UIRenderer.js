@@ -30,10 +30,19 @@ class UIRenderer {
             // In-game HUD (hold/next/score etc.)
             this.gameUIRenderer.drawGameUI(game, theme);
 
-            // Player overlays (LEVEL UP / KNOCKED OUT) above HUD but below modal menus
+            // Player overlays (LEVEL UP / KNOCKED OUT) above HUD but below countdown + menus
             this.overlayRenderer.drawPlayerOverlayTexts(game, theme);
 
-            // Modal/flow-control overlays on top of everything else
+            // Countdown/GO overlay: above HUD/knockouts, but BELOW all modal menus
+            if (
+                game.countdown &&
+                game.countdown.active &&
+                (game.countdown.phase === "countdown" || game.countdown.phase === "go")
+            ) {
+                this.overlayRenderer.drawCountdownOverlay(game, theme);
+            }
+
+            // Modal/flow-control overlays ON TOP OF EVERYTHING ELSE (including countdown)
             if (game.gameState === "paused" || game.gameState === "onlineMultiplayerPaused") {
                 this.menuRenderer.drawPauseMenu(game, theme);
             }
@@ -66,15 +75,6 @@ class UIRenderer {
                 this.menuRenderer.drawWaitingForHostMenu(game, theme);
             }
 
-            // Draw countdown overlay only for countdown/GO phases (prevents stale GO! in other states)
-            if (
-                game.countdown &&
-                game.countdown.active &&
-                (game.countdown.phase === "countdown" || game.countdown.phase === "go")
-            ) {
-                this.overlayRenderer.drawCountdownOverlay(game, theme);
-            }
-
             // Settings menu as its own modal when in-game and current === settings
             if (game.menuStack.current === "settings" && !game.optionsWindow.visible && !game.themesWindow.visible) {
                 this.menuRenderer.drawSettingsMenu(game, theme);
@@ -90,7 +90,9 @@ class UIRenderer {
             this.windowRenderer.drawThemesWindow(game, theme);
         }
 
-        // Theme button always on top of GUI
-        this.utils.drawThemeButton(game.inputHandler.themeButton, theme);
+        // Theme button always on top of GUI, only when InputHandler marks it enabled
+        if (game.inputHandler && game.inputHandler.themeButton && game.inputHandler.themeButton.enabled) {
+            this.utils.drawThemeButton(game.inputHandler.themeButton, theme);
+        }
     }
 }

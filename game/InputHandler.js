@@ -16,7 +16,8 @@ class InputHandler {
             y: 530,
             width: 120,
             height: 30,
-            hovered: false
+            hovered: false,
+            enabled: true
         };
 
         // Initialize specialized input managers
@@ -46,8 +47,25 @@ class InputHandler {
             this.game.playSound("change_theme");
         }
 
-        this.themeButton.hovered = this.input.isElementHovered("theme_button");
-        if (this.input.isElementJustPressed("theme_button")) {
+        // Theme button enable rules:
+        // - Disabled only while an active 4-player game exists (4 non-eliminated, non-spectator players).
+        // - Enabled on title/main menus or when no such 4-player game is active (including after exiting via pause/game over).
+        (function updateThemeButtonEnabled(self) {
+            const g = self.game;
+            const gm = g.gameManager;
+
+            if (g.gameState === "title" || !gm || !Array.isArray(gm.players)) {
+                self.themeButton.enabled = true;
+                return;
+            }
+
+            const alive = gm.players.filter((p) => !p.isEliminated && !p.isSpectator);
+            self.themeButton.enabled = alive.length !== 4;
+        })(this);
+
+        // Only allow hover/click when enabled
+        this.themeButton.hovered = this.themeButton.enabled && this.input.isElementHovered("theme_button");
+        if (this.themeButton.enabled && this.input.isElementJustPressed("theme_button")) {
             this.game.themeManager.cycleTheme();
             this.game.playSound("change_theme");
         }
