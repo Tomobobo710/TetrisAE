@@ -6,11 +6,126 @@ class MenuRenderer {
         this.ctx = ctx;
         this.utils = utils;
 
-        // Title screen positioning constants
+        // Shared canvas dimensions
+        this.SCREEN_WIDTH = TETRIS.WIDTH;
+        this.SCREEN_HEIGHT = TETRIS.HEIGHT;
+
+        // Title screen
         this.TITLE_TEXT_Y = 200;
         this.SUBTITLE_TEXT_Y = 240;
         this.TITLE_OUTLINE_THICKNESS = 3;
         this.SUBTITLE_OUTLINE_THICKNESS = 2;
+
+        // Generic button layout
+        this.BUTTON_WIDTH = 240;
+        this.BUTTON_HEIGHT = 60;
+        this.BUTTON_SPACING = 80;
+
+        // Specific menu vertical offsets (absolute positions)
+        this.MAIN_MENU_START_Y = 300;
+        this.MULTIPLAYER_MENU_START_Y = 220;
+        this.PAUSE_MENU_START_Y = 220;
+        this.GAME_OVER_MENU_START_Y = 300;
+        this.OPPONENT_DISCONNECTED_MENU_START_Y = 300;
+        this.WAITING_MENU_START_Y = 380;
+        this.WAITING_CANCELED_MENU_START_Y = 300;
+        this.WAITING_FOR_HOST_MENU_START_Y = 380;
+        this.ROOM_SHUT_DOWN_MENU_START_Y = 340;
+
+        // Overlay colors
+        this.OVERLAY_DARK = "rgba(0, 0, 0, 0.9)";
+        this.OVERLAY_MEDIUM = "rgba(0, 0, 0, 0.85)";
+        this.OVERLAY_LIGHT = "rgba(0, 0, 0, 0.6)";
+
+        // Typography (all game-over/player fonts explicit)
+        this.FONT_FAMILY = "Arial";
+        this.TITLE_FONT = `bold 72px ${this.FONT_FAMILY}`;
+        this.SUBTITLE_FONT = `24px ${this.FONT_FAMILY}`;
+        this.HEADER_FONT_LG = `bold 60px ${this.FONT_FAMILY}`;
+        this.HEADER_FONT_MD = `bold 48px ${this.FONT_FAMILY}`;
+
+        this.LABEL_FONT_MD = `bold 32px ${this.FONT_FAMILY}`;
+        this.LABEL_FONT_SM = `bold 24px ${this.FONT_FAMILY}`;
+        this.LABEL_FONT_XS = `20px ${this.FONT_FAMILY}`;
+        this.INSTRUCTIONS_FONT = `14px ${this.FONT_FAMILY}`;
+
+        // Single-player game over fonts
+        this.SP_STATS_FONT = `bold 30px ${this.FONT_FAMILY}`;
+        this.SP_SCORE_FONT = this.SP_STATS_FONT;
+        this.SP_LEVEL_FONT = this.SP_STATS_FONT;
+        this.SP_LINES_FONT = this.SP_STATS_FONT;
+
+        // Multiplayer scoreboard fonts
+        this.MP_NAME_FONT = this.LABEL_FONT_SM;
+        this.MP_STATS_FONT = this.LABEL_FONT_XS;
+
+        // 3-4 player game over name font (player labels in grid)
+        this.GO4P_NAME_FONT= `18px ${this.FONT_FAMILY}`
+        this.GO4_NAME_FONT = this.GO4P_NAME_FONT;
+
+        // 3-4 player game over stats font (single knob for grid Score/Lines)
+        this.GO4P_STATS_FONT = `16px ${this.FONT_FAMILY}`
+        this.GO4_STATS_FONT = this.GO4P_STATS_FONT;
+
+        // Game over shared box
+        this.GAME_OVER_BOX_WIDTH = 420;
+        this.GAME_OVER_BOX_HEIGHT = 145;
+        this.GAME_OVER_BOX_OFFSET_Y = 170;
+        this.GAME_OVER_HEADER_OFFSET_Y = 210;
+
+
+        // Misc absolute positions
+        this.MAIN_MESSAGE_Y = 200;
+        this.SUB_MESSAGE_Y = 250;
+
+        // Single-player stats Y positions (fully explicit)
+        this.SP_SCORE_Y = this.SCREEN_HEIGHT / 2 - 145;
+        this.SP_LEVEL_Y = this.SCREEN_HEIGHT / 2 - 95;
+        this.SP_LINES_Y = this.SCREEN_HEIGHT / 2 - 45;
+
+        // 2-player game over layout (vertical stack)
+        this.GO2_P1_LABEL_X = this.SCREEN_WIDTH / 2;
+        this.GO2_P1_LABEL_Y = this.SCREEN_HEIGHT / 2 - 146;
+        this.GO2_P1_STATS_X = this.GO2_P1_LABEL_X;
+        this.GO2_P1_STATS_Y = this.GO2_P1_LABEL_Y + 30;
+
+        this.GO2_P2_LABEL_X = this.SCREEN_WIDTH / 2;
+        this.GO2_P2_LABEL_Y = this.GO2_P1_LABEL_Y + 70;
+        this.GO2_P2_STATS_X = this.GO2_P2_LABEL_X;
+        this.GO2_P2_STATS_Y = this.GO2_P2_LABEL_Y + 30;
+
+        // 3–4 player game over layout (grid slots for P1–P4)
+        this.GO4_P1_LABEL_X = this.SCREEN_WIDTH / 2 - 200 / 2;
+        this.GO4_P1_LABEL_Y = this.SCREEN_HEIGHT / 2 - 154;
+        this.GO4_P1_SCORE_X = this.GO4_P1_LABEL_X;
+        this.GO4_P1_SCORE_Y = this.GO4_P1_LABEL_Y + 24;
+        this.GO4_P1_LINES_X = this.GO4_P1_LABEL_X;
+        this.GO4_P1_LINES_Y = this.GO4_P1_LABEL_Y + 46;
+
+        this.GO4_P2_LABEL_X = this.GO4_P1_LABEL_X + 200;
+        this.GO4_P2_LABEL_Y = this.GO4_P1_LABEL_Y;
+        this.GO4_P2_SCORE_X = this.GO4_P2_LABEL_X;
+        this.GO4_P2_SCORE_Y = this.GO4_P2_LABEL_Y + 24;
+        this.GO4_P2_LINES_X = this.GO4_P2_LABEL_X;
+        this.GO4_P2_LINES_Y = this.GO4_P2_LABEL_Y + 46;
+
+        this.GO4_P3_LABEL_X = this.GO4_P1_LABEL_X;
+        this.GO4_P3_LABEL_Y = this.GO4_P1_LABEL_Y + 70;
+        this.GO4_P3_SCORE_X = this.GO4_P3_LABEL_X;
+        this.GO4_P3_SCORE_Y = this.GO4_P3_LABEL_Y + 24;
+        this.GO4_P3_LINES_X = this.GO4_P3_LABEL_X;
+        this.GO4_P3_LINES_Y = this.GO4_P3_LABEL_Y + 46;
+
+        this.GO4_P4_LABEL_X = this.GO4_P2_LABEL_X;
+        this.GO4_P4_LABEL_Y = this.GO4_P2_LABEL_Y + 70;
+        this.GO4_P4_SCORE_X = this.GO4_P4_LABEL_X;
+        this.GO4_P4_SCORE_Y = this.GO4_P4_LABEL_Y + 24;
+        this.GO4_P4_LINES_X = this.GO4_P4_LABEL_X;
+        this.GO4_P4_LINES_Y = this.GO4_P4_LABEL_Y + 46;
+
+        // Dots animation timing
+        this.DOTS_INTERVAL_MS = 500;
+        this.DOTS_MAX = 3;
     }
 
     /**
@@ -29,18 +144,18 @@ class MenuRenderer {
         ) {
             this.utils.drawTextBackdrop(
                 "TETRIS",
-                TETRIS.WIDTH / 2,
+                this.SCREEN_WIDTH / 2,
                 this.TITLE_TEXT_Y,
-                "bold 72px Arial",
+                this.TITLE_FONT,
                 theme.ui.text,
                 theme,
                 this.TITLE_OUTLINE_THICKNESS
             );
             this.utils.drawTextBackdrop(
                 "ActionEngine Edition",
-                TETRIS.WIDTH / 2,
+                this.SCREEN_WIDTH / 2,
                 this.SUBTITLE_TEXT_Y,
-                "24px Arial",
+                this.SUBTITLE_FONT,
                 theme.ui.accent,
                 theme,
                 this.SUBTITLE_OUTLINE_THICKNESS
@@ -58,7 +173,7 @@ class MenuRenderer {
 
             // Draw instructions
             ctx.fillStyle = theme.ui.text;
-            ctx.font = "14px Arial";
+            ctx.font = this.INSTRUCTIONS_FONT;
             ctx.textAlign = "center";
             ctx.globalAlpha = 0.8;
 
@@ -69,8 +184,8 @@ class MenuRenderer {
             ];
 
             instructions.forEach((text, i) => {
-                const y = TETRIS.HEIGHT - 60 + i * 20;
-                this.utils.drawTextBackdrop(text, TETRIS.WIDTH / 2, y, "14px Arial", theme.ui.text, theme, 1);
+                const y = this.SCREEN_HEIGHT - 60 + i * 20;
+                this.utils.drawTextBackdrop(text, this.SCREEN_WIDTH / 2, y, this.INSTRUCTIONS_FONT, theme.ui.text, theme, 1);
             });
 
             ctx.globalAlpha = 1.0;
@@ -82,13 +197,13 @@ class MenuRenderer {
      */
     drawMainMenuButtons(game, theme) {
         const menu = game.mainMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 300;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.MAIN_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -104,15 +219,15 @@ class MenuRenderer {
      */
     drawMultiplayerMenuButtons(game, theme) {
         const menu = game.multiplayerMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 220;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.MULTIPLAYER_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
-        this.utils.drawTextBackdrop("MULTIPLAYER", TETRIS.WIDTH / 2, 150, "bold 48px Arial", theme.ui.accent, theme);
+        this.utils.drawTextBackdrop("MULTIPLAYER", this.SCREEN_WIDTH / 2, 150, this.HEADER_FONT_MD, theme.ui.accent, theme);
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -128,15 +243,15 @@ class MenuRenderer {
      */
     drawLocalMultiplayerMenuButtons(game, theme) {
         const menu = game.localMultiplayerMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 300 + menu.positionOffset;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.MAIN_MENU_START_Y + menu.positionOffset;
+        const spacing = this.BUTTON_SPACING;
 
-        this.utils.drawTextBackdrop("MULTIPLAYER", TETRIS.WIDTH / 2, 150, "bold 48px Arial", theme.ui.accent, theme);
+        this.utils.drawTextBackdrop("MULTIPLAYER", this.SCREEN_WIDTH / 2, 150, this.HEADER_FONT_MD, theme.ui.accent, theme);
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -154,12 +269,12 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Create semi-transparent overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_LIGHT;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Only draw pause menu if not in settings
         if (game.menuStack.current !== "settings") {
-            this.utils.drawTextBackdrop("PAUSED", TETRIS.WIDTH / 2, 150, "bold 48px Arial", theme.ui.accent, theme);
+            this.utils.drawTextBackdrop("PAUSED", this.SCREEN_WIDTH / 2, 150, this.HEADER_FONT_MD, theme.ui.accent, theme);
             this.drawPauseMenuButtons(game, theme);
         }
     }
@@ -169,13 +284,13 @@ class MenuRenderer {
      */
     drawPauseMenuButtons(game, theme) {
         const menu = game.pauseMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 220;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.PAUSE_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -196,20 +311,39 @@ class MenuRenderer {
         ctx.globalAlpha = game.gameOverTransition.opacity;
 
         // Create overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_DARK;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         const isMultiplayer = game.gameManager && game.gameManager.players.length > 1;
+
+        // One simple shared box for all modes (same size, same position)
+        const boxWidth = this.GAME_OVER_BOX_WIDTH;
+        const boxHeight = this.GAME_OVER_BOX_HEIGHT;
+        const boxX = this.SCREEN_WIDTH / 2 - boxWidth / 2;
+        const boxY = this.SCREEN_HEIGHT / 2 - this.GAME_OVER_BOX_OFFSET_Y;
+
+        const gradient = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxHeight);
+        gradient.addColorStop(0, theme.ui.background);
+        gradient.addColorStop(1, this.utils.darkenColor(theme.ui.background, 0.4));
+        ctx.fillStyle = gradient;
+        ctx.globalAlpha = 0.92;
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = theme.ui.border;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        ctx.strokeStyle = this.utils.lightenColor(theme.ui.border, 0.3);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX + 3, boxY + 3, boxWidth - 6, boxHeight - 6);
 
         if (isMultiplayer) {
             const winner = game.gameManager.winner;
             const players = game.gameManager.players || [];
-            const playerCount = players.length;
 
-            // Detect online mode via presence of an active NetworkSession
             const isOnline = !!game.networkSession;
 
-            // Resolve winner display name (for non-online header / listings)
             let winnerName = null;
             if (winner) {
                 const winnerPlayer = players.find((p) => p.playerNumber === winner);
@@ -225,45 +359,42 @@ class MenuRenderer {
                 }
             }
 
-            // Header
+            // Header (unchanged)
             if (isOnline && winner) {
-                // Online-specific messaging for local player outcome
                 const localWon = winner === 1;
                 const headerText = localWon ? "YOU WIN!" : "YOU LOSE!";
                 const headerColor = localWon ? theme.ui.accent : theme.ui.text;
                 this.utils.drawTextBackdrop(
                     headerText,
-                    TETRIS.WIDTH / 2,
-                    TETRIS.HEIGHT / 2 - 210,
-                    "bold 60px Arial",
+                    this.SCREEN_WIDTH / 2,
+                    this.SCREEN_HEIGHT / 2 - this.GAME_OVER_HEADER_OFFSET_Y,
+                    this.HEADER_FONT_LG,
                     headerColor,
                     theme
                 );
             } else if (winner && winnerName) {
-                // Original behavior for local / CPU / non-online multiplayer
                 this.utils.drawTextBackdrop(
                     `${winnerName} Wins!`,
-                    TETRIS.WIDTH / 2,
-                    TETRIS.HEIGHT / 2 - 210,
-                    "bold 60px Arial",
+                    this.SCREEN_WIDTH / 2,
+                    this.SCREEN_HEIGHT / 2 - this.GAME_OVER_HEADER_OFFSET_Y,
+                    this.HEADER_FONT_LG,
                     theme.ui.accent,
                     theme
                 );
             } else {
                 this.utils.drawTextBackdrop(
                     "GAME OVER",
-                    TETRIS.WIDTH / 2,
-                    TETRIS.HEIGHT / 2 - 210,
-                    "bold 60px Arial",
+                    this.SCREEN_WIDTH / 2,
+                    this.SCREEN_HEIGHT / 2 - this.GAME_OVER_HEADER_OFFSET_Y,
+                    this.HEADER_FONT_LG,
                     theme.ui.accent,
                     theme
                 );
             }
 
+            const playerCount = players.length;
             if (playerCount <= 2) {
-                // 1-2 players: vertical stack (unchanged behavior)
-                let yOffset = TETRIS.HEIGHT / 2 - 140;
-                players.forEach((player) => {
+                players.forEach((player, index) => {
                     const isWinner = winner && player.playerNumber === winner;
 
                     let baseName;
@@ -276,35 +407,20 @@ class MenuRenderer {
                         baseName = `Player ${player.playerNumber}`;
                     }
 
-                    const color = isWinner ? theme.ui.accent : theme.ui.text;
+                    const color = theme.ui.accent;
                     const label = isWinner ? `${baseName} 👑` : baseName;
 
-                    this.utils.drawTextBackdrop(label, TETRIS.WIDTH / 2, yOffset, "bold 24px Arial", color, theme);
-                    this.utils.drawTextBackdrop(
-                        `Score: ${player.score} | Lines: ${player.lines}`,
-                        TETRIS.WIDTH / 2,
-                        yOffset + 30,
-                        "20px Arial",
-                        theme.ui.text,
-                        theme
-                    );
-                    yOffset += 80;
+                    if (index === 0) {
+                        this.utils.drawTextBackdrop(label, this.GO2_P1_LABEL_X, this.GO2_P1_LABEL_Y, this.MP_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score} | Lines: ${player.lines}`, this.GO2_P1_STATS_X, this.GO2_P1_STATS_Y, this.MP_STATS_FONT, theme.ui.text, theme);
+                    } else if (index === 1) {
+                        this.utils.drawTextBackdrop(label, this.GO2_P2_LABEL_X, this.GO2_P2_LABEL_Y, this.MP_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score} | Lines: ${player.lines}`, this.GO2_P2_STATS_X, this.GO2_P2_STATS_Y, this.MP_STATS_FONT, theme.ui.text, theme);
+                    }
                 });
             } else {
-                // 3-4 players: 2x2 grid so all players 1-4 are visible with crowns
-                const columns = 2;
-                const cellWidth = 260;
-                const cellHeight = 90;
-                const startX = TETRIS.WIDTH / 2 - cellWidth; // center two columns
-                const startY = TETRIS.HEIGHT / 2 - 155; // shifted up by 15px
-
+                // Multi-player (3-4 players): use GO4_* slots and GO4_STATS_FONT for scores/lines
                 players.forEach((player, index) => {
-                    const col = index % columns;
-                    const row = Math.floor(index / columns);
-
-                    const xCenter = startX + col * cellWidth + cellWidth / 2;
-                    const yTop = startY + row * cellHeight;
-
                     const isWinner = winner && player.playerNumber === winner;
 
                     let baseName;
@@ -317,64 +433,65 @@ class MenuRenderer {
                         baseName = `Player ${player.playerNumber}`;
                     }
 
-                    const color = isWinner ? theme.ui.accent : theme.ui.text;
+                    const color = theme.ui.accent;
                     const label = isWinner ? `${baseName} 👑` : baseName;
 
-                    this.utils.drawTextBackdrop(label, xCenter, yTop, "bold 20px Arial", color, theme);
-                    this.utils.drawTextBackdrop(
-                        `Score: ${player.score}`,
-                        xCenter,
-                        yTop + 24,
-                        "16px Arial",
-                        theme.ui.text,
-                        theme
-                    );
-                    this.utils.drawTextBackdrop(
-                        `Lines: ${player.lines}`,
-                        xCenter,
-                        yTop + 46,
-                        "16px Arial",
-                        theme.ui.text,
-                        theme
-                    );
+                    if (index === 0) {
+                        this.utils.drawTextBackdrop(label, this.GO4_P1_LABEL_X, this.GO4_P1_LABEL_Y, this.GO4_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score}`, this.GO4_P1_SCORE_X, this.GO4_P1_SCORE_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                        this.utils.drawTextBackdrop(`Lines: ${player.lines}`, this.GO4_P1_LINES_X, this.GO4_P1_LINES_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                    } else if (index === 1) {
+                        this.utils.drawTextBackdrop(label, this.GO4_P2_LABEL_X, this.GO4_P2_LABEL_Y, this.GO4_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score}`, this.GO4_P2_SCORE_X, this.GO4_P2_SCORE_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                        this.utils.drawTextBackdrop(`Lines: ${player.lines}`, this.GO4_P2_LINES_X, this.GO4_P2_LINES_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                    } else if (index === 2) {
+                        this.utils.drawTextBackdrop(label, this.GO4_P3_LABEL_X, this.GO4_P3_LABEL_Y, this.GO4_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score}`, this.GO4_P3_SCORE_X, this.GO4_P3_SCORE_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                        this.utils.drawTextBackdrop(`Lines: ${player.lines}`, this.GO4_P3_LINES_X, this.GO4_P3_LINES_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                    } else if (index === 3) {
+                        this.utils.drawTextBackdrop(label, this.GO4_P4_LABEL_X, this.GO4_P4_LABEL_Y, this.GO4_NAME_FONT, color, theme);
+                        this.utils.drawTextBackdrop(`Score: ${player.score}`, this.GO4_P4_SCORE_X, this.GO4_P4_SCORE_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                        this.utils.drawTextBackdrop(`Lines: ${player.lines}`, this.GO4_P4_LINES_X, this.GO4_P4_LINES_Y, this.GO4_STATS_FONT, theme.ui.text, theme);
+                    }
                 });
             }
         } else {
-            // Single-player game over screen
+            // Single-player: explicit positions for each stat label
             this.utils.drawTextBackdrop(
                 "GAME OVER",
-                TETRIS.WIDTH / 2,
-                TETRIS.HEIGHT / 2 - 210,
-                "bold 60px Arial",
+                this.SCREEN_WIDTH / 2,
+                this.SCREEN_HEIGHT / 2 - this.GAME_OVER_HEADER_OFFSET_Y,
+                this.HEADER_FONT_LG,
                 theme.ui.accent,
                 theme
             );
             this.utils.drawTextBackdrop(
                 `Score: ${game.score}`,
-                TETRIS.WIDTH / 2,
-                TETRIS.HEIGHT / 2 - 150,
-                "bold 24px Arial",
+                this.SCREEN_WIDTH / 2,
+                this.SP_SCORE_Y,
+                this.SP_SCORE_FONT,
                 theme.ui.text,
                 theme
             );
             this.utils.drawTextBackdrop(
                 `Level: ${game.level}`,
-                TETRIS.WIDTH / 2,
-                TETRIS.HEIGHT / 2 - 115,
-                "bold 24px Arial",
+                this.SCREEN_WIDTH / 2,
+                this.SP_LEVEL_Y,
+                this.SP_LEVEL_FONT,
                 theme.ui.text,
                 theme
             );
             this.utils.drawTextBackdrop(
                 `Lines: ${game.lines}`,
-                TETRIS.WIDTH / 2,
-                TETRIS.HEIGHT / 2 - 80,
-                "bold 24px Arial",
+                this.SCREEN_WIDTH / 2,
+                this.SP_LINES_Y,
+                this.SP_LINES_FONT,
                 theme.ui.text,
                 theme
             );
         }
 
+        // Buttons unchanged, drawn below
         this.drawGameOverMenuButtons(game, theme);
 
         ctx.restore();
@@ -385,13 +502,13 @@ class MenuRenderer {
      */
     drawGameOverMenuButtons(game, theme) {
         const menu = game.networkSession ? game.onlineGameOverMenu : game.gameOverMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 300;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.GAME_OVER_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -406,7 +523,7 @@ class MenuRenderer {
      * Draw settings menu
      */
     drawSettingsMenu(game, theme) {
-        this.utils.drawTextBackdrop("SETTINGS", TETRIS.WIDTH / 2, 150, "bold 48px Arial", theme.ui.accent, theme);
+        this.utils.drawTextBackdrop("SETTINGS", this.SCREEN_WIDTH / 2, 150, this.HEADER_FONT_MD, theme.ui.accent, theme);
         this.drawSettingsMenuButtons(game, theme);
     }
 
@@ -415,13 +532,13 @@ class MenuRenderer {
      */
     drawSettingsMenuButtons(game, theme) {
         const menu = game.settingsMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 220;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.PAUSE_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -488,7 +605,7 @@ class MenuRenderer {
 
         // Text with enhanced visibility
         ctx.fillStyle = isHighlighted ? "#000000" : "#ffffff";
-        ctx.font = "bold 24px Arial";
+        ctx.font = this.LABEL_FONT_SM;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
@@ -511,15 +628,15 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_DARK;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
         this.utils.drawTextBackdrop(
             "OPPONENT DISCONNECTED",
-            TETRIS.WIDTH / 2,
-            200,
-            "bold 48px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.MAIN_MESSAGE_Y,
+            this.HEADER_FONT_MD,
             "#ff6b6b",
             theme
         );
@@ -527,9 +644,9 @@ class MenuRenderer {
         // Sub message
         this.utils.drawTextBackdrop(
             "The opponent has left the game",
-            TETRIS.WIDTH / 2,
-            250,
-            "20px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SUB_MESSAGE_Y,
+            this.LABEL_FONT_XS,
             theme.ui.text,
             theme
         );
@@ -543,13 +660,13 @@ class MenuRenderer {
      */
     drawOpponentDisconnectedMenuButtons(game, theme) {
         const menu = game.opponentDisconnectedMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 300;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.OPPONENT_DISCONNECTED_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -567,18 +684,18 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_DARK;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
-        this.utils.drawTextBackdrop("ROOM SHUT DOWN", TETRIS.WIDTH / 2, 200, "bold 48px Arial", "#ff6b6b", theme);
+        this.utils.drawTextBackdrop("ROOM SHUT DOWN", this.SCREEN_WIDTH / 2, this.MAIN_MESSAGE_Y, this.HEADER_FONT_MD, "#ff6b6b", theme);
 
         // Sub message
         this.utils.drawTextBackdrop(
             "The host has closed the room",
-            TETRIS.WIDTH / 2,
-            250,
-            "20px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SUB_MESSAGE_Y,
+            this.LABEL_FONT_XS,
             theme.ui.text,
             theme
         );
@@ -592,11 +709,11 @@ class MenuRenderer {
      */
     drawRoomShutDownMenuButtons(game, theme) {
         const menu = game.roomShutDownMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 340;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.ROOM_SHUT_DOWN_MENU_START_Y;
 
-        const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+        const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
         const y = startY;
 
         const isSelected = menu.selectedIndex === 0;
@@ -613,36 +730,36 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_MEDIUM;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
         this.utils.drawTextBackdrop(
             "WAITING FOR OPPONENT",
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2 - 40,
-            "bold 32px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2 - 40,
+            this.LABEL_FONT_MD,
             theme.ui.accent,
             theme
         );
 
         this.utils.drawTextBackdrop(
             "TO ACCEPT REMATCH",
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2,
-            "bold 32px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2,
+            this.LABEL_FONT_MD,
             theme.ui.accent,
             theme
         );
 
         // Draw animated dots
-        const dotCount = Math.floor((Date.now() / 500) % 4);
+        const dotCount = Math.floor((Date.now() / this.DOTS_INTERVAL_MS) % (this.DOTS_MAX + 1));
         const dots = ".".repeat(dotCount);
         this.utils.drawTextBackdrop(
             dots,
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2 + 50,
-            "bold 24px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2 + 50,
+            this.LABEL_FONT_SM,
             theme.ui.text,
             theme
         );
@@ -656,13 +773,13 @@ class MenuRenderer {
      */
     drawRematchPendingMenuButtons(game, theme) {
         const menu = game.rematchPendingMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 380;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.WAITING_MENU_START_Y;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
-            const y = startY + index * 80;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
+            const y = startY + index * this.BUTTON_SPACING;
 
             const isSelected = index === menu.selectedIndex;
             const isHovered = game.input && game.input.isElementHovered(`rematch_pending_button_${index}`);
@@ -678,23 +795,23 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_MEDIUM;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
         this.utils.drawTextBackdrop(
             "WAITING FOR OPPONENT",
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2 - 40,
-            "bold 32px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2 - 40,
+            this.LABEL_FONT_MD,
             theme.ui.accent,
             theme
         );
 
         // Draw animated dots
-        const dotCount = Math.floor((Date.now() / 500) % 4);
+        const dotCount = Math.floor((Date.now() / this.DOTS_INTERVAL_MS) % (this.DOTS_MAX + 1));
         const dots = ".".repeat(dotCount);
-        this.utils.drawTextBackdrop(dots, TETRIS.WIDTH / 2, TETRIS.HEIGHT / 2, "bold 24px Arial", theme.ui.text, theme);
+        this.utils.drawTextBackdrop(dots, this.SCREEN_WIDTH / 2, this.SCREEN_HEIGHT / 2, this.LABEL_FONT_SM, theme.ui.text, theme);
 
         // Draw cancel button
         this.drawWaitingMenuButtons(game, theme);
@@ -705,13 +822,13 @@ class MenuRenderer {
      */
     drawWaitingMenuButtons(game, theme) {
         const menu = game.waitingMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 380;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.WAITING_MENU_START_Y;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
-            const y = startY + index * 80;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
+            const y = startY + index * this.BUTTON_SPACING;
 
             const isSelected = index === menu.selectedIndex;
             const isHovered = game.input && game.input.isElementHovered(`waiting_menu_button_${index}`);
@@ -728,18 +845,18 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_DARK;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
-        this.utils.drawTextBackdrop("MATCH CANCELED", TETRIS.WIDTH / 2, 200, "bold 48px Arial", "#ff6b6b", theme);
+        this.utils.drawTextBackdrop("MATCH CANCELED", this.SCREEN_WIDTH / 2, this.MAIN_MESSAGE_Y, this.HEADER_FONT_MD, "#ff6b6b", theme);
 
         // Sub message
         this.utils.drawTextBackdrop(
             "The room is still open. What would you like to do?",
-            TETRIS.WIDTH / 2,
-            250,
-            "20px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SUB_MESSAGE_Y,
+            this.LABEL_FONT_XS,
             theme.ui.text,
             theme
         );
@@ -753,13 +870,13 @@ class MenuRenderer {
      */
     drawWaitingCanceledMenuButtons(game, theme) {
         const menu = game.waitingCanceledMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 300;
-        const spacing = 80;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.WAITING_CANCELED_MENU_START_Y;
+        const spacing = this.BUTTON_SPACING;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
             const isSelected = index === menu.selectedIndex;
@@ -777,15 +894,15 @@ class MenuRenderer {
         const ctx = this.ctx;
 
         // Full screen dark overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        ctx.fillStyle = this.OVERLAY_MEDIUM;
+        ctx.fillRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
 
         // Main message
         this.utils.drawTextBackdrop(
             "WAITING FOR HOST",
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2 - 40,
-            "bold 32px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2 - 40,
+            this.LABEL_FONT_MD,
             theme.ui.accent,
             theme
         );
@@ -793,21 +910,21 @@ class MenuRenderer {
         // Sub message
         this.utils.drawTextBackdrop(
             "TO START THE MATCH",
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2,
-            "bold 24px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2,
+            this.LABEL_FONT_SM,
             theme.ui.text,
             theme
         );
 
         // Draw animated dots
-        const dotCount = Math.floor((Date.now() / 500) % 4);
+        const dotCount = Math.floor((Date.now() / this.DOTS_INTERVAL_MS) % (this.DOTS_MAX + 1));
         const dots = ".".repeat(dotCount);
         this.utils.drawTextBackdrop(
             dots,
-            TETRIS.WIDTH / 2,
-            TETRIS.HEIGHT / 2 + 50,
-            "bold 24px Arial",
+            this.SCREEN_WIDTH / 2,
+            this.SCREEN_HEIGHT / 2 + 50,
+            this.LABEL_FONT_SM,
             theme.ui.text,
             theme
         );
@@ -821,13 +938,13 @@ class MenuRenderer {
      */
     drawWaitingForHostMenuButtons(game, theme) {
         const menu = game.waitingForHostMenu;
-        const buttonWidth = 240;
-        const buttonHeight = 60;
-        const startY = 380;
+        const buttonWidth = this.BUTTON_WIDTH;
+        const buttonHeight = this.BUTTON_HEIGHT;
+        const startY = this.WAITING_FOR_HOST_MENU_START_Y;
 
         menu.buttons.forEach((button, index) => {
-            const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
-            const y = startY + index * 80;
+            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
+            const y = startY + index * this.BUTTON_SPACING;
 
             const isSelected = index === menu.selectedIndex;
             const isHovered = game.input && game.input.isElementHovered(`waiting_for_host_button_${index}`);

@@ -2,6 +2,48 @@
  * UIRenderUtils - Shared rendering utilities for all UI renderers
  */
 class UIRenderUtils {
+    /**
+     * Draws a dimmed fullscreen overlay plus a framed panel with gradient background and glow border,
+     * but without any title bar or labels.
+     *
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {object} theme - Expected to have theme.ui.background and theme.ui.border
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {object} utils - color helpers: lightenColor, darkenColor
+     */
+    static drawBackgroundWithBorder(x, y, width, height, theme, ctx, utils) {
+        if (!ctx || !theme || !theme.ui) return;
+
+        // Dim entire screen behind the panel
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+
+        // Panel background gradient
+        const gradient = ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, theme.ui.background);
+        gradient.addColorStop(1, utils.darkenColor(theme.ui.background, 0.4));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, width, height);
+
+        // Outer glow border
+        ctx.strokeStyle = theme.ui.border;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = theme.ui.border;
+        ctx.shadowBlur = 15;
+        ctx.strokeRect(x, y, width, height);
+        ctx.shadowBlur = 0;
+
+        // Inner border
+        ctx.strokeStyle = utils.lightenColor(theme.ui.border, 0.3);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 3, y + 3, width - 6, height - 6);
+
+        ctx.restore();
+    }
     constructor(ctx) {
         this.ctx = ctx;
     }

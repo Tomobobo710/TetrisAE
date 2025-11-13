@@ -38,17 +38,23 @@ class WindowRenderer {
         ctx.strokeRect(windowX, windowY, windowWidth, windowHeight);
         ctx.shadowBlur = 0;
 
-        // Inner border
+        // Inner border (kept inside the outer border so content doesn't bleed)
         ctx.strokeStyle = this.utils.lightenColor(theme.ui.border, 0.3);
         ctx.lineWidth = 1;
         ctx.strokeRect(windowX + 3, windowY + 3, windowWidth - 6, windowHeight - 6);
 
-        // Title bar with gradient
-        const titleGradient = ctx.createLinearGradient(windowX, windowY, windowX, windowY + 50);
+        // Title bar with gradient (drawn fully inside the outer border)
+        const titleBarHeight = 50;
+        const titleGradient = ctx.createLinearGradient(
+            windowX + 3,
+            windowY + 3,
+            windowX + 3,
+            windowY + 3 + titleBarHeight
+        );
         titleGradient.addColorStop(0, theme.ui.accent);
         titleGradient.addColorStop(1, this.utils.darkenColor(theme.ui.accent, 0.3));
         ctx.fillStyle = titleGradient;
-        ctx.fillRect(windowX, windowY, windowWidth, 50);
+        ctx.fillRect(windowX + 3, windowY + 3, windowWidth - 6, titleBarHeight);
 
         // Title text
         ctx.fillStyle = "#ffffff";
@@ -143,12 +149,18 @@ class WindowRenderer {
         ctx.lineWidth = 1;
         ctx.strokeRect(windowX + 3, windowY + 3, windowWidth - 6, windowHeight - 6);
 
-        // Title bar
-        const titleGradient = ctx.createLinearGradient(windowX, windowY, windowX, windowY + 50);
+        // Title bar (drawn fully inside the outer border)
+        const titleBarHeight = 50;
+        const titleGradient = ctx.createLinearGradient(
+            windowX + 3,
+            windowY + 3,
+            windowX + 3,
+            windowY + 3 + titleBarHeight
+        );
         titleGradient.addColorStop(0, theme.ui.accent);
         titleGradient.addColorStop(1, this.utils.darkenColor(theme.ui.accent, 0.3));
         ctx.fillStyle = titleGradient;
-        ctx.fillRect(windowX, windowY, windowWidth, 50);
+        ctx.fillRect(windowX + 3, windowY + 3, windowWidth - 6, titleBarHeight);
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 24px Arial";
