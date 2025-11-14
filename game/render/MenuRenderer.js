@@ -19,7 +19,7 @@ class MenuRenderer {
         // Generic button layout
         this.BUTTON_WIDTH = 240;
         this.BUTTON_HEIGHT = 60;
-        this.BUTTON_SPACING = 80;
+        this.BUTTON_SPACING = 75;
 
         // Specific menu vertical offsets (absolute positions)
         this.MAIN_MENU_START_Y = 300;
@@ -168,10 +168,7 @@ class MenuRenderer {
         } else if (game.menuStack.current === "localMultiplayer") {
             this.drawLocalMultiplayerMenuButtons(game, theme);
         } else if (game.menuStack.current !== "settings" && !game.optionsWindow.visible && !game.themesWindow.visible) {
-            // Default to main menu
-            this.drawMainMenuButtons(game, theme);
-
-            // Draw instructions
+            // Draw instructions first (behind menu)
             ctx.fillStyle = theme.ui.text;
             ctx.font = this.INSTRUCTIONS_FONT;
             ctx.textAlign = "center";
@@ -189,6 +186,9 @@ class MenuRenderer {
             });
 
             ctx.globalAlpha = 1.0;
+
+            // Default to main menu (drawn on top)
+            this.drawMainMenuButtons(game, theme);
         }
     }
 
@@ -210,8 +210,52 @@ class MenuRenderer {
             const isHovered = game.input && game.input.isElementHovered(`main_button_${index}`);
             const shouldHighlight = isHovered || isSelected;
 
-            this.drawMenuButton(x, y, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
+            // Special "poop" animation for Dr. Mario button - draw UNDERNEATH first
+            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isDrMarioUnlocked()) {
+                // Add 0.5s delay before starting animation: button only emerges after delay passes
+                const effectiveTimer = Math.max(0, game.easterEgg.downHoldTimer - 0.5);
+                const progress = effectiveTimer / (game.easterEgg.unlockDuration - 0.5);
+                const clampedProgress = Math.min(1, Math.max(0, progress));
+
+                if (clampedProgress > 0) {
+                    // Calculate position: starts at same Y as settings button, moves up
+                    const settingsButtonY = startY + 2 * spacing; // Y position of settings button
+                    const targetY = startY + 3 * spacing; // Where Dr. Mario button will be
+                    const currentY = settingsButtonY - (settingsButtonY - targetY) * clampedProgress;
+
+                    // Draw the "emerging" Dr. Mario button during animation (drawn first, underneath)
+                    this.drawMenuButton(x, currentY, buttonWidth, buttonHeight, "?????", false, theme);
+                }
+            }
+
+            // Add shaking effect to SETTINGS button (index 2) when holding down or reversing, but only if not already unlocked
+            let shakeOffsetX = 0;
+            let shakeOffsetY = 0;
+            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isDrMarioUnlocked()) {
+                const progress = game.easterEgg.downHoldTimer / game.easterEgg.unlockDuration; // 0 to 1 over 3 seconds
+                const shakeIntensity = progress * 3; // Max 3px shake at full time (half as intense)
+                const shakeSpeed = 4; // Even slower shake
+                shakeOffsetX = (Math.sin(game.frameCount * shakeSpeed * 0.1) * shakeIntensity);
+                // shakeOffsetY = 0; // No vertical shake, only horizontal
+            }
+            this.drawMenuButton(x + shakeOffsetX, y + shakeOffsetY, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
         });
+
+        // Draw the actual Dr. Mario button (only when unlocked)
+        if (game.easterEgg.unlocked || game.menuManager.isDrMarioUnlocked()) {
+            const drmarioIndex = menu.buttons.findIndex(btn => btn.action === "drMario");
+            if (drmarioIndex !== -1) {
+                const button = menu.buttons[drmarioIndex];
+                const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
+                const y = startY + drmarioIndex * spacing;
+
+                const isSelected = drmarioIndex === menu.selectedIndex;
+                const isHovered = game.input && game.input.isElementHovered(`main_button_${drmarioIndex}`);
+                const shouldHighlight = isHovered || isSelected;
+
+                this.drawMenuButton(x, y, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
+            }
+        }
     }
 
     /**
@@ -277,7 +321,7 @@ class MenuRenderer {
             const isSinglePlayer = game.gameManager && game.gameManager.players.length === 1;
             // For single-player: move "PAUSED" text up by one full button height (80px) to match multiplayer spacing
             const pausedTextY = isSinglePlayer ? 70 : 150;
-            const startY = isSinglePlayer ? this.PAUSE_MENU_START_Y - this.BUTTON_SPACING : this.PAUSE_MENU_START_Y;
+            const startY = isSinglePlayer ? this.PAUSE_MENU_START_Y - 75 : this.PAUSE_MENU_START_Y;
             this.utils.drawTextBackdrop("PAUSED", this.SCREEN_WIDTH / 2, pausedTextY, this.HEADER_FONT_MD, theme.ui.accent, theme);
             // Get the menu through getter to ensure dynamic button generation
             const menu = game.menuManager.getPauseMenu();
@@ -618,6 +662,7 @@ class MenuRenderer {
             ctx.shadowBlur = 0;
         }
     }
+
 
     /**
      * Draw opponent disconnected menu

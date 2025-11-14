@@ -30,6 +30,9 @@ class GameMenuManager {
             buttonsRegistered: false
         };
 
+        // Hidden Dr. Mario option - added dynamically when unlocked
+        this.drMarioButton = { text: "?????", action: "drMario" };
+
         this.multiplayerMenu = {
             selectedIndex: 0,
             buttons: [
@@ -194,6 +197,24 @@ class GameMenuManager {
 
     getRematchPendingMenu() {
         return this.rematchPendingMenu;
+    }
+
+    /******* Easter Egg Methods *******/
+    unlockDrMario() {
+        // Add the Dr. Mario button if not already added
+        const hasDrMarioButton = this.mainMenu.buttons.some(button => button.action === "drMario");
+        if (!hasDrMarioButton) {
+            this.mainMenu.buttons.push(this.drMarioButton);
+            
+            // Force re-registration of main menu buttons to include new button
+            this.mainMenu.buttonsRegistered = false;
+            
+            console.log("🎉 Dr. Mario Easter Egg Unlocked! Hidden game discovered!");
+        }
+    }
+
+    isDrMarioUnlocked() {
+        return this.mainMenu.buttons.some(button => button.action === "drMario");
     }
     getWaitingMenu() {
         return this.waitingMenu;

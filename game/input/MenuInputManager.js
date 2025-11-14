@@ -101,6 +101,10 @@ class MenuInputManager {
                 this.game.settingsMenu.selectedIndex = 0; // Reset to top option
                 this.game.playSound("menu_confirm");
                 break;
+            case "drMario":
+                this.game.startDrMario();
+                this.unregisterMainMenuButtons();
+                break;
         }
     }
 
@@ -121,7 +125,7 @@ class MenuInputManager {
             const buttonHeight = 60;
             const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
             const startY = isSinglePlayer ? 220 - 80 : 220;
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -144,7 +148,7 @@ class MenuInputManager {
         // Check for mouse hover - mouse overrides keyboard selection
         const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
         const buttonStartY = isSinglePlayer ? 220 - 80 : 220;
-        const spacing = 80;
+        const spacing = 75;
         for (let i = 0; i < menu.buttons.length; i++) {
             const buttonX = TETRIS.WIDTH / 2 - 120; // buttonWidth/2 = 240/2 = 120
             const buttonY = buttonStartY + i * spacing;
@@ -172,7 +176,7 @@ class MenuInputManager {
             const buttonHeight = 60;
             const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
             const startY = isSinglePlayer ? 220 - 80 : 220;
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -456,7 +460,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 220; // Match pause menu positioning
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < this.game.settingsMenu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -498,7 +502,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 220; // Match pause menu positioning
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -617,7 +621,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 220; // Move up one button height for consistency
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -656,7 +660,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 220; // Move up one button height for consistency
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -777,7 +781,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 300 + this.game.localMultiplayerMenu.positionOffset; // Apply position offset
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -816,7 +820,7 @@ class MenuInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 300 + this.game.localMultiplayerMenu.positionOffset; // Apply position offset
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -916,8 +920,8 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
-        const startY = isSinglePlayer ? this.game.constructor.PAUSE_MENU_START_Y - 80 : this.game.constructor.PAUSE_MENU_START_Y;
-        const spacing = 80;
+        const startY = isSinglePlayer ? this.game.constructor.PAUSE_MENU_START_Y - 75 : this.game.constructor.PAUSE_MENU_START_Y;
+        const spacing = 75;
 
         // Get the current menu to ensure we have the right button count
         const menu = this.game.menuManager.getPauseMenu();
@@ -945,7 +949,7 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 300; // Position below title
-        const spacing = 80;
+        const spacing = 75; // Match the renderer's BUTTON_SPACING
 
         this.game.mainMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -971,7 +975,7 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 300; // Position below game over stats (moved up 150px)
-        const spacing = 80;
+        const spacing = 75;
 
         menu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -996,7 +1000,7 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 220; // Match pause menu positioning
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.settingsMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -1021,7 +1025,7 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 220; // Move up one button height for consistency
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.multiplayerMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -1046,7 +1050,7 @@ class MenuInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 300 + this.game.localMultiplayerMenu.positionOffset; // Apply position offset
-        const spacing = 80;
+        const spacing = 75; // Match the renderer's BUTTON_SPACING
 
         this.game.localMultiplayerMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;

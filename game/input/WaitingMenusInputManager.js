@@ -163,7 +163,7 @@ class WaitingMenusInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 380; // Align with BACK TO LOBBY button
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < this.game.rematchPendingMenu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -203,7 +203,7 @@ class WaitingMenusInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 380; // Align with BACK TO LOBBY button
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -385,7 +385,7 @@ class WaitingMenusInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 300;
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < this.game.waitingCanceledMenu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -425,7 +425,7 @@ class WaitingMenusInputManager {
             const buttonWidth = 240;
             const buttonHeight = 60;
             const startY = 300;
-            const spacing = 80;
+            const spacing = 75;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
                 const y = startY + i * spacing;
@@ -604,7 +604,7 @@ class WaitingMenusInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 300;
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.opponentDisconnectedMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -651,7 +651,7 @@ class WaitingMenusInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 380; // Align with BACK TO LOBBY button
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.rematchPendingMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -676,7 +676,7 @@ class WaitingMenusInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 380; // Align with rematch pending menu
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.waitingMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -701,7 +701,7 @@ class WaitingMenusInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 300;
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.waitingCanceledMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -726,7 +726,7 @@ class WaitingMenusInputManager {
         const buttonWidth = 240;
         const buttonHeight = 60;
         const startY = 380; // Align with other menus
-        const spacing = 80;
+        const spacing = 75;
 
         this.game.waitingForHostMenu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;

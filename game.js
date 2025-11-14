@@ -82,6 +82,7 @@ class Game {
 
         /******* Input State (prevents input bleed-through) *******/
         this.skipAction1ThisFrame = false;
+        this.skipDrMarioInputFrame = false;
 
         /******* Game Over Transition State *******/
         this.gameOverTransition = {
@@ -112,6 +113,16 @@ class Game {
             duration: 3.0,
             timer: 0,
             callback: null // Function to call when notification expires
+        };
+
+        /******* Easter Egg State *******/
+        this.easterEgg = {
+            downHoldTimer: 0,
+            unlocked: false,
+            unlockDuration: 3.0, // 3 seconds to unlock
+            isHoldingDown: false,
+            isReversing: false,
+            reverseDuration: 0.5 // 0.5 seconds to reverse
         };
 
         /******* Options Window *******/
@@ -222,6 +233,20 @@ class Game {
 
         this.inputHandler.handleInput(rawDeltaTime); // Input should not be affected by time scale
 
+        // Handle easter egg detection (Dr. Mario unlock)
+        this.updateEasterEgg(rawDeltaTime);
+
+        // Handle Dr. Mario game mode
+        if (this.gameState === "drMario" && this.drMarioGame) {
+            // Skip Dr. Mario input processing for one frame to prevent click-through
+            if (!this.skipDrMarioInputFrame) {
+                this.drMarioGame.update(rawDeltaTime);
+            } else {
+                this.skipDrMarioInputFrame = false;
+            }
+            return; // Skip Tetris updates when in Dr. Mario mode
+        }
+
         // Update network session for online multiplayer (handles WAITING, COUNTDOWN, PLAYING states)
         if (this.gameState === "onlineMultiplayer" && this.networkSession) {
             this.networkSession.update(deltaTime);
@@ -322,6 +347,12 @@ class Game {
 
     action_draw() {
         const theme = this.themeManager.getCurrentTheme();
+
+        // Handle Dr. Mario game mode
+        if (this.gameState === "drMario" && this.drMarioGame) {
+            this.drMarioGame.draw();
+            return; // Skip Tetris rendering when in Dr. Mario mode
+        }
 
         // Handle multiplayer login / lobby screen
         if (this.gameState === "multiplayerLogin") {
@@ -693,5 +724,125 @@ class Game {
      */
     getCPUDifficulty() {
         return this.gameSettings.cpuDifficulty;
+    }
+
+    /******* EASTER EGG METHODS *******/
+    updateEasterEgg(deltaTime) {
+        // Only check for easter egg when actually on main menu (title state)
+        if (this.gameState !== "title") {
+            // Reset timer when not on main menu
+            this.easterEgg.downHoldTimer = 0;
+            this.easterEgg.isHoldingDown = false;
+            return;
+        }
+
+        // Skip timer check if already unlocked (but don't return - we still need to preserve state)
+        if (this.easterEgg.unlocked || this.menuManager.isDrMarioUnlocked()) {
+            // Make sure the button stays unlocked
+            if (!this.menuManager.isDrMarioUnlocked()) {
+                this.menuManager.unlockDrMario();
+            }
+            return;
+        }
+
+        // Only allow holding when index 2 is selected (Settings)
+        if (this.mainMenu.selectedIndex !== 2) {
+            this.easterEgg.downHoldTimer = 0;
+            this.easterEgg.isHoldingDown = false;
+            return;
+        }
+
+        // Check if down key is being held
+        const isDownPressed = this.input.isKeyPressed("DirDown") ||
+                            this.input.isGamepadButtonPressed(13, 0) || // D-pad down on any gamepad
+                            this.input.isGamepadButtonPressed(13, 1) ||
+                            this.input.isGamepadButtonPressed(13, 2) ||
+                            this.input.isGamepadButtonPressed(13, 3);
+
+        if (isDownPressed) {
+            if (!this.easterEgg.isHoldingDown) {
+                // Just started holding down
+                this.easterEgg.isHoldingDown = true;
+                this.easterEgg.downHoldTimer = 0;
+            }
+
+            // Increment timer
+            this.easterEgg.downHoldTimer += deltaTime;
+
+            // Check if we've held long enough
+            if (this.easterEgg.downHoldTimer >= this.easterEgg.unlockDuration) {
+                this.unlockDrMario();
+            }
+        } else {
+            // Reset when key is released - start reverse animation
+            if (this.easterEgg.isHoldingDown && !this.easterEgg.isReversing && this.easterEgg.downHoldTimer > 0) {
+                // Start reverse animation - just change direction, don't reset timer
+                this.easterEgg.isReversing = true;
+            }
+            this.easterEgg.isHoldingDown = false;
+
+            // Handle reverse animation - decrement timer instead of incrementing
+            if (this.easterEgg.isReversing) {
+                this.easterEgg.downHoldTimer -= deltaTime * (this.easterEgg.unlockDuration / this.easterEgg.reverseDuration);
+
+                if (this.easterEgg.downHoldTimer <= 0) {
+                    // Animation complete, reset everything
+                    this.easterEgg.isReversing = false;
+                    this.easterEgg.downHoldTimer = 0;
+                }
+            }
+        }
+    }
+
+    unlockDrMario() {
+        this.easterEgg.unlocked = true;
+        this.menuManager.unlockDrMario();
+        
+        // Play a special unlock sound
+        this.playSound("change_theme", { volume: 0.7 });
+        
+        // Add some visual flair
+        this.flashEffect = {
+            active: true,
+            color: "#ffff00", // Golden flash
+            alpha: 0.3
+        };
+    }
+
+    // Method called by Dr. Mario to return to Tetris
+    returnFromDrMario() {
+        console.log("🎲 Returning to Tetris from Dr. Mario...");
+        
+        // Clean up Dr. Mario state
+        if (this.drMarioGame) {
+            this.drMarioGame.inputManager.cleanup();
+        }
+        
+        // Return to Tetris main menu
+        this.gameState = "title";
+        this.menuStack.current = null;
+        
+        // Play transition sound
+        this.playSound("menu_back");
+    }
+
+    // Method to start Dr. Mario game
+    startDrMario() {
+        console.log("🎮 Starting Dr. Mario game...");
+        this.playSound("menu_confirm");
+
+        // Initialize Dr. Mario game
+        if (!this.drMarioGame) {
+            this.drMarioGame = new DrMarioGame(this);
+        }
+
+        // Skip input for one frame to prevent click-through from menu transition
+        this.skipDrMarioInputFrame = true;
+
+        // Switch to Dr. Mario mode
+        this.gameState = "drMario";
+        this.menuStack.current = "drMario";
+
+        console.log("🎉 Dr. Mario launched successfully!");
     }
 }
