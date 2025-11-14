@@ -326,10 +326,10 @@ class MenuRenderer {
         gradient.addColorStop(0, theme.ui.background);
         gradient.addColorStop(1, this.utils.darkenColor(theme.ui.background, 0.4));
         ctx.fillStyle = gradient;
-        ctx.globalAlpha = 0.92;
+        ctx.globalAlpha = 0.92 * game.gameOverTransition.opacity;
         ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 1.0 * game.gameOverTransition.opacity;
         ctx.strokeStyle = theme.ui.border;
         ctx.lineWidth = 3;
         ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
