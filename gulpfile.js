@@ -152,6 +152,16 @@ gulp.task('bundle', function() {
     'game/player/NetworkedPlayer.js',
     'game/network/NetworkSession.js',
 
+    // Dr. Mario Easter Egg Modules
+    'game/drmario/DrMarioConstants.js',
+    'game/drmario/capsule/Cell.js',
+    'game/drmario/capsule/Capsule.js',
+    'game/drmario/DrMarioAudioManager.js',
+    'game/drmario/DrMarioGameLogic.js',
+    'game/drmario/DrMarioInputManager.js',
+    'game/drmario/DrMarioRenderer.js',
+    'game/drmario/DrMarioGame.js',
+
     // Audio + sound constants
     'game/soundconstants.js',
     'game/AudioManager.js',
