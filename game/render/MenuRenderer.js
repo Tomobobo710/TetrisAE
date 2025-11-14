@@ -274,32 +274,30 @@ class MenuRenderer {
 
         // Only draw pause menu if not in settings
         if (game.menuStack.current !== "settings") {
-            this.utils.drawTextBackdrop("PAUSED", this.SCREEN_WIDTH / 2, 150, this.HEADER_FONT_MD, theme.ui.accent, theme);
-            this.drawPauseMenuButtons(game, theme);
+            const isSinglePlayer = game.gameManager && game.gameManager.players.length === 1;
+            // For single-player: move "PAUSED" text up by one full button height (80px) to match multiplayer spacing
+            const pausedTextY = isSinglePlayer ? 70 : 150;
+            const startY = isSinglePlayer ? this.PAUSE_MENU_START_Y - this.BUTTON_SPACING : this.PAUSE_MENU_START_Y;
+            this.utils.drawTextBackdrop("PAUSED", this.SCREEN_WIDTH / 2, pausedTextY, this.HEADER_FONT_MD, theme.ui.accent, theme);
+            // Get the menu through getter to ensure dynamic button generation
+            const menu = game.menuManager.getPauseMenu();
+            const buttonWidth = this.BUTTON_WIDTH;
+            const buttonHeight = this.BUTTON_HEIGHT;
+            const spacing = this.BUTTON_SPACING;
+
+            menu.buttons.forEach((button, index) => {
+                const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
+                const y = startY + index * spacing;
+
+                const isSelected = index === menu.selectedIndex;
+                const isHovered = game.input && game.input.isElementHovered(`pause_button_${index}`);
+                const shouldHighlight = isHovered || isSelected;
+
+                this.drawMenuButton(x, y, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
+            });
         }
     }
 
-    /**
-     * Draw pause menu buttons
-     */
-    drawPauseMenuButtons(game, theme) {
-        const menu = game.pauseMenu;
-        const buttonWidth = this.BUTTON_WIDTH;
-        const buttonHeight = this.BUTTON_HEIGHT;
-        const startY = this.PAUSE_MENU_START_Y;
-        const spacing = this.BUTTON_SPACING;
-
-        menu.buttons.forEach((button, index) => {
-            const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
-            const y = startY + index * spacing;
-
-            const isSelected = index === menu.selectedIndex;
-            const isHovered = game.input && game.input.isElementHovered(`pause_button_${index}`);
-            const shouldHighlight = isHovered || isSelected;
-
-            this.drawMenuButton(x, y, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
-        });
-    }
 
     /**
      * Draw game over overlay

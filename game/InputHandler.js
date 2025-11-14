@@ -221,6 +221,13 @@ class InputHandler {
             // Pausing - save current state and change to appropriate paused state
             this.game.menuStack.pausedGameState = this.game.gameState;
 
+            // Set default selected index: RESUME (1) for single-player, RESUME (0) for multiplayer
+            if (this.game.gameManager && this.game.gameManager.players.length === 1) {
+                this.game.pauseMenu.selectedIndex = 1;
+            } else {
+                this.game.pauseMenu.selectedIndex = 0;
+            }
+
             // Use different pause state for online multiplayer to keep game running
             if (this.game.gameState === "onlineMultiplayer") {
                 this.game.gameState = "onlineMultiplayerPaused";

@@ -17,11 +17,6 @@ class GameMenuManager {
 
         this.pauseMenu = {
             selectedIndex: 0,
-            buttons: [
-                { text: "RESUME", action: "resume" },
-                { text: "SETTINGS", action: "settings" },
-                { text: "MAIN MENU", action: "mainMenu" }
-            ],
             buttonsRegistered: false
         };
 
@@ -163,6 +158,24 @@ class GameMenuManager {
         return this.mainMenu;
     }
     getPauseMenu() {
+        // Dynamically build pause menu based on player count
+        const isSinglePlayer = this.game && this.game.gameManager && this.game.gameManager.players.length === 1;
+
+        if (isSinglePlayer) {
+            this.pauseMenu.buttons = [
+                { text: "NEW GAME", action: "newGame" },
+                { text: "RESUME", action: "resume" },
+                { text: "SETTINGS", action: "settings" },
+                { text: "MAIN MENU", action: "mainMenu" }
+            ];
+        } else {
+            this.pauseMenu.buttons = [
+                { text: "RESUME", action: "resume" },
+                { text: "SETTINGS", action: "settings" },
+                { text: "MAIN MENU", action: "mainMenu" }
+            ];
+        }
+
         return this.pauseMenu;
     }
     getSettingsMenu() {

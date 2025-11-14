@@ -119,7 +119,8 @@ class MenuInputManager {
             const pointer = this.input.getPointerPosition();
             const buttonWidth = 240;
             const buttonHeight = 60;
-            const startY = 220;
+            const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
+            const startY = isSinglePlayer ? 220 - 80 : 220;
             const spacing = 80;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -141,8 +142,19 @@ class MenuInputManager {
         }
 
         // Check for mouse hover - mouse overrides keyboard selection
+        const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
+        const buttonStartY = isSinglePlayer ? 220 - 80 : 220;
+        const spacing = 80;
         for (let i = 0; i < menu.buttons.length; i++) {
-            if (this.input && this.input.isElementHovered(`pause_button_${i}`)) {
+            const buttonX = TETRIS.WIDTH / 2 - 120; // buttonWidth/2 = 240/2 = 120
+            const buttonY = buttonStartY + i * spacing;
+            const buttonWidth = 240;
+            const buttonHeight = 60;
+
+            // Check if mouse is hovering over this button
+            const pointer = this.input.getPointerPosition();
+            if (pointer.x >= buttonX && pointer.x <= buttonX + buttonWidth &&
+                pointer.y >= buttonY && pointer.y <= buttonY + buttonHeight) {
                 if (menu.selectedIndex !== i) {
                     menu.selectedIndex = i;
                     if (!this.game.skipMenuNavigateSound) {
@@ -158,7 +170,8 @@ class MenuInputManager {
             const pointer = this.input.getPointerPosition();
             const buttonWidth = 240;
             const buttonHeight = 60;
-            const startY = 220;
+            const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
+            const startY = isSinglePlayer ? 220 - 80 : 220;
             const spacing = 80;
             for (let i = 0; i < menu.buttons.length; i++) {
                 const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
@@ -215,6 +228,11 @@ class MenuInputManager {
      */
     executePauseMenuAction(action) {
         switch (action) {
+            case "newGame":
+                // Start a new single-player game
+                this.game.resetGame();
+                this.game.playSound("menu_confirm");
+                break;
             case "resume":
                 this.game.gameState = this.game.menuStack.pausedGameState || "playing";
                 this.game.menuStack.current = null;
@@ -897,10 +915,14 @@ class MenuInputManager {
 
         const buttonWidth = 240;
         const buttonHeight = 60;
-        const startY = 220;
+        const isSinglePlayer = this.game.gameManager && this.game.gameManager.players.length === 1;
+        const startY = isSinglePlayer ? this.game.constructor.PAUSE_MENU_START_Y - 80 : this.game.constructor.PAUSE_MENU_START_Y;
         const spacing = 80;
 
-        this.game.pauseMenu.buttons.forEach((button, index) => {
+        // Get the current menu to ensure we have the right button count
+        const menu = this.game.menuManager.getPauseMenu();
+
+        menu.buttons.forEach((button, index) => {
             const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
             const y = startY + index * spacing;
 
