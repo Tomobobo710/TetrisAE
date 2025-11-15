@@ -354,8 +354,15 @@ class ControlsWindowManager {
      */
     registerElements() {
         const win = this.game.controlsWindow;
-        const rowHeight = 32;
-        const headerHeight = 80;
+
+        // Update window dimensions and position from constants
+        win.width = ControlsLayoutConstants.WINDOW_WIDTH;
+        win.height = ControlsLayoutConstants.WINDOW_HEIGHT;
+        win.x = ControlsLayoutConstants.WINDOW_X;
+        win.y = ControlsLayoutConstants.WINDOW_Y;
+
+        const rowHeight = ControlsLayoutConstants.ROW_HEIGHT + ControlsLayoutConstants.ACTION_ROW_SPACING;
+        const headerHeight = ControlsLayoutConstants.HEADER_HEIGHT;
         const listY = win.y + headerHeight;
 
         // Refresh the data to ensure we have current controls
@@ -369,61 +376,61 @@ class ControlsWindowManager {
             // Keyboard primary
             this.input.registerElement(`controls_action_${actionIndex}_kb_primary`, {
                 bounds: () => ({
-                    x: win.x + 175,
-                    y: rowY,
-                    width: 90,
-                    height: rowHeight - 2
+                    x: win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X,
+                    y: rowY + ControlsLayoutConstants.PRIMARY_KEYBOARD_Y,
+                    width: ControlsLayoutConstants.PRIMARY_KEYBOARD_WIDTH,
+                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
                 })
             });
 
             // Keyboard alt
             this.input.registerElement(`controls_action_${actionIndex}_kb_alt`, {
                 bounds: () => ({
-                    x: win.x + 285,
-                    y: rowY,
-                    width: 80,
-                    height: rowHeight - 2
+                    x: win.x + ControlsLayoutConstants.ALT_KEYBOARD_X,
+                    y: rowY + ControlsLayoutConstants.ALT_KEYBOARD_Y,
+                    width: ControlsLayoutConstants.ALT_KEYBOARD_WIDTH,
+                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
                 })
             });
 
             // Gamepad primary
             this.input.registerElement(`controls_action_${actionIndex}_gp_primary`, {
                 bounds: () => ({
-                    x: win.x + 375,
-                    y: rowY,
-                    width: 90,
-                    height: rowHeight - 2
+                    x: win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X,
+                    y: rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y,
+                    width: ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH,
+                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
                 })
             });
 
             // Gamepad alt
             this.input.registerElement(`controls_action_${actionIndex}_gp_alt`, {
                 bounds: () => ({
-                    x: win.x + 485,
-                    y: rowY,
-                    width: 80,
-                    height: rowHeight - 2
+                    x: win.x + ControlsLayoutConstants.ALT_GAMEPAD_X,
+                    y: rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y,
+                    width: ControlsLayoutConstants.ALT_GAMEPAD_WIDTH,
+                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
                 })
             });
         }
 
         // Register buttons
-        const buttonY = win.y + win.height - 60;
+        const buttonY = win.y + win.height - ControlsLayoutConstants.BUTTON_Y_OFFSET;
         this.input.registerElement('controls_default_button', {
             bounds: () => ({
-                x: win.x + 50,
+                x: win.x + ControlsLayoutConstants.DEFAULT_BUTTON_X_OFFSET,
                 y: buttonY,
-                width: 100,
-                height: 35
+                width: ControlsLayoutConstants.DEFAULT_BUTTON_WIDTH,
+                height: ControlsLayoutConstants.DEFAULT_BUTTON_HEIGHT
             })
         });
 
         this.input.registerElement('controls_close_button', {
             bounds: () => ({
-                x: win.x + win.width - 150,
+                x: win.x + win.width - ControlsLayoutConstants.CLOSE_BUTTON_X_OFFSET,
                 y: buttonY,
-                width: 100,
-                height: 35
+                width: ControlsLayoutConstants.CLOSE_BUTTON_WIDTH,
+                height: ControlsLayoutConstants.CLOSE_BUTTON_HEIGHT
             })
         });
 

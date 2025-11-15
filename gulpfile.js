@@ -128,6 +128,9 @@ gulp.task('bundle', function() {
     // Modal Components
     'game/input/InputWaitingModal.js',
     'game/input/ConfirmModal.js',
+
+    // Shared Layout Constants
+    'game/render/ControlsLayoutConstants.js',
     
     'game/InputHandler.js',
     
@@ -140,7 +143,17 @@ gulp.task('bundle', function() {
     'game/render/MenuRenderer.js',
     'game/render/GameUIRenderer.js',
     'game/render/OverlayRenderer.js',
+
+    // Window Rendering System
+    'game/render/WindowRendererUtils.js',
+    'game/render/OptionsWindowRenderer.js',
+    'game/render/ThemesWindowRenderer.js',
+    'game/render/ControlsWindowRenderer.js',
+    'game/render/ConfirmModalRenderer.js',
+    'game/render/InputWaitingModalRenderer.js',
+    'game/render/WindowRendererCoordinator.js',
     'game/render/WindowRenderer.js',
+
     'game/render/UIRenderer.js',
     
     // Theme System
