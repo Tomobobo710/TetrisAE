@@ -110,12 +110,13 @@ class OverlayRenderer {
             const cellSize = layout.gameArea.cellSize;
             const gridWidth = cellSize * TETRIS.GRID.COLS;
             const gridHeight = cellSize * TETRIS.GRID.VISIBLE_ROWS;
-            const centerX = layout.gameArea.x + gridWidth / 2;
-            const centerY = layout.gameArea.y + gridHeight / 2;
+            const centerX = Math.round(layout.gameArea.x + gridWidth / 2);
+            const centerY = Math.round(layout.gameArea.y + gridHeight / 2);
 
             // Scale fonts based on grid size so 1P > 2P > 3/4P naturally.
-            const baseNumberSize = Math.max(28, Math.min(72, cellSize * 3.2));
-            const baseLabelSize = Math.max(12, Math.min(28, cellSize * 1.4));
+            // Round to integer to prevent subpixel rendering jitter
+            const baseNumberSize = Math.round(Math.max(28, Math.min(72, cellSize * 3.2)));
+            const baseLabelSize = Math.round(Math.max(12, Math.min(28, cellSize * 1.4)));
 
             let mainText = "";
             let mainFont = `bold ${baseNumberSize}px Arial`;
@@ -124,15 +125,23 @@ class OverlayRenderer {
             let alpha = 1.0;
             let pulsing = false;
 
+            // Smooth countdown rendering: numbers fade, "GET READY!" stays solid
             if (phase === "countdown") {
-                // 3, 2, 1 phase
+                // 3, 2, 1 phase - numbers fade in/out, label stays solid
                 mainText = countdown.countdownNumber != null
                     ? countdown.countdownNumber.toString()
                     : "";
                 labelText = "GET READY!";
-                pulsing = true;
+
+                // Numbers fade in/out within each second, "GET READY!" stays at full alpha
+                const timerWithinSecond = countdown.timer % 1.0;
+                if (timerWithinSecond < 0.1) {
+                    alpha = timerWithinSecond * 10; // fade in first 0.1s
+                } else if (timerWithinSecond > 0.9) {
+                    alpha = (1.0 - timerWithinSecond) * 10; // fade out last 0.1s
+                }
             } else if (phase === "go") {
-                // GO phase with fade out based on timer (0..1s typical)
+                // GO phase with smooth fade out
                 mainText = "GO!";
                 labelText = "";
                 const t = Math.max(0, Math.min(1, countdown.timer || 0));
@@ -145,57 +154,47 @@ class OverlayRenderer {
                 return;
             }
 
-            ctx.save();
-            ctx.globalAlpha *= alpha;
+            // Use integer coordinates for all rendering to prevent subpixel issues
+            const renderX = Math.round(centerX);
+            const renderY = Math.round(centerY);
 
-            // "GET READY!" label above number
+            // "GET READY!" label above number - always full alpha, no fade
             if (labelText) {
+                ctx.save();
+                ctx.globalAlpha = 1.0; // Override any global alpha for label
                 ctx.fillStyle = theme.ui.text || "#FFFFFF";
                 ctx.font = labelFont;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "bottom";
+                const labelY = Math.round(centerY - baseNumberSize * 1.2);
                 this.utils.drawTextBackdrop(
                     labelText,
-                    centerX,
-                    centerY - baseNumberSize * 0.9,
+                    renderX,
+                    labelY,
                     ctx.font,
                     theme.ui.text || "#FFFFFF",
                     theme
                 );
+                ctx.restore();
             }
 
-            // Main countdown / GO text
+            // Main countdown / GO text - apply fade alpha to numbers only
             if (mainText) {
+                ctx.save();
+                ctx.globalAlpha *= alpha; // Apply fade only to numbers
                 ctx.fillStyle = theme.ui.accent || "#FFFFFF";
                 ctx.font = mainFont;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-
-                if (pulsing) {
-                    const pulse = 1.0 + Math.sin((countdown.timer || 0) * Math.PI * 2) * 0.12;
-                    ctx.save();
-                    ctx.translate(centerX, centerY);
-                    ctx.scale(pulse, pulse);
-                    ctx.translate(-centerX, -centerY);
-                    this.utils.drawTextBackdrop(
-                        mainText,
-                        centerX,
-                        centerY,
-                        ctx.font,
-                        theme.ui.accent || "#FFFFFF",
-                        theme
-                    );
-                    ctx.restore();
-                } else {
-                    this.utils.drawTextBackdrop(
-                        mainText,
-                        centerX,
-                        centerY,
-                        ctx.font,
-                        theme.ui.accent || "#FFFFFF",
-                        theme
-                    );
-                }
+                this.utils.drawTextBackdrop(
+                    mainText,
+                    renderX,
+                    renderY,
+                    ctx.font,
+                    theme.ui.accent || "#FFFFFF",
+                    theme
+                );
+                ctx.restore();
             }
 
             ctx.restore();
