@@ -147,6 +147,28 @@ class Game {
             rightColumnMax: 8
         };
 
+        /******* Controls Window *******/
+        this.controlsWindow = {
+            visible: false,
+            selectedActionIndex: 0,
+            selectedColumn: 0, // 0 = kb primary, 1 = kb alt, 2 = gp primary, 3 = gp alt
+            navigatingButtons: false, // true when navigating DEFAULT/CLOSE buttons
+            selectedButtonIndex: 0, // 0 = DEFAULT, 1 = CLOSE when navigatingButtons is true
+            isWaitingForInput: false,
+            waitingForAction: null,
+            waitingForInputType: null, // 'keyboard' or 'gamepad'
+            waitingForColumn: null, // which column (primary/alt for keyboard/gamepad)
+            waitingTimeout: 0,
+            waitingTimeoutDuration: 3000, // 3 seconds
+            actions: [], // Will be populated from controls manager
+            scrollOffset: 0,
+            maxVisibleActions: 10, // How many actions visible at once
+            width: 800,
+            height: 500,
+            x: (TETRIS.WIDTH - 800) / 2,
+            y: (TETRIS.HEIGHT - 500) / 2
+        };
+
         /******* Game Settings (persisted to localStorage) *******/
         this.gameSettings = this.loadSettings();
 
@@ -174,6 +196,17 @@ class Game {
 
         // Input handling system
         this.inputHandler = new InputHandler(this);
+        
+        // Custom controls system
+        this.customControls = new CustomControlsIntegration(this);
+
+        // Initialize controls window actions from controls manager
+        if (this.customControls) {
+            this.controlsWindow.actions = this.customControls.getControlsManager().getActionList();
+        }
+        
+        // Wire up custom controls to gameplay input manager
+        this.inputHandler.gameplayManager.setCustomControlsAdapter(this.customControls.getInputAdapter());
 
         // Wire ActionNetInputManager to GUI events so all ActionNet glue lives outside Game.
         this.inputHandler.actionNetInputManager.wireGUIEvents();
@@ -220,6 +253,7 @@ class Game {
         const currentTime = performance.now();
         const rawDeltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1);
         this.lastTime = currentTime;
+        this.lastDeltaTime = rawDeltaTime;
         this.frameCount++;
 
         // Apply time scale for slow motion effects (maintain compatibility)
@@ -232,6 +266,9 @@ class Game {
         }
 
         this.inputHandler.handleInput(rawDeltaTime); // Input should not be affected by time scale
+        
+        // Update custom controls system
+        this.customControls.update(rawDeltaTime);
 
         // Handle easter egg detection (Dr. Mario unlock)
         this.updateEasterEgg(rawDeltaTime);
@@ -393,6 +430,7 @@ class Game {
 
         // Clear debug layer
         this.debugCtx.clearRect(0, 0, TETRIS.WIDTH, TETRIS.HEIGHT);
+        
     }
 
     /******* CORE TETRIS MECHANICS *******/

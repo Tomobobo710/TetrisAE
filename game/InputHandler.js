@@ -35,14 +35,23 @@ class InputHandler {
      * Main input handler - called every frame
      */
     handleInput(deltaTime) {
-        // Global theme cycling (works in all states)
-        if (
-            this.input.isKeyJustPressed("Action4") ||
-            (this.input.isGamepadConnected(0) && this.input.isGamepadButtonJustPressed(2, 0)) ||
-            (this.input.isGamepadConnected(1) && this.input.isGamepadButtonJustPressed(2, 1)) ||
-            (this.input.isGamepadConnected(2) && this.input.isGamepadButtonJustPressed(2, 2)) ||
-            (this.input.isGamepadConnected(3) && this.input.isGamepadButtonJustPressed(2, 3))
-        ) {
+        // Global theme cycling (works in all states) - use custom controls if available
+        const customInput = this.input.getCustomControlsAdapter();
+        let themeChangePressed = false;
+        
+        if (customInput) {
+            themeChangePressed = customInput.isActionJustPressed('themeChange');
+        } else {
+            // Fallback to original controls
+            themeChangePressed = 
+                this.input.isKeyJustPressed("Action4") ||
+                (this.input.isGamepadConnected(0) && this.input.isGamepadButtonJustPressed(2, 0)) ||
+                (this.input.isGamepadConnected(1) && this.input.isGamepadButtonJustPressed(2, 1)) ||
+                (this.input.isGamepadConnected(2) && this.input.isGamepadButtonJustPressed(2, 2)) ||
+                (this.input.isGamepadConnected(3) && this.input.isGamepadButtonJustPressed(2, 3));
+        }
+        
+        if (themeChangePressed) {
             this.game.themeManager.cycleTheme();
             this.game.playSound("change_theme");
         }
@@ -149,14 +158,22 @@ class InputHandler {
             return;
         }
 
-        // Handle pause/unpause input
-        if (
-            this.input.isKeyJustPressed("Action7") ||
-            this.input.isGamepadButtonJustPressed(9, 0) ||
-            this.input.isGamepadButtonJustPressed(9, 1) ||
-            this.input.isGamepadButtonJustPressed(9, 2) ||
-            this.input.isGamepadButtonJustPressed(9, 3)
-        ) {
+        // Handle pause/unpause input - use custom controls if available
+        const customInput = this.input.getCustomControlsAdapter();
+        let pausePressed = false;
+        
+        if (customInput) {
+            pausePressed = customInput.isActionJustPressed('pause');
+        } else {
+            // Fallback to original controls
+            pausePressed = this.input.isKeyJustPressed("Action7") ||
+                this.input.isGamepadButtonJustPressed(9, 0) ||
+                this.input.isGamepadButtonJustPressed(9, 1) ||
+                this.input.isGamepadButtonJustPressed(9, 2) ||
+                this.input.isGamepadButtonJustPressed(9, 3);
+        }
+        
+        if (pausePressed) {
             // Don't allow pausing during countdown in online multiplayer
             if (this.game.networkSession) {
                 const sessionState = this.game.networkSession.getState();
@@ -179,6 +196,9 @@ class InputHandler {
                 return;
             } else if (this.game.themesWindow.visible) {
                 this.uiWindowsManager.handleThemesWindowInput();
+                return;
+            } else if (this.game.controlsWindow.visible) {
+                this.uiWindowsManager.handleControlsWindowInput();
                 return;
             } else if (this.game.menuStack.current === "settings") {
                 this.menuManager.handleSettingsMenuInput();
@@ -205,9 +225,11 @@ class InputHandler {
             // Unpausing - close all open windows and menus first
             this.game.optionsWindow.visible = false;
             this.game.themesWindow.visible = false;
+            this.game.controlsWindow.visible = false;
             this.game.menuStack.current = null;
             this.uiWindowsManager.unregisterOptionsWindowElements();
             this.uiWindowsManager.unregisterThemesWindowElements();
+            this.uiWindowsManager.unregisterControlsWindowElements();
             this.menuManager.unregisterSettingsMenuButtons();
             this.menuManager.unregisterPauseMenuButtons();
 
@@ -248,6 +270,8 @@ class InputHandler {
             this.uiWindowsManager.handleOptionsWindowInput();
         } else if (this.game.themesWindow.visible) {
             this.uiWindowsManager.handleThemesWindowInput();
+        } else if (this.game.controlsWindow.visible) {
+            this.uiWindowsManager.handleControlsWindowInput();
         } else if (this.game.menuStack.current === "settings") {
             this.menuManager.handleSettingsMenuInput();
         } else if (this.game.menuStack.current === "multiplayer") {

@@ -4,6 +4,10 @@ class ActionInputHandler {
         this.canvases = canvases;
         this.virtualControls = false;
         this.isPaused = false;
+        
+        // Custom controls support
+        this.customControlsEnabled = false;
+        this.customControlsAdapter = null;
 
         // Track which context we're in (update or fixed_update)
         this.currentContext = 'update';
@@ -15,6 +19,8 @@ class ActionInputHandler {
         // Setup action mappings
         this.setupActionMap();
         this.setupGamepadActionMap();
+        
+        // Custom controls will override these when enabled
         
         // Gamepad state
         this.gamepads = new Map(); // Store gamepad states by index
@@ -1641,5 +1647,17 @@ class ActionInputHandler {
                 }
             }
         }
+    }
+    
+    // Custom Controls Support - lightweight integration
+    // Only provides access for gameplay, menus continue using existing system
+    
+    setCustomControlsAdapter(customControlsAdapter) {
+        this.customControlsAdapter = customControlsAdapter;
+        console.log('[ActionInputHandler] Custom controls adapter set');
+    }
+    
+    getCustomControlsAdapter() {
+        return this.customControlsAdapter;
     }
 }

@@ -586,6 +586,14 @@ class MenuInputManager {
                 this.uiWindowsManager.registerThemesWindowElements();
                 this.game.playSound("menu_confirm");
                 break;
+            case "controls":
+                this.game.controlsWindow.visible = true;
+                this.game.controlsWindow.selectedActionIndex = 0;
+                this.game.controlsWindow.selectedColumn = 0;
+                this.unregisterSettingsMenuButtons();
+                this.uiWindowsManager.registerControlsWindowElements();
+                this.game.playSound("menu_confirm");
+                break;
             case "back":
                 const previousMenu = this.game.menuStack.previous;
                 this.game.menuStack.current = previousMenu;

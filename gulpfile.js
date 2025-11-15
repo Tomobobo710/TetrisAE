@@ -116,6 +116,12 @@ gulp.task('bundle', function() {
     'game/input/GameplayInputManager.js',
     'game/input/WaitingMenusInputManager.js',
     'game/input/ActionNetInputManager.js',
+    
+    // Custom Controls System
+    'game/input/CustomControlsManager.js',
+    'game/input/CustomInputAdapter.js',
+    'game/input/CustomControlsIntegration.js',
+    
     'game/InputHandler.js',
     
     'game/ThemeManager.js',

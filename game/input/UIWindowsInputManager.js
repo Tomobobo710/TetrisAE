@@ -418,6 +418,385 @@ class UIWindowsInputManager {
     }
 
     /**
+     * Handle controls window input
+     */
+    handleControlsWindowInput() {
+        const win = this.game.controlsWindow;
+
+        // If showing confirm modal, handle that first
+        // This completely blocks all main modal interactions while confirm modal is visible
+        if (win.showingConfirmModal) {
+            this.handleConfirmModalInput();
+            return; // Don't process any other controls window input
+        }
+
+        // If waiting for input, capture any key/button press
+        if (win.isWaitingForInput) {
+            this.handleControlsWaitingForInput();
+            return;
+        }
+
+        // Handle mouse clicks on action rows
+        for (let i = 0; i < Math.min(win.maxVisibleActions, win.actions.length - win.scrollOffset); i++) {
+            const actionIndex = i + win.scrollOffset;
+
+            // Check all 4 column clicks
+            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_primary`)) {
+                this.startControlsWaitingForInput(actionIndex, 'keyboard', 'primary');
+                return;
+            }
+            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_alt`)) {
+                this.startControlsWaitingForInput(actionIndex, 'keyboard', 'alt');
+                return;
+            }
+            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_primary`)) {
+                this.startControlsWaitingForInput(actionIndex, 'gamepad', 'primary');
+                return;
+            }
+            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_alt`)) {
+                this.startControlsWaitingForInput(actionIndex, 'gamepad', 'alt');
+                return;
+            }
+
+            // Update selection on hover for all 4 columns - switch to action navigation mode
+            if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_primary`)) {
+                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 0 || win.navigatingButtons) {
+                    win.selectedActionIndex = actionIndex;
+                    win.selectedColumn = 0;
+                    win.navigatingButtons = false; // Switch to action navigation
+                    this.game.playSound('menu_navigate');
+                }
+            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_alt`)) {
+                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 1 || win.navigatingButtons) {
+                    win.selectedActionIndex = actionIndex;
+                    win.selectedColumn = 1;
+                    win.navigatingButtons = false; // Switch to action navigation
+                    this.game.playSound('menu_navigate');
+                }
+            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_primary`)) {
+                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 2 || win.navigatingButtons) {
+                    win.selectedActionIndex = actionIndex;
+                    win.selectedColumn = 2;
+                    win.navigatingButtons = false; // Switch to action navigation
+                    this.game.playSound('menu_navigate');
+                }
+            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_alt`)) {
+                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 3 || win.navigatingButtons) {
+                    win.selectedActionIndex = actionIndex;
+                    win.selectedColumn = 3;
+                    win.navigatingButtons = false; // Switch to action navigation
+                    this.game.playSound('menu_navigate');
+                }
+            }
+        }
+
+        // Handle DEFAULT button click
+        if (this.input.isElementJustPressed('controls_default_button')) {
+            win.navigatingButtons = true; // Ensure we're in button navigation mode
+            win.selectedButtonIndex = 0; // Select DEFAULT
+            this.game.playSound('menu_confirm'); // Play confirmation sound when clicking DEFAULT
+            // Handle reset confirmation through the window system
+            win.showingConfirmModal = true;
+            this.registerConfirmModalElements();
+            return;
+        }
+
+        // Handle CLOSE button click
+        if (this.input.isElementJustPressed('controls_close_button')) {
+            win.navigatingButtons = true; // Ensure we're in button navigation mode
+            win.selectedButtonIndex = 1; // Select CLOSE
+            this.closeControlsWindow();
+            return;
+        }
+
+        // Handle DEFAULT button hover - switch to button navigation mode
+        if (this.input.isElementHovered('controls_default_button')) {
+            if (!win.navigatingButtons || win.selectedButtonIndex !== 0) {
+                win.navigatingButtons = true;
+                win.selectedButtonIndex = 0;
+                win.selectedActionIndex = -1; // Clear action selection
+                win.selectedColumn = -1;
+                this.game.playSound('menu_navigate');
+            }
+        }
+
+        // Handle CLOSE button hover - switch to button navigation mode
+        if (this.input.isElementHovered('controls_close_button')) {
+            if (!win.navigatingButtons || win.selectedButtonIndex !== 1) {
+                win.navigatingButtons = true;
+                win.selectedButtonIndex = 1;
+                win.selectedActionIndex = -1; // Clear action selection
+                win.selectedColumn = -1;
+                this.game.playSound('menu_navigate');
+            }
+        }
+
+        // Keyboard navigation
+        this.handleControlsKeyboardNavigation();
+    }
+
+    handleControlsKeyboardNavigation() {
+        const win = this.game.controlsWindow;
+
+        // Multi-device navigation - use existing API directly (same as options/themes)
+        if (
+            this.input.isKeyJustPressed("DirUp") ||
+            this.input.isGamepadButtonJustPressed(12, 0) || // D-pad up on gamepad 0
+            this.input.isGamepadButtonJustPressed(12, 1) || // D-pad up on gamepad 1
+            this.input.isGamepadButtonJustPressed(12, 2) || // D-pad up on gamepad 2
+            this.input.isGamepadButtonJustPressed(12, 3)
+        ) {
+            // D-pad up on gamepad 3
+            if (win.navigatingButtons) {
+                // If navigating buttons, go back to last action
+                win.navigatingButtons = false;
+                win.selectedActionIndex = win.actions.length - 1;
+                win.selectedColumn = 0; // Reset to first column
+                this.updateControlsScrollOffset();
+            } else {
+                win.selectedActionIndex = Math.max(0, win.selectedActionIndex - 1);
+                this.updateControlsScrollOffset();
+            }
+            this.game.playSound("menu_navigate");
+        }
+
+        if (
+            this.input.isKeyJustPressed("DirDown") ||
+            this.input.isGamepadButtonJustPressed(13, 0) || // D-pad down on gamepad 0
+            this.input.isGamepadButtonJustPressed(13, 1) || // D-pad down on gamepad 1
+            this.input.isGamepadButtonJustPressed(13, 2) || // D-pad down on gamepad 2
+            this.input.isGamepadButtonJustPressed(13, 3)
+        ) {
+            // D-pad down on gamepad 3
+            if (win.navigatingButtons) {
+                // Already on buttons, do nothing
+                return;
+            } else if (win.selectedActionIndex >= win.actions.length - 1) {
+                // At last action, switch to button navigation
+                win.navigatingButtons = true;
+                win.selectedButtonIndex = 0; // Start with DEFAULT button
+                // Clear action selection when navigating to buttons
+                win.selectedActionIndex = -1;
+                win.selectedColumn = -1;
+            } else {
+                win.selectedActionIndex = Math.min(win.actions.length - 1, win.selectedActionIndex + 1);
+                this.updateControlsScrollOffset();
+            }
+            this.game.playSound("menu_navigate");
+        }
+
+        if (
+            this.input.isKeyJustPressed("DirLeft") ||
+            this.input.isGamepadButtonJustPressed(14, 0) || // D-pad left on gamepad 0
+            this.input.isGamepadButtonJustPressed(14, 1) || // D-pad left on gamepad 1
+            this.input.isGamepadButtonJustPressed(14, 2) || // D-pad left on gamepad 2
+            this.input.isGamepadButtonJustPressed(14, 3)
+        ) {
+            // D-pad left on gamepad 3
+            if (win.navigatingButtons) {
+                win.selectedButtonIndex = Math.max(0, win.selectedButtonIndex - 1);
+            } else {
+                win.selectedColumn = Math.max(0, win.selectedColumn - 1);
+            }
+            this.game.playSound("menu_navigate");
+        }
+
+        if (
+            this.input.isKeyJustPressed("DirRight") ||
+            this.input.isGamepadButtonJustPressed(15, 0) || // D-pad right on gamepad 0
+            this.input.isGamepadButtonJustPressed(15, 1) || // D-pad right on gamepad 1
+            this.input.isGamepadButtonJustPressed(15, 2) || // D-pad right on gamepad 2
+            this.input.isGamepadButtonJustPressed(15, 3)
+        ) {
+            // D-pad right on gamepad 3
+            if (win.navigatingButtons) {
+                win.selectedButtonIndex = Math.min(1, win.selectedButtonIndex + 1);
+            } else {
+                win.selectedColumn = Math.min(3, win.selectedColumn + 1);
+            }
+            this.game.playSound("menu_navigate");
+        }
+
+        // Action2 for back (B/Circle button = secondary face button) - consistent with other modals
+        if (
+            this.input.isKeyJustPressed("Action2") ||
+            this.input.isGamepadButtonJustPressed(1, 0) || // B/Circle button on gamepad 0
+            this.input.isGamepadButtonJustPressed(1, 1) || // B/Circle button on gamepad 1
+            this.input.isGamepadButtonJustPressed(1, 2) || // B/Circle button on gamepad 2
+            this.input.isGamepadButtonJustPressed(1, 3)
+        ) {
+            // B/Circle button on gamepad 3
+            this.closeControlsWindow();
+            return;
+        }
+
+        // Action1 to activate selection (A/Cross button = primary face button) - consistent with other modals
+        if (
+            this.input.isKeyJustPressed("Action1") ||
+            this.input.isGamepadButtonJustPressed(0, 0) || // A/Cross button on gamepad 0
+            this.input.isGamepadButtonJustPressed(0, 1) || // A/Cross button on gamepad 1
+            this.input.isGamepadButtonJustPressed(0, 2) || // A/Cross button on gamepad 2
+            this.input.isGamepadButtonJustPressed(0, 3)
+        ) {
+            // A/Cross button on gamepad 3
+            if (win.navigatingButtons) {
+                // Activate button
+                if (win.selectedButtonIndex === 0) {
+                    // Handle reset confirmation through the window system
+                    win.showingConfirmModal = true;
+                    this.registerConfirmModalElements();
+                } else {
+                    this.closeControlsWindow();
+                }
+            } else {
+                // Start remapping control
+                const inputType = win.selectedColumn < 2 ? 'keyboard' : 'gamepad';
+                const column = win.selectedColumn % 2 === 0 ? 'primary' : 'alt';
+                this.startControlsWaitingForInput(win.selectedActionIndex, inputType, column);
+            }
+        }
+    }
+
+    updateControlsScrollOffset() {
+        const win = this.game.controlsWindow;
+        if (win.selectedActionIndex < win.scrollOffset) {
+            win.scrollOffset = win.selectedActionIndex;
+        } else if (win.selectedActionIndex >= win.scrollOffset + win.maxVisibleActions) {
+            win.scrollOffset = win.selectedActionIndex - win.maxVisibleActions + 1;
+        }
+    }
+
+    startControlsWaitingForInput(actionIndex, inputType, column) {
+        const win = this.game.controlsWindow;
+        win.isWaitingForInput = true;
+        win.waitingForAction = win.actions[actionIndex].id;
+        win.waitingForInputType = inputType;
+        win.waitingForColumn = column;
+        win.waitingTimeout = win.waitingTimeoutDuration;
+        console.log(`[ControlsWindow] Waiting for ${inputType} ${column} input for action: ${win.waitingForAction}`);
+
+        // Populate the actions list with current control data from the manager
+        this.refreshControlsWindowData();
+    }
+
+    refreshControlsWindowData() {
+        const win = this.game.controlsWindow;
+        const controlsManager = this.game.customControls.getControlsManager();
+
+        // Update each action with current control data
+        win.actions.forEach(action => {
+            const controls = controlsManager.getControls(action.id);
+            action.keyboard = {
+                primary: controls.keyboard[0] || null,
+                alt: controls.keyboard[1] || null
+            };
+            action.gamepad = {
+                primary: controls.gamepad[0] !== undefined ? controls.gamepad[0] : null,
+                alt: controls.gamepad[1] !== undefined ? controls.gamepad[1] : null
+            };
+        });
+    }
+
+    handleControlsWaitingForInput() {
+        const win = this.game.controlsWindow;
+
+        // Update timeout
+        win.waitingTimeout -= this.game.lastDeltaTime * 1000;
+        if (win.waitingTimeout <= 0) {
+            this.cancelControlsWaitingForInput();
+            return;
+        }
+
+        if (win.waitingForInputType === 'keyboard') {
+            // Check for any keyboard input
+            const currentKeys = this.input.currentSnapshot.keys;
+            const previousKeys = this.input.previousSnapshot.keys;
+
+            // Find newly pressed keys
+            for (const [keyCode, isPressed] of currentKeys) {
+                if (isPressed && !previousKeys.has(keyCode)) {
+                    // Accept any key
+                    this.assignControlsKeyboardControl(keyCode);
+                    return;
+                }
+            }
+        } else if (win.waitingForInputType === 'gamepad') {
+            // Check for any gamepad button input
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.input.isGamepadConnected(gamepadIndex)) {
+                    for (let buttonIndex = 0; buttonIndex < 16; buttonIndex++) {
+                        if (this.input.isGamepadButtonJustPressed(buttonIndex, gamepadIndex)) {
+                            this.assignControlsGamepadControl(buttonIndex);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    assignControlsKeyboardControl(keyCode) {
+        const win = this.game.controlsWindow;
+        this.game.customControls.getControlsManager().setKeyboardControl(win.waitingForAction, keyCode, win.waitingForColumn);
+        this.refreshControlsWindowData(); // Refresh display immediately
+        this.game.playSound('menu_confirm');
+        win.isWaitingForInput = false;
+        win.waitingForAction = null;
+        win.waitingForInputType = null;
+        win.waitingForColumn = null;
+    }
+
+    assignControlsGamepadControl(buttonIndex) {
+        const win = this.game.controlsWindow;
+        this.game.customControls.getControlsManager().setGamepadControl(win.waitingForAction, buttonIndex, win.waitingForColumn);
+        this.refreshControlsWindowData(); // Refresh display immediately
+        this.game.playSound('menu_confirm');
+        win.isWaitingForInput = false;
+        win.waitingForAction = null;
+        win.waitingForInputType = null;
+        win.waitingForColumn = null;
+    }
+
+    cancelControlsWaitingForInput() {
+        const win = this.game.controlsWindow;
+        win.isWaitingForInput = false;
+        win.waitingForAction = null;
+        win.waitingForInputType = null;
+        win.waitingForColumn = null;
+        win.waitingTimeout = 0;
+        this.game.playSound('menu_back');
+    }
+
+    showControlsResetConfirmation() {
+        // This is now handled by the custom controls modal
+        // Kept for backward compatibility if needed
+        if (confirm('Reset all controls to defaults? This cannot be undone.')) {
+            this.game.customControls.resetToDefaults();
+            this.refreshControlsWindowData(); // Refresh display immediately
+            this.game.playSound('menu_confirm');
+        }
+    }
+
+    /**
+     * Close controls window and cleanup
+     */
+    closeControlsWindow() {
+        this.unregisterControlsWindowElements();
+        this.game.controlsWindow.visible = false;
+        // Reset all navigation state to default position (top-left action selection)
+        this.game.controlsWindow.selectedActionIndex = 0; // First action
+        this.game.controlsWindow.selectedColumn = 0; // Keyboard primary column
+        this.game.controlsWindow.navigatingButtons = false; // Not in button mode
+        this.game.controlsWindow.selectedButtonIndex = 0; // DEFAULT button if in button mode
+        this.game.controlsWindow.scrollOffset = 0; // Reset scroll to top
+        this.game.menuStack.current = "settings";
+        // Re-register settings menu buttons
+        this.game.settingsMenu.buttonsRegistered = false;
+        this.game.settingsMenu.selectedIndex = 0; // Reset to top option
+        this.game.playSound("menu_back");
+    }
+
+    /**
      * Close themes window and cleanup
      */
     closeThemesWindow() {
@@ -570,6 +949,114 @@ class UIWindowsInputManager {
     }
 
     /**
+     * Register controls window elements
+     */
+    registerControlsWindowElements() {
+        const win = this.game.controlsWindow;
+        const rowHeight = 32;
+        const headerHeight = 80;
+        const listY = win.y + headerHeight;
+
+        // Refresh the data to ensure we have current controls
+        this.refreshControlsWindowData();
+
+        // Register action rows - 4 columns
+        for (let i = 0; i < Math.min(win.maxVisibleActions, win.actions.length); i++) {
+            const actionIndex = i + win.scrollOffset;
+            const rowY = listY + i * rowHeight;
+
+            // Keyboard primary
+            this.input.registerElement(`controls_action_${actionIndex}_kb_primary`, {
+                bounds: () => ({
+                    x: win.x + 175,
+                    y: rowY,
+                    width: 90,
+                    height: rowHeight - 2
+                })
+            });
+
+            // Keyboard alt
+            this.input.registerElement(`controls_action_${actionIndex}_kb_alt`, {
+                bounds: () => ({
+                    x: win.x + 285,
+                    y: rowY,
+                    width: 80,
+                    height: rowHeight - 2
+                })
+            });
+
+            // Gamepad primary
+            this.input.registerElement(`controls_action_${actionIndex}_gp_primary`, {
+                bounds: () => ({
+                    x: win.x + 375,
+                    y: rowY,
+                    width: 90,
+                    height: rowHeight - 2
+                })
+            });
+
+            // Gamepad alt
+            this.input.registerElement(`controls_action_${actionIndex}_gp_alt`, {
+                bounds: () => ({
+                    x: win.x + 485,
+                    y: rowY,
+                    width: 80,
+                    height: rowHeight - 2
+                })
+            });
+        }
+
+        // Register buttons
+        const buttonY = win.y + win.height - 60;
+        this.input.registerElement('controls_default_button', {
+            bounds: () => ({
+                x: win.x + 50,
+                y: buttonY,
+                width: 100,
+                height: 35
+            })
+        });
+
+        this.input.registerElement('controls_close_button', {
+            bounds: () => ({
+                x: win.x + win.width - 150,
+                y: buttonY,
+                width: 100,
+                height: 35
+            })
+        });
+
+        // Register confirm modal buttons if showing
+        if (win.showingConfirmModal) {
+            this.registerConfirmModalElements();
+        }
+    }
+
+    /**
+     * Unregister controls window elements
+     */
+    unregisterControlsWindowElements() {
+        const win = this.game.controlsWindow;
+
+        // Unregister action rows - 4 columns
+        for (let i = 0; i < win.actions.length; i++) {
+            this.input.removeElement(`controls_action_${i}_kb_primary`);
+            this.input.removeElement(`controls_action_${i}_kb_alt`);
+            this.input.removeElement(`controls_action_${i}_gp_primary`);
+            this.input.removeElement(`controls_action_${i}_gp_alt`);
+        }
+
+        // Unregister buttons
+        this.input.removeElement('controls_default_button');
+        this.input.removeElement('controls_close_button');
+
+        // Unregister confirm modal elements if they exist
+        if (typeof this.unregisterConfirmModalElements === 'function') {
+            this.unregisterConfirmModalElements();
+        }
+    }
+
+    /**
      * Unregister themes window elements
      */
     unregisterThemesWindowElements() {
@@ -586,5 +1073,154 @@ class UIWindowsInputManager {
 
         // Unregister back button
         this.input.removeElement("themes_back_button");
+    }
+    handleConfirmModalInput() {
+        const win = this.game.controlsWindow;
+
+        // Handle mouse clicks first
+        if (this.input.isElementJustPressed('confirm_yes_button')) {
+            this.game.customControls.resetToDefaults();
+            this.refreshControlsWindowData(); // Refresh display immediately
+            this.game.playSound('menu_confirm');
+            win.showingConfirmModal = false;
+            if (typeof this.unregisterConfirmModalElements === 'function') {
+                this.unregisterConfirmModalElements();
+            }
+            return;
+        } else if (this.input.isElementJustPressed('confirm_no_button')) {
+            this.game.playSound('menu_back');
+            win.showingConfirmModal = false;
+            if (typeof this.unregisterConfirmModalElements === 'function') {
+                this.unregisterConfirmModalElements();
+            }
+            return;
+        }
+
+        // Handle hover selection for visual feedback (like other menus)
+        if (this.input.isElementHovered('confirm_yes_button')) {
+            if (win.confirmModalSelectedButton !== 0) {
+                win.confirmModalSelectedButton = 0;
+                this.game.playSound("menu_navigate");
+            }
+        } else if (this.input.isElementHovered('confirm_no_button')) {
+            if (win.confirmModalSelectedButton !== 1) {
+                win.confirmModalSelectedButton = 1;
+                this.game.playSound("menu_navigate");
+            }
+        }
+
+        // Handle keyboard/gamepad navigation and input with selection state
+        // Initialize confirm modal selection state if needed
+        if (win.confirmModalSelectedButton === undefined) {
+            win.confirmModalSelectedButton = 1; // Default to NO button (safer)
+        }
+
+        // Left/Right navigation between YES and NO buttons
+        if (
+            this.input.isKeyJustPressed("DirLeft") ||
+            this.input.isGamepadButtonJustPressed(14, 0) || // D-pad left on gamepad 0
+            this.input.isGamepadButtonJustPressed(14, 1) || // D-pad left on gamepad 1
+            this.input.isGamepadButtonJustPressed(14, 2) || // D-pad left on gamepad 2
+            this.input.isGamepadButtonJustPressed(14, 3)
+        ) {
+            // Move to YES button (left)
+            if (win.confirmModalSelectedButton !== 0) {
+                win.confirmModalSelectedButton = 0;
+                this.game.playSound("menu_navigate");
+            }
+        } else if (
+            this.input.isKeyJustPressed("DirRight") ||
+            this.input.isGamepadButtonJustPressed(15, 0) || // D-pad right on gamepad 0
+            this.input.isGamepadButtonJustPressed(15, 1) || // D-pad right on gamepad 1
+            this.input.isGamepadButtonJustPressed(15, 2) || // D-pad right on gamepad 2
+            this.input.isGamepadButtonJustPressed(15, 3)
+        ) {
+            // Move to NO button (right)
+            if (win.confirmModalSelectedButton !== 1) {
+                win.confirmModalSelectedButton = 1;
+                this.game.playSound("menu_navigate");
+            }
+        }
+
+        // Action1 to confirm selection (A/Cross button = primary face button)
+        if (
+            this.input.isKeyJustPressed("Action1") ||
+            this.input.isGamepadButtonJustPressed(0, 0) || // A/Cross button on gamepad 0
+            this.input.isGamepadButtonJustPressed(0, 1) || // A/Cross button on gamepad 1
+            this.input.isGamepadButtonJustPressed(0, 2) || // A/Cross button on gamepad 2
+            this.input.isGamepadButtonJustPressed(0, 3)
+        ) {
+            if (win.confirmModalSelectedButton === 0) {
+                // YES selected - reset controls
+                this.game.customControls.resetToDefaults();
+                this.refreshControlsWindowData(); // Refresh display immediately
+                this.game.playSound('menu_confirm');
+            } else {
+                // NO selected - cancel
+                this.game.playSound('menu_back');
+            }
+            win.showingConfirmModal = false;
+            win.confirmModalSelectedButton = undefined; // Clear selection state
+            if (typeof this.unregisterConfirmModalElements === 'function') {
+                this.unregisterConfirmModalElements();
+            }
+            return;
+        }
+
+        // Action2 or ESC to cancel (B/Circle button = secondary face button)
+        if (
+            this.input.isKeyJustPressed('Escape') ||
+            this.input.isKeyJustPressed("Action2") ||
+            this.input.isGamepadButtonJustPressed(1, 0) || // B/Circle button on gamepad 0
+            this.input.isGamepadButtonJustPressed(1, 1) || // B/Circle button on gamepad 1
+            this.input.isGamepadButtonJustPressed(1, 2) || // B/Circle button on gamepad 2
+            this.input.isGamepadButtonJustPressed(1, 3)
+        ) {
+            // Allow ESC or B to cancel the confirm modal
+            this.game.playSound('menu_back');
+            win.showingConfirmModal = false;
+            win.confirmModalSelectedButton = undefined; // Clear selection state
+            if (typeof this.unregisterConfirmModalElements === 'function') {
+                this.unregisterConfirmModalElements();
+            }
+            return;
+        }
+    }
+
+    registerConfirmModalElements() {
+        const win = this.game.controlsWindow;
+        const modalWidth = 400;
+        const modalHeight = 150;
+        const modalX = win.x + (win.width - modalWidth) / 2;
+        const modalY = win.y + (win.height - modalHeight) / 2;
+
+        const buttonWidth = 80;
+        const buttonHeight = 35;
+        const buttonY = modalY + modalHeight - 50;
+
+        // Yes button (left)
+        this.input.registerElement('confirm_yes_button', {
+            bounds: () => ({
+                x: modalX + modalWidth / 2 - buttonWidth - 20,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
+            })
+        });
+
+        // No button (right)
+        this.input.registerElement('confirm_no_button', {
+            bounds: () => ({
+                x: modalX + modalWidth / 2 + 20,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
+            })
+        });
+    }
+
+    unregisterConfirmModalElements() {
+        this.input.removeElement('confirm_yes_button');
+        this.input.removeElement('confirm_no_button');
     }
 }

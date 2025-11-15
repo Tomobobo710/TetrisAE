@@ -7,6 +7,17 @@ class GameplayInputManager {
         this.game = game;
         this.input = input;
         this.rotateDelay = 150; // ms between rotations
+        
+        // Custom controls adapter (will be set during initialization)
+        this.customInput = null;
+    }
+    
+    /**
+     * Set the custom controls adapter
+     */
+    setCustomControlsAdapter(adapter) {
+        this.customInput = adapter;
+        console.log('[GameplayInputManager] Custom controls adapter set');
     }
 
     /**
@@ -150,10 +161,15 @@ class GameplayInputManager {
     }
 
     /**
-     * Check if hold input is pressed for the given input device (keyboard only for Player 1)
+     * Check if hold input is pressed for the given input device
      */
     isHoldInputPressed(inputDevice, playerNumber) {
-        // Check keyboard only for Player 1
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            return this.customInput.isActionJustPressed('hold');
+        }
+        
+        // Fallback to original logic for other players or when custom controls not available
         const keyboardPressed =
             playerNumber === 1 && (this.input.isKeyJustPressed("Action3") || this.input.isKeyJustPressed("Action5"));
 
@@ -169,10 +185,15 @@ class GameplayInputManager {
     }
 
     /**
-     * Check if hard drop input is pressed for the given input device (keyboard only for Player 1)
+     * Check if hard drop input is pressed for the given input device
      */
     isHardDropInputPressed(inputDevice, playerNumber) {
-        // Check keyboard only for Player 1
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            return this.customInput.isActionJustPressed('hardDrop');
+        }
+        
+        // Fallback to original logic for other players or when custom controls not available
         const keyboardPressed = playerNumber === 1 && this.input.isKeyJustPressed("DirUp");
 
         // Also check assigned gamepad if available
@@ -188,7 +209,14 @@ class GameplayInputManager {
      * Get rotation input for the given input device (1 for clockwise, -1 for counter-clockwise, 0 for none)
      */
     getRotateInput(inputDevice, playerNumber) {
-        // Check keyboard only for Player 1
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            if (this.customInput.isActionJustPressed('rotateCW')) return 1;
+            if (this.customInput.isActionJustPressed('rotateCCW')) return -1;
+            return 0;
+        }
+        
+        // Fallback to original logic for other players or when custom controls not available
         if (playerNumber === 1) {
             if (this.input.isKeyJustPressed("Action1")) return 1; // A/Cross - clockwise
             if (this.input.isKeyJustPressed("Action2")) return -1; // B/Circle - counter-clockwise
@@ -204,10 +232,15 @@ class GameplayInputManager {
     }
 
     /**
-     * Check if soft drop input is pressed for the given input device (keyboard only for Player 1)
+     * Check if soft drop input is pressed for the given input device
      */
     isSoftDropInputPressed(inputDevice, playerNumber) {
-        // Check keyboard only for Player 1
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            return this.customInput.isActionPressed('softDrop');
+        }
+        
+        // Fallback to original logic for other players or when custom controls not available
         const keyboardPressed = playerNumber === 1 && this.input.isKeyPressed("DirDown");
 
         // Also check assigned gamepad if available
@@ -223,7 +256,16 @@ class GameplayInputManager {
      * Get movement input for the given input device (-1 for left, 1 for right, 0 for none)
      */
     getMoveInput(inputDevice, playerNumber) {
-        // Check keyboard only for Player 1
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            const leftPressed = this.customInput.isActionPressed('moveLeft');
+            const rightPressed = this.customInput.isActionPressed('moveRight');
+            if (leftPressed && !rightPressed) return -1;
+            if (rightPressed && !leftPressed) return 1;
+            return 0;
+        }
+        
+        // Fallback to original logic for other players or when custom controls not available
         if (playerNumber === 1) {
             const keyboardLeftPressed = this.input.isKeyPressed("DirLeft");
             const keyboardRightPressed = this.input.isKeyPressed("DirRight");
@@ -360,6 +402,12 @@ class GameplayInputManager {
      * Only active meaningfully in 3-4P modes (call sites already guard by player count).
      */
     isTargetCycleInputPressed(inputDevice, playerNumber) {
+        // For Player 1, use custom controls if available
+        if (playerNumber === 1 && this.customInput) {
+            return this.customInput.isActionJustPressed('targetSelect');
+        }
+        
+        // Fallback to original logic
         let keyboardPressed = false;
 
         // Only allow keyboard-based target cycling for Player 1 to avoid conflicts.

@@ -5,6 +5,9 @@ class DrMarioInputManager {
     constructor(drMarioGame) {
         this.game = drMarioGame;
         this.input = drMarioGame.input;
+        
+        // Custom controls adapter (same as Tetris)
+        this.customInput = this.input.getCustomControlsAdapter();
 
         // Movement repeat timing (same as PillPanicGame.js)
         this.moveRepeatTimer = 0;
@@ -286,22 +289,32 @@ class DrMarioInputManager {
         // Rotation with debounce (like Tetris)
         const currentTime = performance.now();
         if (currentTime - this.lastRotateTime > this.rotateDelay) {
-            // Clockwise rotation (keyboard + active gamepad A/Cross)
-            if (
-                this.input.isKeyJustPressed("Action1") ||
-                (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(0, activeGamepadIndex))
-            ) {
+            // Clockwise rotation - use custom controls if available
+            let rotateCWPressed = false;
+            if (this.customInput) {
+                rotateCWPressed = this.customInput.isActionJustPressed('rotateCW');
+            } else {
+                rotateCWPressed = this.input.isKeyJustPressed("Action1") ||
+                    (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(0, activeGamepadIndex));
+            }
+            
+            if (rotateCWPressed) {
                 if (currentCapsule.tryRotate(this.game.gameLogic.grid, true)) {
                     this.game.playSound("rotate");
                     this.lastRotateTime = currentTime;
                 }
             }
 
-            // Counter-clockwise rotation (keyboard + active gamepad B/Circle)
-            if (
-                this.input.isKeyJustPressed("Action2") ||
-                (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(1, activeGamepadIndex))
-            ) {
+            // Counter-clockwise rotation - use custom controls if available
+            let rotateCCWPressed = false;
+            if (this.customInput) {
+                rotateCCWPressed = this.customInput.isActionJustPressed('rotateCCW');
+            } else {
+                rotateCCWPressed = this.input.isKeyJustPressed("Action2") ||
+                    (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(1, activeGamepadIndex));
+            }
+            
+            if (rotateCCWPressed) {
                 if (currentCapsule.tryRotate(this.game.gameLogic.grid, false)) {
                     this.game.playSound("rotate");
                     this.lastRotateTime = currentTime;
@@ -309,27 +322,46 @@ class DrMarioInputManager {
             }
         }
 
-        // Hard drop (like Tetris: DirUp/D-pad up)
-        if (
-            this.input.isKeyJustPressed("DirUp") ||
-            (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(12, activeGamepadIndex))
-        ) {
+        // Hard drop - use custom controls if available
+        let hardDropPressed = false;
+        if (this.customInput) {
+            hardDropPressed = this.customInput.isActionJustPressed('hardDrop');
+        } else {
+            hardDropPressed = this.input.isKeyJustPressed("DirUp") ||
+                (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(12, activeGamepadIndex));
+        }
+        
+        if (hardDropPressed) {
             this.doHardDrop();
             return; // Hard drop takes precedence, skip other input
         }
 
-        // Soft drop (like Tetris: DirDown/D-pad down)
-        const downPressed = this.input.isKeyPressed("DirDown") ||
-                          (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(13, activeGamepadIndex));
+        // Soft drop - use custom controls if available
+        let downPressed = false;
+        if (this.customInput) {
+            downPressed = this.customInput.isActionPressed('softDrop');
+        } else {
+            downPressed = this.input.isKeyPressed("DirDown") ||
+                (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(13, activeGamepadIndex));
+        }
 
         // Movement with repeat delay (like PillPanicGame.js)
         this.moveRepeatTimer += deltaTime;
         const canMove = this.moveRepeatTimer >= this.moveRepeatDelay;
 
-        const leftPressed = this.input.isKeyPressed("DirLeft") ||
-                          (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(14, activeGamepadIndex));
-        const rightPressed = this.input.isKeyPressed("DirRight") ||
-                           (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(15, activeGamepadIndex));
+        // Movement - use custom controls if available
+        let leftPressed = false;
+        let rightPressed = false;
+        
+        if (this.customInput) {
+            leftPressed = this.customInput.isActionPressed('moveLeft');
+            rightPressed = this.customInput.isActionPressed('moveRight');
+        } else {
+            leftPressed = this.input.isKeyPressed("DirLeft") ||
+                (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(14, activeGamepadIndex));
+            rightPressed = this.input.isKeyPressed("DirRight") ||
+                (activeGamepadIndex !== -1 && this.input.isGamepadButtonPressed(15, activeGamepadIndex));
+        }
 
         if (leftPressed && canMove) {
             if (this.game.gameLogic.moveCapsule(-1, 0)) {

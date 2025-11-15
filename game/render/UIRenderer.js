@@ -23,7 +23,7 @@ class UIRenderer {
             this.menuRenderer.drawTitleScreen(game, theme);
 
             // Keep settings menu available on title when selected (original behavior)
-            if (game.menuStack.current === "settings" && !game.optionsWindow.visible && !game.themesWindow.visible) {
+            if (game.menuStack.current === "settings" && !game.optionsWindow.visible && !game.themesWindow.visible && !game.controlsWindow.visible) {
                 this.menuRenderer.drawSettingsMenu(game, theme);
             }
         } else {
@@ -76,7 +76,7 @@ class UIRenderer {
             }
 
             // Settings menu as its own modal when in-game and current === settings
-            if (game.menuStack.current === "settings" && !game.optionsWindow.visible && !game.themesWindow.visible) {
+            if (game.menuStack.current === "settings" && !game.optionsWindow.visible && !game.themesWindow.visible && !game.controlsWindow.visible) {
                 this.menuRenderer.drawSettingsMenu(game, theme);
             }
         }
@@ -88,6 +88,10 @@ class UIRenderer {
 
         if (game.themesWindow.visible) {
             this.windowRenderer.drawThemesWindow(game, theme);
+        }
+
+        if (game.controlsWindow.visible) {
+            this.windowRenderer.drawControlsWindow(game, theme);
         }
 
         // Theme button always on top of GUI, only when InputHandler marks it enabled

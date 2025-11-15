@@ -123,6 +123,7 @@ class GameMenuManager {
             buttons: [
                 { text: "OPTIONS", action: "options" },
                 { text: "THEMES", action: "themes" },
+                { text: "CONTROLS", action: "controls" },
                 { text: "BACK", action: "back" }
             ],
             buttonsRegistered: false
