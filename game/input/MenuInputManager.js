@@ -13,6 +13,26 @@ class MenuInputManager {
      * Handle main menu input
      */
     handleMainMenuInput() {
+        // Register main menu buttons when entering or returning from sub-menus
+        if (!this.game.mainMenu.buttonsRegistered) {
+            this.registerMainMenuButtons();
+
+            // Snap selectedIndex to current pointer position for immediate hover feedback
+            const pointer = this.input.getPointerPosition();
+            const buttonWidth = 240;
+            const buttonHeight = 60;
+            const startY = 300; // Position below title
+            const spacing = 75;
+            for (let i = 0; i < this.game.mainMenu.buttons.length; i++) {
+                const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+                const y = startY + i * spacing;
+                if (pointer.x >= x && pointer.x <= x + buttonWidth && pointer.y >= y && pointer.y <= y + buttonHeight) {
+                    this.game.mainMenu.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
         const menu = this.game.mainMenu;
         const maxIndex = menu.buttons.length - 1;
 
@@ -25,9 +45,19 @@ class MenuInputManager {
             }
         }
 
-        // Check for mouse hover - mouse overrides keyboard selection
+        // Check for mouse hover - mouse overrides keyboard selection (direct bounds check like pause menu)
+        const buttonWidth = 240;
+        const buttonHeight = 60;
+        const startY = 300; // Position below title
+        const spacing = 75;
         for (let i = 0; i < menu.buttons.length; i++) {
-            if (this.input && this.input.isElementHovered(`main_button_${i}`)) {
+            const buttonX = TETRIS.WIDTH / 2 - buttonWidth / 2;
+            const buttonY = startY + i * spacing;
+            const pointer = this.input.getPointerPosition();
+
+            // Check if mouse is hovering over this button
+            if (pointer.x >= buttonX && pointer.x <= buttonX + buttonWidth &&
+                pointer.y >= buttonY && pointer.y <= buttonY + buttonHeight) {
                 if (menu.selectedIndex !== i) {
                     menu.selectedIndex = i;
                     if (!this.game.skipMenuNavigateSound) {
@@ -35,6 +65,24 @@ class MenuInputManager {
                     }
                 }
                 break;
+            }
+        }
+
+        // Handle left mouse click by checking pointer bounds directly (fixes first-click issue after menu switch)
+        if (this.input.isLeftMouseButtonJustPressed()) {
+            const pointer = this.input.getPointerPosition();
+            const buttonWidth = 240;
+            const buttonHeight = 60;
+            const startY = 300; // Position below title
+            const spacing = 75;
+            for (let i = 0; i < menu.buttons.length; i++) {
+                const x = TETRIS.WIDTH / 2 - buttonWidth / 2;
+                const y = startY + i * spacing;
+                if (pointer.x >= x && pointer.x <= x + buttonWidth && pointer.y >= y && pointer.y <= y + buttonHeight) {
+                    const selectedButton = menu.buttons[i];
+                    this.executeMainMenuAction(selectedButton.action);
+                    return;
+                }
             }
         }
 
@@ -956,7 +1004,7 @@ class MenuInputManager {
 
         const buttonWidth = 240;
         const buttonHeight = 60;
-        const startY = 300; // Position below title
+        const startY = 295; // Position below title
         const spacing = 75; // Match the renderer's BUTTON_SPACING
 
         this.game.mainMenu.buttons.forEach((button, index) => {

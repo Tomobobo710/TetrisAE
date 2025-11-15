@@ -57,11 +57,18 @@ class InputHandler {
         }
 
         // Theme button enable rules:
-        // - Disabled only while an active 4-player game exists (4 non-eliminated, non-spectator players).
+        // - Disabled during active 4-player games (4 non-eliminated, non-spectator players).
+        // - Disabled while controls modal is open.
         // - Enabled on title/main menus or when no such 4-player game is active (including after exiting via pause/game over).
         (function updateThemeButtonEnabled(self) {
             const g = self.game;
             const gm = g.gameManager;
+
+            // Always disable if controls modal is open
+            if (g.controlsWindow.visible) {
+                self.themeButton.enabled = false;
+                return;
+            }
 
             if (g.gameState === "title" || !gm || !Array.isArray(gm.players)) {
                 self.themeButton.enabled = true;

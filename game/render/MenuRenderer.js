@@ -22,7 +22,7 @@ class MenuRenderer {
         this.BUTTON_SPACING = 75;
 
         // Specific menu vertical offsets (absolute positions)
-        this.MAIN_MENU_START_Y = 300;
+        this.MAIN_MENU_START_Y = 295;
         this.MULTIPLAYER_MENU_START_Y = 220;
         this.PAUSE_MENU_START_Y = 220;
         this.GAME_OVER_MENU_START_Y = 300;

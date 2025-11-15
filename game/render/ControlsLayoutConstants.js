@@ -97,7 +97,7 @@ class ControlsLayoutConstants {
 
     // ===== CONTROL BUTTONS CONSTANTS =====
     static BUTTON_Y_OFFSET = 60;                   // Button Y position from window bottom
-    static DEFAULT_BUTTON_WIDTH = 100;             // Width of DEFAULT button
+    static DEFAULT_BUTTON_WIDTH = 190;             // Width of DEFAULT button
     static DEFAULT_BUTTON_HEIGHT = 35;             // Height of DEFAULT button
     static CLOSE_BUTTON_WIDTH = 100;               // Width of CLOSE button
     static CLOSE_BUTTON_HEIGHT = 35;               // Height of CLOSE button

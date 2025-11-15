@@ -188,7 +188,7 @@ class ControlsWindowRenderer {
 
         // DEFAULT button
         const isDefaultSelected = win.navigatingButtons && win.selectedButtonIndex === 0;
-        this.utils.drawWindowButton(win.x + ControlsLayoutConstants.DEFAULT_BUTTON_X_OFFSET, buttonY, ControlsLayoutConstants.DEFAULT_BUTTON_WIDTH, ControlsLayoutConstants.DEFAULT_BUTTON_HEIGHT, "DEFAULT", isDefaultSelected, ControlsLayoutConstants.BUTTON_DEPTH, theme);
+        this.utils.drawWindowButton(win.x + ControlsLayoutConstants.DEFAULT_BUTTON_X_OFFSET, buttonY, ControlsLayoutConstants.DEFAULT_BUTTON_WIDTH, ControlsLayoutConstants.DEFAULT_BUTTON_HEIGHT, "RESET TO DEFAULTS", isDefaultSelected, ControlsLayoutConstants.BUTTON_DEPTH, theme);
 
         // CLOSE button
         const isCloseSelected = win.navigatingButtons && win.selectedButtonIndex === 1;
