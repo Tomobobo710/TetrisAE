@@ -81,7 +81,20 @@ class ControlsLayoutConstants {
     static SELECTED_FONT_WEIGHT = "bold";          // Selected font weight
 
     // ===== FACE BUTTON CONSTANTS =====
-    static FACE_BUTTON_RADIUS = 8;                 // Radius for gamepad face button diamonds
+    static FACE_BUTTON_SIZE = 20;                   // Size for gamepad face button SVG icons
+    static BUTTON_SVG_STRINGS = [
+        `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="red"/></svg>`, // A button
+        ``, // B button
+        ``, // X button
+        ``  // Y button
+    ];
+
+    static BUTTON_ROTATIONS = [180, 90, 270, 0];   // Rotations for A, B, X, Y buttons (degrees)
+    static SELECTED_TINT_COLOR = "rgba(255, 255, 255, 0.8)"; // Tint color when selected
+    static NORMAL_TINT_COLOR = "rgba(255, 255, 255, 1.0)";   // Normal tint color
+
+    // Fallback colors for when SVG fails (old diamond system)
+    static FACE_BUTTON_RADIUS = 8;                  // Radius for gamepad face button diamonds
     static BUTTON_LABELS = ['A', 'B', 'X', 'Y'];   // Button labels
     static BUTTON_COLORS = ['#00ff00', '#ff0000', '#0000ff', '#ffff00']; // A, B, X, Y colors
     static SELECTED_FILL_COLOR = "#ffffff";         // Fill color when selected

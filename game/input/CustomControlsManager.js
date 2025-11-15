@@ -35,35 +35,35 @@ class CustomControlsManager {
                 }
             },
             rotateCW: {
-                keyboard: { primary: "Space", alt: "KeyJ" },
+                keyboard: { primary: "Space", alt: null },
                 gamepad: {
                     primary: { type: 'button', value: 0 }, // A/Cross
                     alt: null
                 }
             },
             rotateCCW: {
-                keyboard: { primary: "ShiftLeft", alt: "KeyK" },
+                keyboard: { primary: "ShiftLeft", alt: null },
                 gamepad: {
                     primary: { type: 'button', value: 1 }, // B/Circle
                     alt: null
                 }
             },
             hold: {
-                keyboard: { primary: "KeyE", alt: "KeyZ" },
+                keyboard: { primary: "KeyQ", alt: "KeyE" },
                 gamepad: {
                     primary: { type: 'button', value: 4 }, // L1
                     alt: { type: 'button', value: 5 } // R1
                 }
             },
             themeChange: {
-                keyboard: { primary: "KeyZ", alt: "KeyF" },
+                keyboard: { primary: "KeyC", alt: null },
                 gamepad: {
                     primary: { type: 'button', value: 2 }, // X/Square
                     alt: null
                 }
             },
             targetSelect: {
-                keyboard: { primary: "KeyQ", alt: "KeyG" },
+                keyboard: { primary: "KeyZ", alt: null },
                 gamepad: {
                     primary: { type: 'button', value: 3 }, // Y/Triangle
                     alt: null
@@ -73,7 +73,7 @@ class CustomControlsManager {
                 keyboard: { primary: "Escape", alt: "KeyP" },
                 gamepad: {
                     primary: { type: 'button', value: 9 }, // Start button
-                    alt: null
+                    alt: { type: 'button', value: 8 } // Select button
                 }
             }
         };
@@ -434,9 +434,9 @@ class CustomControlsManager {
             { id: 'hardDrop', name: 'Hard Drop', category: 'Gameplay' },
             { id: 'rotateCW', name: 'Rotate Clockwise', category: 'Gameplay' },
             { id: 'rotateCCW', name: 'Rotate Counter-Clockwise', category: 'Gameplay' },
-            { id: 'hold', name: 'Hold Piece', category: 'Gameplay' },
-            { id: 'themeChange', name: 'Change Theme', category: 'Global' },
             { id: 'targetSelect', name: 'Target Select', category: 'Global' },
+            { id: 'themeChange', name: 'Change Theme', category: 'Global' },
+            { id: 'hold', name: 'Hold Piece', category: 'Gameplay' },
             { id: 'pause', name: 'Pause Game', category: 'Global' }
         ];
     }
