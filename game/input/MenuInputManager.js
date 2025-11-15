@@ -3,10 +3,10 @@
  * Extracted from InputHandler.js to reduce complexity
  */
 class MenuInputManager {
-    constructor(game, input, uiWindowsManager) {
+    constructor(game, input, uiWindowsCoordinator) {
         this.game = game;
         this.input = input;
-        this.uiWindowsManager = uiWindowsManager;
+        this.uiWindowsCoordinator = uiWindowsCoordinator;
     }
 
     /**
@@ -575,7 +575,7 @@ class MenuInputManager {
                 this.game.optionsWindow.visible = true;
                 this.game.optionsWindow.selectedIndex = 0;
                 this.unregisterSettingsMenuButtons();
-                this.uiWindowsManager.registerOptionsWindowElements();
+                this.uiWindowsCoordinator.registerElements();
                 this.game.playSound("menu_confirm");
                 break;
             case "themes":
@@ -583,7 +583,7 @@ class MenuInputManager {
                 this.game.themesWindow.selectedRow = 0;
                 this.game.themesWindow.selectedCol = 0;
                 this.unregisterSettingsMenuButtons();
-                this.uiWindowsManager.registerThemesWindowElements();
+                this.uiWindowsCoordinator.registerElements();
                 this.game.playSound("menu_confirm");
                 break;
             case "controls":
@@ -591,7 +591,7 @@ class MenuInputManager {
                 this.game.controlsWindow.selectedActionIndex = 0;
                 this.game.controlsWindow.selectedColumn = 0;
                 this.unregisterSettingsMenuButtons();
-                this.uiWindowsManager.registerControlsWindowElements();
+                this.uiWindowsCoordinator.registerElements();
                 this.game.playSound("menu_confirm");
                 break;
             case "back":

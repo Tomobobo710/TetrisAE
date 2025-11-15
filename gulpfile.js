@@ -111,7 +111,10 @@ gulp.task('bundle', function() {
     'game/GameManager.js',
     
     // Input System Managers
-    'game/input/UIWindowsInputManager.js',
+    'game/input/OptionsWindowManager.js',
+    'game/input/ThemesWindowManager.js',
+    'game/input/ControlsWindowManager.js',
+    'game/input/UIWindowsCoordinator.js',
     'game/input/MenuInputManager.js',
     'game/input/GameplayInputManager.js',
     'game/input/WaitingMenusInputManager.js',
@@ -121,6 +124,10 @@ gulp.task('bundle', function() {
     'game/input/CustomControlsManager.js',
     'game/input/CustomInputAdapter.js',
     'game/input/CustomControlsIntegration.js',
+
+    // Modal Components
+    'game/input/InputWaitingModal.js',
+    'game/input/ConfirmModal.js',
     
     'game/InputHandler.js',
     

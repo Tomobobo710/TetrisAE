@@ -11,6 +11,9 @@ class CustomControlsIntegration {
         this.controlsManager = new CustomControlsManager();
         this.inputAdapter = new CustomInputAdapter(this.input, this.controlsManager);
 
+        // Set default left stick axis bindings for directional movement
+        this.setupDefaultAxisBindings();
+
         // Set up the adapter in ActionEngine for access
         this.input.setCustomControlsAdapter(this.inputAdapter);
 
@@ -23,6 +26,18 @@ class CustomControlsIntegration {
     update(deltaTime) {
         // Refresh input adapter bindings if needed
         this.inputAdapter.ensureBindingsUpToDate();
+
+        // Update axis states for just-pressed detection
+        this.inputAdapter.updateAxisStates();
+    }
+
+    /**
+     * Set up default left stick axis bindings for directional movement
+     */
+    setupDefaultAxisBindings() {
+        // Default axis bindings are now set in the defaultControls structure
+        // This method is kept for backward compatibility and future enhancements
+        console.log('[CustomControlsIntegration] Default left stick axis bindings set via defaultControls');
     }
     
     /**

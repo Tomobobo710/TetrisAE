@@ -274,30 +274,13 @@ class WindowRenderer {
         this.drawControlsButtons(win, theme);
 
         // Draw confirm modal if showing
-        if (win.showingConfirmModal) {
-            this.drawConfirmModal(win, theme);
+        if (game.confirmModal && game.confirmModal.isVisible) {
+            this.drawConfirmModal(game.confirmModal, win, theme);
         }
 
-        // Waiting for input message
-        if (win.isWaitingForInput) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-            ctx.fillRect(win.x + 50, win.y + win.height - 140, win.width - 100, 60);
-
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 16px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText(`Press any ${win.waitingForInputType} ${win.waitingForColumn} key/button...`, win.x + win.width / 2, win.y + win.height - 115);
-
-            // Visual timer countdown
-            const remainingSeconds = Math.ceil(win.waitingTimeout / 1000);
-            ctx.font = "bold 24px Arial";
-            ctx.fillStyle = remainingSeconds <= 1 ? "#ff0000" : remainingSeconds <= 2 ? "#ffff00" : "#00ff00";
-            ctx.fillText(remainingSeconds.toString(), win.x + win.width / 2, win.y + win.height - 85);
-
-            // Timeout bar
-            const timeoutProgress = win.waitingTimeout / win.waitingTimeoutDuration;
-            ctx.fillStyle = timeoutProgress > 0.3 ? "#00ff00" : "#ff0000";
-            ctx.fillRect(win.x + 60, win.y + win.height - 70, (win.width - 120) * timeoutProgress, 8);
+        // Waiting for input modal
+        if (game.inputWaitingModal && game.inputWaitingModal.isActive) {
+            this.drawInputWaitingModal(game.inputWaitingModal, win, theme);
         }
 
         // Hint text
@@ -334,7 +317,7 @@ class WindowRenderer {
             this.drawControlColumn(win.x + 175, rowY, 90, rowHeight - 2, action.keyboard?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 0, theme);
             this.drawControlColumn(win.x + 285, rowY, 80, rowHeight - 2, action.keyboard?.alt, actionIndex === win.selectedActionIndex && win.selectedColumn === 1, theme);
             this.drawControlColumn(win.x + 375, rowY, 90, rowHeight - 2, action.gamepad?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 2, theme);
-            this.drawControlColumn(win.x + 485, rowY, 80, rowHeight - 2, action.gamepad?.alt, actionIndex === win.selectedActionIndex && win.selectedColumn === 3, theme);
+            this.drawControlColumn(win.x + 485, rowY, 80, rowHeight - 2, action.gamepad?.alt || action.axis, actionIndex === win.selectedActionIndex && win.selectedColumn === 3, theme);
         }
 
         // Scroll indicators
@@ -372,10 +355,11 @@ class WindowRenderer {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        // Check if this is a gamepad face button (0-3) for visual display
-        if (typeof control === 'number' && control >= 0 && control <= 3) {
-            this.drawGamepadFaceButton(x + width / 2, y + height / 2, control, isSelected, theme);
+        // Check if this is a gamepad face button for visual display
+        if (control && typeof control === 'object' && control.type === 'button' && control.value >= 0 && control.value <= 3) {
+            this.drawGamepadFaceButton(x + width / 2, y + height / 2, control.value, isSelected, theme);
         } else {
+            // All other controls - keyboard keys, buttons, axis bindings
             const controlText = this.getControlDisplayText(control);
             ctx.fillText(controlText, x + width / 2, y + height / 2);
         }
@@ -426,9 +410,46 @@ class WindowRenderer {
         } else if (typeof control === 'number') {
             // Gamepad button - use the manager's visual display
             return this.getGamepadButtonDisplayLabel(control);
+        } else if (typeof control === 'object' && control.type === 'button') {
+            // Button object - extract value
+            return this.getGamepadButtonDisplayLabel(control.value);
+        } else if (typeof control === 'object' && control.type === 'axis') {
+            // Axis object - extract value for display
+            return this.getAxisDisplayLabel(control.value);
         }
 
         return "---";
+    }
+
+    getAxisDisplayLabel(axis) {
+        if (!axis) return "---";
+
+        // Standard gamepad axis mapping
+        const axisLabels = {
+            0: { // Left stick X
+                'positive': '(LS) →',
+                'negative': '(LS) ←'
+            },
+            1: { // Left stick Y
+                'positive': '(LS) ↓',
+                'negative': '(LS) ↑'
+            },
+            2: { // Right stick X
+                'positive': '(RS) →',
+                'negative': '(RS) ←'
+            },
+            3: { // Right stick Y
+                'positive': '(RS) ↓',
+                'negative': '(RS) ↑'
+            }
+        };
+
+        const axisInfo = axisLabels[axis.index];
+        if (axisInfo) {
+            return axisInfo[axis.direction] || `A${axis.index}?`;
+        }
+
+        return `A${axis.index}${axis.direction === 'positive' ? '+' : axis.direction === 'negative' ? '-' : '?'}`;
     }
 
     getKeyboardKeyDisplayName(keyCode) {
@@ -717,7 +738,7 @@ class WindowRenderer {
     /**
      * Draw confirm modal for controls reset
      */
-    drawConfirmModal(win, theme) {
+    drawConfirmModal(modal, win, theme) {
         const ctx = this.ctx;
         const modalWidth = 400;
         const modalHeight = 150;
@@ -766,20 +787,14 @@ class WindowRenderer {
         ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("CONFIRM RESET", modalX + modalWidth / 2, modalY + 20);
+        ctx.fillText(modal.title, modalX + modalWidth / 2, modalY + 20);
 
         // Message text
         ctx.fillStyle = theme.ui.text;
         ctx.font = "16px Arial";
         ctx.textAlign = "center";
         const messageY = modalY + 70;
-        const message = "Reset all controls to defaults?";
-        ctx.fillText(message, modalX + modalWidth / 2, messageY);
-
-        ctx.font = "14px Arial";
-        ctx.globalAlpha = 0.8;
-        ctx.fillText("This cannot be undone.", modalX + modalWidth / 2, messageY + 20);
-        ctx.globalAlpha = 1.0;
+        ctx.fillText(modal.message, modalX + modalWidth / 2, messageY);
 
         // YES and NO buttons
         const buttonWidth = 80;
@@ -787,8 +802,8 @@ class WindowRenderer {
         const buttonY = modalY + modalHeight - 50;
 
         // Get current selection state for visual feedback
-        const isYesSelected = win.confirmModalSelectedButton === 0;
-        const isNoSelected = win.confirmModalSelectedButton === 1;
+        const isYesSelected = modal.selectedButton === 0;
+        const isNoSelected = modal.selectedButton === 1;
 
         // YES button (left)
         this.drawWindowButton(
@@ -814,6 +829,102 @@ class WindowRenderer {
             theme
         );
 
+    }
+
+    /**
+     * Draw input waiting modal with proper window styling
+     */
+    drawInputWaitingModal(modal, win, theme) {
+        const ctx = this.ctx;
+        const modalWidth = 450;
+        const modalHeight = 180;
+        const modalX = win.x + (win.width - modalWidth) / 2;
+        const modalY = win.y + (win.height - modalHeight) / 2;
+
+        // Semi-transparent dark overlay for the entire window
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(win.x, win.y, win.width, win.height);
+
+        // Modal background with gradient
+        const modalGradient = ctx.createLinearGradient(modalX, modalY, modalX, modalY + modalHeight);
+        modalGradient.addColorStop(0, theme.ui.background);
+        modalGradient.addColorStop(1, this.utils.darkenColor(theme.ui.background, 0.4));
+        ctx.fillStyle = modalGradient;
+        ctx.fillRect(modalX, modalY, modalWidth, modalHeight);
+
+        // Modal border with glow
+        ctx.strokeStyle = theme.ui.border;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = theme.ui.border;
+        ctx.shadowBlur = 15;
+        ctx.strokeRect(modalX, modalY, modalWidth, modalHeight);
+        ctx.shadowBlur = 0;
+
+        // Inner border
+        ctx.strokeStyle = this.utils.lightenColor(theme.ui.border, 0.3);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(modalX + 3, modalY + 3, modalWidth - 6, modalHeight - 6);
+
+        // Title bar
+        const titleBarHeight = 45;
+        const titleGradient = ctx.createLinearGradient(
+            modalX + 3,
+            modalY + 3,
+            modalX + 3,
+            modalY + 3 + titleBarHeight
+        );
+        titleGradient.addColorStop(0, theme.ui.accent);
+        titleGradient.addColorStop(1, this.utils.darkenColor(theme.ui.accent, 0.3));
+        ctx.fillStyle = titleGradient;
+        ctx.fillRect(modalX + 3, modalY + 3, modalWidth - 6, titleBarHeight);
+
+        // Title text
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("WAITING FOR INPUT", modalX + modalWidth / 2, modalY + 22);
+
+        // Prompt text
+        ctx.fillStyle = theme.ui.text;
+        ctx.font = "16px Arial";
+        ctx.textAlign = "center";
+        let promptText = `Press any ${modal.waitingForInputType} ${modal.waitingForColumn} key/button`;
+        if (modal.waitingForInputType === 'gamepad' && modal.waitingForColumn === 'alt') {
+            promptText += "\nor move an axis";
+        }
+        const promptLines = promptText.split('\n');
+        promptLines.forEach((line, index) => {
+            ctx.fillText(line, modalX + modalWidth / 2, modalY + 70 + index * 20);
+        });
+
+        // Visual countdown timer
+        const remainingSeconds = Math.ceil(modal.getRemainingTime());
+        const timerY = modalY + modalHeight - 80;
+
+        // Countdown number
+        ctx.font = "bold 32px Arial";
+        ctx.fillStyle = remainingSeconds <= 1 ? "#ff0000" : remainingSeconds <= 2 ? "#ffff00" : "#00ff00";
+        ctx.fillText(remainingSeconds.toString(), modalX + modalWidth / 2, timerY);
+
+        // Progress bar background
+        const barWidth = modalWidth - 60;
+        const barHeight = 12;
+        const barX = modalX + 30;
+        const barY = modalY + modalHeight - 50;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Progress bar fill
+        const progress = modal.getProgress();
+        ctx.fillStyle = progress > 0.3 ? "#00ff00" : "#ff0000";
+        ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+
+        // Progress bar border
+        ctx.strokeStyle = theme.ui.border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
     }
 
     /**

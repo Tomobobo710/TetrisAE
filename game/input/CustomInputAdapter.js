@@ -6,10 +6,13 @@ class CustomInputAdapter {
     constructor(actionInput, controlsManager) {
         this.actionInput = actionInput; // ActionEngine's input handler
         this.controlsManager = controlsManager;
-        
+
         // Cache for performance
         this.cachedActionBindings = null;
         this.lastControlsUpdate = null;
+
+        // Axis state tracking for just-pressed detection
+        this.previousAxisStates = new Map();
     }
     
     /**
@@ -25,7 +28,8 @@ class CustomInputAdapter {
             const controls = this.controlsManager.getControls(actionInfo.id);
             
             // Map keyboard keys to actions
-            for (const keyCode of controls.keyboard) {
+            const keyboardKeys = [controls.keyboard.primary, controls.keyboard.alt].filter(k => k !== null);
+            for (const keyCode of keyboardKeys) {
                 if (!this.cachedActionBindings.has(keyCode)) {
                     this.cachedActionBindings.set(keyCode, []);
                 }
@@ -33,7 +37,11 @@ class CustomInputAdapter {
             }
             
             // Map gamepad buttons to actions (with gamepad index prefix)
-            for (const buttonIndex of controls.gamepad) {
+            const gamepadButtons = [];
+            if (controls.gamepad.primary?.type === 'button') gamepadButtons.push(controls.gamepad.primary.value);
+            if (controls.gamepad.alt?.type === 'button') gamepadButtons.push(controls.gamepad.alt.value);
+
+            for (const buttonIndex of gamepadButtons) {
                 for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
                     const gamepadKey = `gamepad_${gamepadIndex}_${buttonIndex}`;
                     if (!this.cachedActionBindings.has(gamepadKey)) {
@@ -56,22 +64,69 @@ class CustomInputAdapter {
         const controls = this.controlsManager.getControls(action);
         
         // Check keyboard bindings
-        for (const keyCode of controls.keyboard) {
-            if (this.actionInput.isRawKeyPressed(keyCode)) {
-                return true;
-            }
+        if (controls.keyboard.primary && this.actionInput.isRawKeyPressed(controls.keyboard.primary)) {
+            return true;
+        }
+        if (controls.keyboard.alt && this.actionInput.isRawKeyPressed(controls.keyboard.alt)) {
+            return true;
         }
         
-        // Check gamepad bindings
-        for (const buttonIndex of controls.gamepad) {
+        // Check gamepad button bindings
+        if (controls.gamepad.primary?.type === 'button') {
             for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
                 if (this.actionInput.isGamepadConnected(gamepadIndex) &&
-                    this.actionInput.isGamepadButtonPressed(buttonIndex, gamepadIndex)) {
+                    this.actionInput.isGamepadButtonPressed(controls.gamepad.primary.value, gamepadIndex)) {
                     return true;
                 }
             }
         }
-        
+        if (controls.gamepad.alt?.type === 'button') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex) &&
+                    this.actionInput.isGamepadButtonPressed(controls.gamepad.alt.value, gamepadIndex)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check axis bindings (both primary and alt slots)
+        if (controls.gamepad.primary?.type === 'axis') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex)) {
+                    const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.primary.value.index, gamepadIndex);
+
+                    let isActive = false;
+                    if (controls.gamepad.primary.value.direction === 'both' && Math.abs(axisValue) > 0.5) {
+                        isActive = true;
+                    } else if (controls.gamepad.primary.value.direction === 'positive' && axisValue > 0.5) {
+                        isActive = true;
+                    } else if (controls.gamepad.primary.value.direction === 'negative' && axisValue < -0.5) {
+                        isActive = true;
+                    }
+
+                    if (isActive) return true;
+                }
+            }
+        }
+        if (controls.gamepad.alt?.type === 'axis') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex)) {
+                    const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.alt.value.index, gamepadIndex);
+
+                    let isActive = false;
+                    if (controls.gamepad.alt.value.direction === 'both' && Math.abs(axisValue) > 0.5) {
+                        isActive = true;
+                    } else if (controls.gamepad.alt.value.direction === 'positive' && axisValue > 0.5) {
+                        isActive = true;
+                    } else if (controls.gamepad.alt.value.direction === 'negative' && axisValue < -0.5) {
+                        isActive = true;
+                    }
+
+                    if (isActive) return true;
+                }
+            }
+        }
+
         return false;
     }
     
@@ -84,22 +139,85 @@ class CustomInputAdapter {
         const controls = this.controlsManager.getControls(action);
         
         // Check keyboard bindings
-        for (const keyCode of controls.keyboard) {
-            if (this.actionInput.isRawKeyJustPressed(keyCode)) {
-                return true;
-            }
+        if (controls.keyboard.primary && this.actionInput.isRawKeyJustPressed(controls.keyboard.primary)) {
+            return true;
+        }
+        if (controls.keyboard.alt && this.actionInput.isRawKeyJustPressed(controls.keyboard.alt)) {
+            return true;
         }
         
-        // Check gamepad bindings
-        for (const buttonIndex of controls.gamepad) {
+        // Check gamepad button bindings
+        if (controls.gamepad.primary?.type === 'button') {
             for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
                 if (this.actionInput.isGamepadConnected(gamepadIndex) &&
-                    this.actionInput.isGamepadButtonJustPressed(buttonIndex, gamepadIndex)) {
+                    this.actionInput.isGamepadButtonJustPressed(controls.gamepad.primary.value, gamepadIndex)) {
                     return true;
                 }
             }
         }
-        
+        if (controls.gamepad.alt?.type === 'button') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex) &&
+                    this.actionInput.isGamepadButtonJustPressed(controls.gamepad.alt.value, gamepadIndex)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check axis bindings for just pressed (both primary and alt slots)
+        if (controls.gamepad.primary?.type === 'axis') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex)) {
+                    const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.primary.value.index, gamepadIndex);
+                    const prevAxisValue = this.getPreviousAxisValue(gamepadIndex, controls.gamepad.primary.value.index);
+
+                    let isCurrentlyActive = false;
+                    let wasPreviouslyActive = false;
+
+                    if (controls.gamepad.primary.value.direction === 'both') {
+                        isCurrentlyActive = Math.abs(axisValue) > 0.5;
+                        wasPreviouslyActive = Math.abs(prevAxisValue) > 0.5;
+                    } else if (controls.gamepad.primary.value.direction === 'positive') {
+                        isCurrentlyActive = axisValue > 0.5;
+                        wasPreviouslyActive = prevAxisValue > 0.5;
+                    } else if (controls.gamepad.primary.value.direction === 'negative') {
+                        isCurrentlyActive = axisValue < -0.5;
+                        wasPreviouslyActive = prevAxisValue < -0.5;
+                    }
+
+                    if (isCurrentlyActive && !wasPreviouslyActive) {
+                        return true;
+                    }
+                }
+            }
+        }
+        if (controls.gamepad.alt?.type === 'axis') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex)) {
+                    const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.alt.value.index, gamepadIndex);
+                    const prevAxisValue = this.getPreviousAxisValue(gamepadIndex, controls.gamepad.alt.value.index);
+
+                    let isCurrentlyActive = false;
+                    let wasPreviouslyActive = false;
+
+                    if (controls.gamepad.alt.value.direction === 'both') {
+                        isCurrentlyActive = Math.abs(axisValue) > 0.5;
+                        wasPreviouslyActive = Math.abs(prevAxisValue) > 0.5;
+                    } else if (controls.gamepad.alt.value.direction === 'positive') {
+                        isCurrentlyActive = axisValue > 0.5;
+                        wasPreviouslyActive = prevAxisValue > 0.5;
+                    } else if (controls.gamepad.alt.value.direction === 'negative') {
+                        isCurrentlyActive = axisValue < -0.5;
+                        wasPreviouslyActive = prevAxisValue < -0.5;
+                    }
+
+                    if (isCurrentlyActive && !wasPreviouslyActive) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
     
@@ -108,21 +226,52 @@ class CustomInputAdapter {
      */
     isPlayerActionPressed(action, playerNumber) {
         this.ensureBindingsUpToDate();
-        
+
         const gamepadIndex = playerNumber - 1; // Player 1 = gamepad 0, etc.
         if (!this.actionInput.isGamepadConnected(gamepadIndex)) {
             return false;
         }
-        
+
         const controls = this.controlsManager.getControls(action);
-        
-        // Check gamepad bindings for this specific player
-        for (const buttonIndex of controls.gamepad) {
-            if (this.actionInput.isGamepadButtonPressed(buttonIndex, gamepadIndex)) {
-                return true;
-            }
+
+        // Check gamepad button bindings for this specific player
+        if (controls.gamepad.primary?.type === 'button' && this.actionInput.isGamepadButtonPressed(controls.gamepad.primary.value, gamepadIndex)) {
+            return true;
         }
-        
+        if (controls.gamepad.alt?.type === 'button' && this.actionInput.isGamepadButtonPressed(controls.gamepad.alt.value, gamepadIndex)) {
+            return true;
+        }
+
+        // Check axis bindings for this specific player (both primary and alt slots)
+        if (controls.gamepad.primary?.type === 'axis') {
+            const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.primary.value.index, gamepadIndex);
+
+            let isActive = false;
+            if (controls.gamepad.primary.value.direction === 'both' && Math.abs(axisValue) > 0.5) {
+                isActive = true;
+            } else if (controls.gamepad.primary.value.direction === 'positive' && axisValue > 0.5) {
+                isActive = true;
+            } else if (controls.gamepad.primary.value.direction === 'negative' && axisValue < -0.5) {
+                isActive = true;
+            }
+
+            if (isActive) return true;
+        }
+        if (controls.gamepad.alt?.type === 'axis') {
+            const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.alt.value.index, gamepadIndex);
+
+            let isActive = false;
+            if (controls.gamepad.alt.value.direction === 'both' && Math.abs(axisValue) > 0.5) {
+                isActive = true;
+            } else if (controls.gamepad.alt.value.direction === 'positive' && axisValue > 0.5) {
+                isActive = true;
+            } else if (controls.gamepad.alt.value.direction === 'negative' && axisValue < -0.5) {
+                isActive = true;
+            }
+
+            if (isActive) return true;
+        }
+
         return false;
     }
     
@@ -131,21 +280,68 @@ class CustomInputAdapter {
      */
     isPlayerActionJustPressed(action, playerNumber) {
         this.ensureBindingsUpToDate();
-        
+
         const gamepadIndex = playerNumber - 1; // Player 1 = gamepad 0, etc.
         if (!this.actionInput.isGamepadConnected(gamepadIndex)) {
             return false;
         }
-        
+
         const controls = this.controlsManager.getControls(action);
-        
-        // Check gamepad bindings for this specific player
-        for (const buttonIndex of controls.gamepad) {
-            if (this.actionInput.isGamepadButtonJustPressed(buttonIndex, gamepadIndex)) {
+
+        // Check gamepad button bindings for this specific player
+        if (controls.gamepad.primary?.type === 'button' && this.actionInput.isGamepadButtonJustPressed(controls.gamepad.primary.value, gamepadIndex)) {
+            return true;
+        }
+        if (controls.gamepad.alt?.type === 'button' && this.actionInput.isGamepadButtonJustPressed(controls.gamepad.alt.value, gamepadIndex)) {
+            return true;
+        }
+
+        // Check axis bindings for just pressed on this specific player (both primary and alt slots)
+        if (controls.gamepad.primary?.type === 'axis') {
+            const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.primary.value.index, gamepadIndex);
+            const prevAxisValue = this.getPreviousAxisValue(gamepadIndex, controls.gamepad.primary.value.index);
+
+            let isCurrentlyActive = false;
+            let wasPreviouslyActive = false;
+
+            if (controls.gamepad.primary.value.direction === 'both') {
+                isCurrentlyActive = Math.abs(axisValue) > 0.5;
+                wasPreviouslyActive = Math.abs(prevAxisValue) > 0.5;
+            } else if (controls.gamepad.primary.value.direction === 'positive') {
+                isCurrentlyActive = axisValue > 0.5;
+                wasPreviouslyActive = prevAxisValue > 0.5;
+            } else if (controls.gamepad.primary.value.direction === 'negative') {
+                isCurrentlyActive = axisValue < -0.5;
+                wasPreviouslyActive = prevAxisValue < -0.5;
+            }
+
+            if (isCurrentlyActive && !wasPreviouslyActive) {
                 return true;
             }
         }
-        
+        if (controls.gamepad.alt?.type === 'axis') {
+            const axisValue = this.actionInput.getGamepadAxis(controls.gamepad.alt.value.index, gamepadIndex);
+            const prevAxisValue = this.getPreviousAxisValue(gamepadIndex, controls.gamepad.alt.value.index);
+
+            let isCurrentlyActive = false;
+            let wasPreviouslyActive = false;
+
+            if (controls.gamepad.alt.value.direction === 'both') {
+                isCurrentlyActive = Math.abs(axisValue) > 0.5;
+                wasPreviouslyActive = Math.abs(prevAxisValue) > 0.5;
+            } else if (controls.gamepad.alt.value.direction === 'positive') {
+                isCurrentlyActive = axisValue > 0.5;
+                wasPreviouslyActive = prevAxisValue > 0.5;
+            } else if (controls.gamepad.alt.value.direction === 'negative') {
+                isCurrentlyActive = axisValue < -0.5;
+                wasPreviouslyActive = prevAxisValue < -0.5;
+            }
+
+            if (isCurrentlyActive && !wasPreviouslyActive) {
+                return true;
+            }
+        }
+
         return false;
     }
     
@@ -158,17 +354,26 @@ class CustomInputAdapter {
         const controls = this.controlsManager.getControls(action);
         
         // Check keyboard bindings
-        for (const keyCode of controls.keyboard) {
-            if (this.actionInput.isRawKeyPressed(keyCode)) {
-                return true;
-            }
+        if (controls.keyboard.primary && this.actionInput.isRawKeyPressed(controls.keyboard.primary)) {
+            return true;
+        }
+        if (controls.keyboard.alt && this.actionInput.isRawKeyPressed(controls.keyboard.alt)) {
+            return true;
         }
         
         // Check any connected gamepad
-        for (const buttonIndex of controls.gamepad) {
+        if (controls.gamepad.primary?.type === 'button') {
             for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
                 if (this.actionInput.isGamepadConnected(gamepadIndex) &&
-                    this.actionInput.isGamepadButtonPressed(buttonIndex, gamepadIndex)) {
+                    this.actionInput.isGamepadButtonPressed(controls.gamepad.primary.value, gamepadIndex)) {
+                    return true;
+                }
+            }
+        }
+        if (controls.gamepad.alt?.type === 'button') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex) &&
+                    this.actionInput.isGamepadButtonPressed(controls.gamepad.alt.value, gamepadIndex)) {
                     return true;
                 }
             }
@@ -186,17 +391,26 @@ class CustomInputAdapter {
         const controls = this.controlsManager.getControls(action);
         
         // Check keyboard bindings
-        for (const keyCode of controls.keyboard) {
-            if (this.actionInput.isRawKeyJustPressed(keyCode)) {
-                return true;
-            }
+        if (controls.keyboard.primary && this.actionInput.isRawKeyJustPressed(controls.keyboard.primary)) {
+            return true;
+        }
+        if (controls.keyboard.alt && this.actionInput.isRawKeyJustPressed(controls.keyboard.alt)) {
+            return true;
         }
         
         // Check any connected gamepad
-        for (const buttonIndex of controls.gamepad) {
+        if (controls.gamepad.primary?.type === 'button') {
             for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
                 if (this.actionInput.isGamepadConnected(gamepadIndex) &&
-                    this.actionInput.isGamepadButtonJustPressed(buttonIndex, gamepadIndex)) {
+                    this.actionInput.isGamepadButtonJustPressed(controls.gamepad.primary.value, gamepadIndex)) {
+                    return true;
+                }
+            }
+        }
+        if (controls.gamepad.alt?.type === 'button') {
+            for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+                if (this.actionInput.isGamepadConnected(gamepadIndex) &&
+                    this.actionInput.isGamepadButtonJustPressed(controls.gamepad.alt.value, gamepadIndex)) {
                     return true;
                 }
             }
@@ -247,6 +461,29 @@ class CustomInputAdapter {
         if (!this.cachedActionBindings) {
             this.updateActionBindings();
         }
+    }
+
+    /**
+     * Update axis states for just-pressed detection
+     */
+    updateAxisStates() {
+        for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+            if (this.actionInput.isGamepadConnected(gamepadIndex)) {
+                for (let axisIndex = 0; axisIndex < 4; axisIndex++) {
+                    const key = `${gamepadIndex}_${axisIndex}`;
+                    const currentValue = this.actionInput.getGamepadAxis(axisIndex, gamepadIndex);
+                    this.previousAxisStates.set(key, currentValue);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get previous axis value for just-pressed detection
+     */
+    getPreviousAxisValue(gamepadIndex, axisIndex) {
+        const key = `${gamepadIndex}_${axisIndex}`;
+        return this.previousAxisStates.get(key) || 0;
     }
     
     /**

@@ -21,8 +21,8 @@ class InputHandler {
         };
 
         // Initialize specialized input managers
-        this.uiWindowsManager = new UIWindowsInputManager(game, this.input);
-        this.menuManager = new MenuInputManager(game, this.input, this.uiWindowsManager);
+        this.uiWindowsCoordinator = new UIWindowsCoordinator(game, this.input);
+        this.menuManager = new MenuInputManager(game, this.input, this.uiWindowsCoordinator);
         this.gameplayManager = new GameplayInputManager(game, this.input);
         this.waitingMenusManager = new WaitingMenusInputManager(game, this.input);
 
@@ -192,13 +192,13 @@ class InputHandler {
             }
 
             if (this.game.optionsWindow.visible) {
-                this.uiWindowsManager.handleOptionsWindowInput();
+                this.uiWindowsCoordinator.handleInput();
                 return;
             } else if (this.game.themesWindow.visible) {
-                this.uiWindowsManager.handleThemesWindowInput();
+                this.uiWindowsCoordinator.handleInput();
                 return;
             } else if (this.game.controlsWindow.visible) {
-                this.uiWindowsManager.handleControlsWindowInput();
+                this.uiWindowsCoordinator.handleInput();
                 return;
             } else if (this.game.menuStack.current === "settings") {
                 this.menuManager.handleSettingsMenuInput();
@@ -227,9 +227,7 @@ class InputHandler {
             this.game.themesWindow.visible = false;
             this.game.controlsWindow.visible = false;
             this.game.menuStack.current = null;
-            this.uiWindowsManager.unregisterOptionsWindowElements();
-            this.uiWindowsManager.unregisterThemesWindowElements();
-            this.uiWindowsManager.unregisterControlsWindowElements();
+            this.uiWindowsCoordinator.unregisterElements();
             this.menuManager.unregisterSettingsMenuButtons();
             this.menuManager.unregisterPauseMenuButtons();
 
@@ -267,11 +265,11 @@ class InputHandler {
     handleTitleInput() {
         // Check windows FIRST - they have highest priority
         if (this.game.optionsWindow.visible) {
-            this.uiWindowsManager.handleOptionsWindowInput();
+            this.uiWindowsCoordinator.handleInput();
         } else if (this.game.themesWindow.visible) {
-            this.uiWindowsManager.handleThemesWindowInput();
+            this.uiWindowsCoordinator.handleInput();
         } else if (this.game.controlsWindow.visible) {
-            this.uiWindowsManager.handleControlsWindowInput();
+            this.uiWindowsCoordinator.handleInput();
         } else if (this.game.menuStack.current === "settings") {
             this.menuManager.handleSettingsMenuInput();
         } else if (this.game.menuStack.current === "multiplayer") {
