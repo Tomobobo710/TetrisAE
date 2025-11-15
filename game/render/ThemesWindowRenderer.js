@@ -126,7 +126,7 @@ class ThemesWindowRenderer {
      */
     drawThemesList(windowX, windowY, windowWidth, win, theme) {
         const ctx = this.ctx;
-        const themeListY = windowY + 145;
+        const themeListY = windowY + 140;
         const themeSpacing = 38;
         const leftColumnX = windowX + 40;
         const rightColumnX = windowX + windowWidth / 2 + 10;

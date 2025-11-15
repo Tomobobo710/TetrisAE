@@ -151,11 +151,20 @@ class ControlsWindowManager {
         ) {
             // D-pad up on gamepad 3
             if (win.navigatingButtons) {
-                // If navigating buttons, go back to last action
+                // If navigating buttons, go back to last action in column-aware position
                 win.navigatingButtons = false;
                 win.selectedActionIndex = win.actions.length - 1;
-                win.selectedColumn = 0; // Reset to first column
+                // DEFAULT button (0) -> keyboard primary (0), CLOSE button (1) -> gamepad alt (3)
+                win.selectedColumn = win.selectedButtonIndex === 0 ? 0 : 3;
                 this.updateScrollOffset();
+            } else if (win.selectedActionIndex <= 0) {
+                // At first action, switch to button navigation based on column
+                win.navigatingButtons = true;
+                // Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
+                win.selectedButtonIndex = win.selectedColumn < 2 ? 0 : 1;
+                // Clear action selection when navigating to buttons
+                win.selectedActionIndex = -1;
+                win.selectedColumn = -1;
             } else {
                 win.selectedActionIndex = Math.max(0, win.selectedActionIndex - 1);
                 this.updateScrollOffset();
@@ -175,9 +184,10 @@ class ControlsWindowManager {
                 // Already on buttons, do nothing
                 return;
             } else if (win.selectedActionIndex >= win.actions.length - 1) {
-                // At last action, switch to button navigation
+                // At last action, switch to button navigation based on current column
                 win.navigatingButtons = true;
-                win.selectedButtonIndex = 0; // Start with DEFAULT button
+                // Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
+                win.selectedButtonIndex = win.selectedColumn < 2 ? 0 : 1;
                 // Clear action selection when navigating to buttons
                 win.selectedActionIndex = -1;
                 win.selectedColumn = -1;

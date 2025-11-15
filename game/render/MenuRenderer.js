@@ -168,25 +168,6 @@ class MenuRenderer {
         } else if (game.menuStack.current === "localMultiplayer") {
             this.drawLocalMultiplayerMenuButtons(game, theme);
         } else if (game.menuStack.current !== "settings" && !game.optionsWindow.visible && !game.themesWindow.visible) {
-            // Draw instructions first (behind menu)
-            ctx.fillStyle = theme.ui.text;
-            ctx.font = this.INSTRUCTIONS_FONT;
-            ctx.textAlign = "center";
-            ctx.globalAlpha = 0.8;
-
-            const instructions = [
-                "← / → : Move •  ↑ : Hard Drop •  ↓ : Soft Drop",
-                "SpaceBar / Ⓐ / ✕ : Rotate ↻ • Shift / Ⓑ / ◯ : Rotate ↺",
-                "E / Z / Ⓧ / LB / ◻ / L1: Hold Piece • Q / Ⓨ / △ : Change Theme"
-            ];
-
-            instructions.forEach((text, i) => {
-                const y = this.SCREEN_HEIGHT - 60 + i * 20;
-                this.utils.drawTextBackdrop(text, this.SCREEN_WIDTH / 2, y, this.INSTRUCTIONS_FONT, theme.ui.text, theme, 1);
-            });
-
-            ctx.globalAlpha = 1.0;
-
             // Default to main menu (drawn on top)
             this.drawMainMenuButtons(game, theme);
         }

@@ -70,7 +70,7 @@ class CustomControlsManager {
                 }
             },
             pause: {
-                keyboard: { primary: "KeyC", alt: "KeyP" },
+                keyboard: { primary: "Escape", alt: "KeyP" },
                 gamepad: {
                     primary: { type: 'button', value: 9 }, // Start button
                     alt: null
