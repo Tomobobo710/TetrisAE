@@ -41,6 +41,22 @@ class GameplayInputManager {
             if (localPlayer && !localPlayer.gameOver && localPlayer.currentPiece) {
                 this.handleAnyDeviceInput(localPlayer, deltaTime);
             }
+        } else if (playerCount === 2) {
+            // 2-player mode: check if one player is CPU (player vs CPU mode)
+            const humanPlayer = gm.players.find(p => !p.thinkingTimer); // Human player has no thinkingTimer
+            const cpuPlayer = gm.players.find(p => p.thinkingTimer !== undefined);
+
+            if (humanPlayer && cpuPlayer) {
+                // Player vs CPU mode: human player uses any device input, CPU is AI controlled
+                if (!humanPlayer.gameOver && humanPlayer.currentPiece) {
+                    this.handleAnyDeviceInput(humanPlayer, deltaTime);
+                }
+            } else {
+                // Local multiplayer: Handle input for each player based on their assigned input device
+                gm.players.forEach((player) => {
+                    this.handlePlayerInput(player, deltaTime, playerCount);
+                });
+            }
         } else {
             // Local multiplayer: Handle input for each player based on their assigned input device
             gm.players.forEach((player) => {

@@ -53,7 +53,7 @@ class GameMenuManager {
                 { text: "BACK", action: "back" }
             ],
             buttonsRegistered: false,
-            positionOffset: -80 // Move up one button height for better positioning
+            positionOffset: -75 // Move up one button height for better positioning
         };
 
         this.gameOverMenu = {
