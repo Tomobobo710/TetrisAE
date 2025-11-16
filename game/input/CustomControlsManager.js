@@ -90,40 +90,17 @@ class CustomControlsManager {
     }
     
     /**
-     * Load controls from localStorage, falling back to defaults
+     * Load controls from localStorage
      */
     loadControls() {
         try {
-            const saved = localStorage.getItem('tetris_custom_controls_v2');
+            const saved = localStorage.getItem('tetris_custom_controls');
             if (saved) {
-                const parsed = JSON.parse(saved);
-                // Load all profiles
-                for (const profileName in this.profiles) {
-                    if (parsed[profileName]) {
-                        this.profiles[profileName] = this.mergeWithDefaults(parsed[profileName]);
-                    } else {
-                        this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
-                    }
-                }
+                this.profiles = JSON.parse(saved);
             } else {
-                // Try legacy migration from single profile
-                const legacy = localStorage.getItem('tetris_custom_controls');
-                if (legacy) {
-                    const parsed = JSON.parse(legacy);
-                    // Migrate legacy controls to PLAYER_1
-                    this.profiles.PLAYER_1 = this.mergeWithDefaults(parsed);
-                    // Others get defaults
-                    this.profiles.PLAYER_2 = JSON.parse(JSON.stringify(this.defaultControls));
-                    this.profiles.PLAYER_3 = JSON.parse(JSON.stringify(this.defaultControls));
-                    this.profiles.PLAYER_4 = JSON.parse(JSON.stringify(this.defaultControls));
-                    // Save migrated data
-                    this.saveControls();
-                    console.log('[CustomControlsManager] Migrated legacy controls to PLAYER_1 profile');
-                } else {
-                    // Initialize all profiles with defaults
-                    for (const profileName in this.profiles) {
-                        this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
-                    }
+                // Initialize all profiles with defaults
+                for (const profileName in this.profiles) {
+                    this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
                 }
             }
         } catch (error) {
@@ -140,7 +117,7 @@ class CustomControlsManager {
      */
     saveControls() {
         try {
-            localStorage.setItem('tetris_custom_controls_v2', JSON.stringify(this.profiles));
+            localStorage.setItem('tetris_custom_controls', JSON.stringify(this.profiles));
             console.log('[CustomControlsManager] All profiles saved to localStorage');
         } catch (error) {
             console.error('[CustomControlsManager] Failed to save controls to localStorage:', error);
