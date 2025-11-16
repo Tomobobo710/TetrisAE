@@ -22,7 +22,7 @@ class TunnelTheme extends BaseTheme {
 
         // Playfield colors: deep indigo/midnight blue to match a cobalt/x-ray tunnel
         this.playfield = {
-            background: "rgba(2, 4, 16, 1.0)",
+            background: "rgba(2, 4, 16, 0.6)",
             border: "#3fa9ff",
             grid: "rgba(63, 169, 255, 0.12)",
             shadow: "rgba(63, 169, 255, 0.35)"
@@ -73,13 +73,14 @@ class TunnelTheme extends BaseTheme {
         this.tunnel = {
             textures: [],
             textureSize: 128,
-            distanceOffset: 0,
+            distanceOffset: 1024, // Start further into the tunnel for different initial color
             angleOffset: 0,
             sectionLength: 512,
             fadeLength: 256,
             imageData: null,
             lastWidth: 0,
             lastHeight: 0,
+            renderScale: 0.5, // Render at half resolution for performance
 
             // Derived palette state (kept in sync with current tunnel section/blend)
             currentSectionIndex: 0,
@@ -172,14 +173,16 @@ class TunnelTheme extends BaseTheme {
     }
 
     /**
-     * Ensure we have an ImageData buffer matching current canvas size.
+     * Ensure we have an ImageData buffer matching scaled canvas size.
      */
     ensureImageData(ctx, width, height) {
         const t = this.tunnel;
-        if (!t.imageData || t.lastWidth !== width || t.lastHeight !== height) {
-            t.imageData = ctx.createImageData(width, height);
-            t.lastWidth = width;
-            t.lastHeight = height;
+        const scaledWidth = Math.floor(width * t.renderScale);
+        const scaledHeight = Math.floor(height * t.renderScale);
+        if (!t.imageData || t.lastWidth !== scaledWidth || t.lastHeight !== scaledHeight) {
+            t.imageData = ctx.createImageData(scaledWidth, scaledHeight);
+            t.lastWidth = scaledWidth;
+            t.lastHeight = scaledHeight;
         }
         return t.imageData;
     }
@@ -187,6 +190,7 @@ class TunnelTheme extends BaseTheme {
     /**
      * Draw procedural tunnel as background.
      * Uses a CPU imageData write similar to the provided tunnelDemo.
+     * Renders at half resolution for performance and upscales.
      */
     drawBackground(ctx, opacity) {
         if (opacity <= 0) return;
@@ -197,6 +201,11 @@ class TunnelTheme extends BaseTheme {
         const halfH = height / 2;
 
         const t = this.tunnel;
+        const scale = t.renderScale;
+        const scaledWidth = Math.floor(width * scale);
+        const scaledHeight = Math.floor(height * scale);
+        const scaledHalfW = scaledWidth / 2;
+        const scaledHalfH = scaledHeight / 2;
 
         // If textures didn't init, fail safe with solid black instead of breaking theme.
         if (!t || !t.textures || t.textures.length === 0) {
@@ -255,13 +264,13 @@ class TunnelTheme extends BaseTheme {
         t.nextSectionIndex = nextIndex;
         t.sectionBlend = smoothT;
 
-        // Render tunnel pixels
-        // Note: This is heavy but fine for this project scale; it's similar to Fractal/Neon complexity.
+        // Render tunnel pixels at scaled resolution
+        // Note: Reduced to ~25% of original pixel count for performance.
         let i = 0;
-        for (let y = 0; y < height; y++) {
-            const dy = y - halfH;
-            for (let x = 0; x < width; x++, i += 4) {
-                const dx = x - halfW;
+        for (let y = 0; y < scaledHeight; y++) {
+            const dy = (y - scaledHalfH) / scale; // Scale back to original coordinate space
+            for (let x = 0; x < scaledWidth; x++, i += 4) {
+                const dx = (x - scaledHalfW) / scale;
 
                 const dist = Math.sqrt(dx * dx + dy * dy) || 1;
                 const angle = Math.atan2(dy, dx) + angleOffset;
@@ -302,9 +311,17 @@ class TunnelTheme extends BaseTheme {
             }
         }
 
+        // Create a temporary canvas to upscale the ImageData
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = scaledWidth;
+        tempCanvas.height = scaledHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.putImageData(imageData, 0, 0);
+
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.putImageData(imageData, 0, 0);
+        ctx.imageSmoothingEnabled = false; // Pixelated upscale for retro look
+        ctx.drawImage(tempCanvas, 0, 0, scaledWidth, scaledHeight, 0, 0, width, height);
         ctx.restore();
     }
 
