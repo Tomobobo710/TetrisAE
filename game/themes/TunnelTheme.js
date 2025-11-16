@@ -92,34 +92,69 @@ class TunnelTheme extends BaseTheme {
     }
 
     /**
-     * Initialize tunnel textures: checkerboard, fire-ish noise, spark stripes.
+     * Initialize tunnel textures: enhanced checkerboard patterns with unique variations per scheme.
      */
     initTunnelTextures() {
         const texSize = this.tunnel.textureSize;
         const total = texSize * texSize * 4;
 
-        // Pure checkerboard set: multiple color schemes, all 128x128 for bold pixels.
+        // Enhanced checkerboard schemes with unique patterns per color set
         const schemes = [
-            // Classic cyan/magenta-ish
+            // Classic cyan/magenta-ish: standard checkerboard
             { a: [64, 32, 128], b: [128, 64, 255] },
-            // Warm gold/orange
+            // Warm gold/orange: larger blocks with diagonal offset
             { a: [80, 40, 0],   b: [255, 200, 80] },
-            // Toxic green
+            // Toxic green: smaller checker with vertical stripes
             { a: [16, 64, 16],  b: [128, 255, 128] },
-            // Electric blue
+            // Electric blue: rotated checker pattern
             { a: [16, 32, 64],  b: [96, 192, 255] },
-            // Pink/purple
+            // Pink/purple: hexagonal-style pattern
             { a: [64, 16, 64],  b: [255, 96, 255] },
-            // Steel/teal
+            // Steel/teal: irregular blocks
             { a: [32, 64, 64],  b: [160, 224, 224] }
         ];
 
-        schemes.forEach(({ a, b }) => {
+        schemes.forEach(({ a, b }, schemeIndex) => {
             const t = new Uint8ClampedArray(total);
             for (let y = 0; y < texSize; y++) {
                 for (let x = 0; x < texSize; x++) {
                     const i = (y * texSize + x) * 4;
-                    const useB = ((x & 16) ^ (y & 16)) !== 0;
+
+                    // Generate unique checkerboard patterns based on scheme
+                    let useB;
+                    switch (schemeIndex) {
+                        case 0: // Standard checkerboard
+                            useB = ((x & 16) ^ (y & 16)) !== 0;
+                            break;
+                        case 1: // Larger blocks with diagonal offset
+                            const offsetX = Math.floor(x / 24);
+                            const offsetY = Math.floor(y / 24);
+                            useB = ((offsetX + offsetY) & 1) !== 0;
+                            break;
+                        case 2: // Smaller checker with vertical stripes
+                            const smallCheck = ((x & 8) ^ (y & 8)) !== 0;
+                            const vertical = (x & 4) !== 0;
+                            useB = smallCheck || vertical;
+                            break;
+                        case 3: // Rotated checker (45-degree effect)
+                            const rotated = ((x + y) & 24) > 12;
+                            useB = rotated;
+                            break;
+                        case 4: // Hexagonal pattern
+                            const hexX = Math.floor(x / 12);
+                            const hexY = Math.floor(y / 10);
+                            const hexOffset = hexY & 1;
+                            useB = ((hexX + hexOffset) & 1) !== 0;
+                            break;
+                        case 5: // Irregular blocks
+                            const blockX = Math.floor(x / 20) * 31;
+                            const blockY = Math.floor(y / 20) * 31;
+                            useB = ((blockX ^ blockY) & 16) !== 0;
+                            break;
+                        default:
+                            useB = ((x & 16) ^ (y & 16)) !== 0;
+                    }
+
                     const src = useB ? b : a;
                     t[i]     = src[0];
                     t[i + 1] = src[1];
@@ -243,26 +278,30 @@ class TunnelTheme extends BaseTheme {
         const texMask = textureSize - 1;
         const texRowStride = textureSize * 4;
 
-        // Section-based blending between textures:
-        // We want a continuous, gradual color morph instead of a hard jump.
+        // Distance-based blending with smooth transitions using noise functions
         const loopDistance = sectionLength * texCount;
         const wrappedDist = ((distOffset % loopDistance) + loopDistance) % loopDistance;
 
-        const sectionPos = wrappedDist / sectionLength;              // 0 .. texCount
-        const baseIndex = Math.floor(sectionPos) % texCount;         // current section
-        const localT = sectionPos - Math.floor(sectionPos);          // 0..1 inside this section
-        const nextIndex = (baseIndex + 1) % texCount;                // next section
+        // Use distance to create smooth organic transitions instead of hard sections
+        const normalizedDist = wrappedDist / loopDistance;
+        const baseIndex = Math.floor(normalizedDist * texCount) % texCount;
+        const nextIndex = (baseIndex + 1) % texCount;
+
+        // Create organic blend using sine wave for smoother transitions
+        const blendWave = Math.sin(normalizedDist * Math.PI * 2 * texCount) * 0.5 + 0.5;
+        const smoothT = Math.pow(blendWave, 0.7); // Exponential smoothing for natural feel
 
         const textureData1 = textures[baseIndex];
         const textureData2 = textures[nextIndex];
 
-        // Use a smoothstep on localT so the blend eases in/out instead of linear snap.
-        const smoothT = localT * localT * (3 - 2 * localT);
+        // Add subtle noise to blend for more organic transitions
+        const noiseBlend = (Math.sin(wrappedDist * 0.01) + Math.sin(wrappedDist * 0.007)) * 0.1 + 0.5;
+        const finalBlend = smoothT * 0.7 + noiseBlend * 0.3;
 
         // Cache derived palette state so piece/UI color hooks can follow tunnel colors.
         t.currentSectionIndex = baseIndex;
         t.nextSectionIndex = nextIndex;
-        t.sectionBlend = smoothT;
+        t.sectionBlend = finalBlend;
 
         // Render tunnel pixels at scaled resolution
         // Note: Reduced to ~25% of original pixel count for performance.
@@ -272,24 +311,30 @@ class TunnelTheme extends BaseTheme {
             for (let x = 0; x < scaledWidth; x++, i += 4) {
                 const dx = (x - scaledHalfW) / scale;
 
+                // Use modified radial mapping with perspective distortion
                 const dist = Math.sqrt(dx * dx + dy * dy) || 1;
                 const angle = Math.atan2(dy, dx) + angleOffset;
 
-                // Map to texture coordinates
-                const texU = (angle / (2 * Math.PI)) * textureSize;
-                const texV = (width * 8) / dist + distOffset;
+                // Add perspective distortion for more 3D-like effect
+                const perspective = 1 + Math.pow(dist / width, 2) * 0.5;
+                const warpedDist = dist * perspective;
+
+                // Map to texture coordinates with enhanced projection
+                const texU = (angle / (2 * Math.PI) + Math.sin(angle * 3) * 0.1) * textureSize;
+                const texV = (width * 6) / warpedDist + distOffset * 1.2;
 
                 const u = (texU & texMask) | 0;
                 const v = (Math.floor(texV) & texMask);
                 const texIndex = v * texRowStride + u * 4;
 
-                // Fog: darken toward center so playfield stays readable.
-                const fog = Math.min(1.0, dist / (width / 2));
+                // Enhanced fog with atmospheric scattering effect
+                const fog = Math.min(1.0, dist / (width / 2) + Math.sin(dist * 0.01 + distOffset * 0.1) * 0.1);
 
-                // Spatial fade: only blend textures strongly away from center to keep
-                // playfield readable, but ALWAYS use smoothT so color changes are gradual.
-                const radialBlendMask = Math.max(0, 1.0 - dist / (width / 3));
-                const finalFade = smoothT * radialBlendMask + smoothT * (1.0 - radialBlendMask);
+                // Organic spatial blending using distance-based falloff with noise
+                const radialDist = dist / (width / 3);
+                const noiseMask = Math.sin(angle * 2 + distOffset * 0.05) * 0.1 + 0.9;
+                const blendMask = Math.max(0, 1.0 - radialDist) * noiseMask;
+                const finalFade = finalBlend * blendMask + finalBlend * (1.0 - blendMask * 0.7);
 
                 const r1 = textureData1[texIndex];
                 const g1 = textureData1[texIndex + 1];
