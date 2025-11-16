@@ -1,9 +1,9 @@
 /**
- * Dr. Mario Game Class
+ * Pill Panic Game Class
  * Main coordinator that delegates to specialized modules
  * Clean integration with Tetris architecture
  */
-class DrMarioGame {
+class PillPanicGame {
     constructor(parentGame) {
         this.parentGame = parentGame; // Reference to main Tetris game
         
@@ -17,17 +17,16 @@ class DrMarioGame {
         this.debugCtx = parentGame.debugCtx;
         
         /******* Core Game State *******/
-        this.gameState = DR_MARIO_CONSTANTS.STATES.START_SCREEN;
+        this.gameState = PILL_PANIC_CONSTANTS.STATES.LEVEL_SELECT;
         this.frameCount = 0;
         this.lastTime = performance.now();
         
         /******* Initialize Specialized Modules *******/
-        this.audioManager = new DrMarioAudioManager(parentGame.audio);
-        this.inputManager = new DrMarioInputManager(this);
-        this.renderer = new DrMarioRenderer(this);
-        this.gameLogic = new DrMarioGameLogic(this);
+        this.audioManager = new PillPanicAudioManager(parentGame.audio);
+        this.inputManager = new PillPanicInputManager(this);
+        this.renderer = new PillPanicRenderer(this);
+        this.gameLogic = new PillPanicGameLogic(this);
         
-        console.log("🎮 Dr. Mario initialized! Modules loaded.");
     }
     
     /******* ActionEngine Framework Hooks *******/
@@ -48,16 +47,13 @@ class DrMarioGame {
     
     /******* State Management *******/
     setState(newState) {
-        console.log(`Dr. Mario state: ${this.gameState} -> ${newState}`);
         this.gameState = newState;
     }
     
     /******* Navigation Methods *******/
-    returnToTetris() {
-        console.log("🎮 Returning to Tetris main menu...");
-        
+    returnToTetris() {        
         // Delegate to parent game for clean transition
-        this.parentGame.returnFromDrMario();
+        this.parentGame.returnFromPillPanic();
     }
     
     /******* Utility Methods *******/

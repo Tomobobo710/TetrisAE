@@ -1,9 +1,9 @@
 /**
- * Dr. Mario Game Logic Module
+ * Pill Panic Game Logic Module
  * Handles all core game mechanics, grid management, and game state
  * Extracted from original implementation and modularized
  */
-class DrMarioGameLogic {
+class PillPanicGameLogic {
     constructor(drMarioGame) {
         this.game = drMarioGame;
         
@@ -38,10 +38,10 @@ class DrMarioGameLogic {
     /******* GRID MANAGEMENT *******/
     createEmptyGrid() {
         const grid = [];
-        for (let row = 0; row < DR_MARIO_CONSTANTS.GRID.ROWS; row++) {
+        for (let row = 0; row < PILL_PANIC_CONSTANTS.GRID.ROWS; row++) {
             grid[row] = [];
-            for (let col = 0; col < DR_MARIO_CONSTANTS.GRID.COLS; col++) {
-                grid[row][col] = new DrMarioCell();
+            for (let col = 0; col < PILL_PANIC_CONSTANTS.GRID.COLS; col++) {
+                grid[row][col] = new PillPanicCell();
             }
         }
         return grid;
@@ -52,15 +52,15 @@ class DrMarioGameLogic {
         let placed = 0;
         
         this.grid = this.createEmptyGrid();
-        const startRow = Math.floor(DR_MARIO_CONSTANTS.GRID.ROWS / 3);
+        const startRow = Math.floor(PILL_PANIC_CONSTANTS.GRID.ROWS / 3);
         
         while (placed < count) {
-            const row = startRow + Math.floor(Math.random() * (DR_MARIO_CONSTANTS.GRID.ROWS - startRow));
-            const col = Math.floor(Math.random() * DR_MARIO_CONSTANTS.GRID.COLS);
+            const row = startRow + Math.floor(Math.random() * (PILL_PANIC_CONSTANTS.GRID.ROWS - startRow));
+            const col = Math.floor(Math.random() * PILL_PANIC_CONSTANTS.GRID.COLS);
             
             if (this.grid[row][col].isEmpty()) {
                 const color = colors[Math.floor(Math.random() * colors.length)];
-                this.grid[row][col] = new DrMarioCell(color, "virus");
+                this.grid[row][col] = new PillPanicCell(color, "virus");
                 placed++;
             }
         }
@@ -74,7 +74,7 @@ class DrMarioGameLogic {
         this.selectedVirusLevel = virusLevel;
         this.selectedSpeed = speed;
         
-        this.game.setState(DR_MARIO_CONSTANTS.STATES.PLAYING);
+        this.game.setState(PILL_PANIC_CONSTANTS.STATES.PLAYING);
         this.score = 0;
         this.level = 1;
         this.chainCount = 0;
@@ -82,16 +82,16 @@ class DrMarioGameLogic {
         
         this.placeViruses(virusLevel);
         this.spawnCapsule();
-        this.nextCapsule = new DrMarioCapsule(3, -2);
+        this.nextCapsule = new PillPanicCapsule(3, -2);
         
         this.game.playSound("menuConfirm");
     }
     
     spawnCapsule() {
-        this.currentCapsule = this.nextCapsule || new DrMarioCapsule(3, 0);
+        this.currentCapsule = this.nextCapsule || new PillPanicCapsule(3, 0);
         this.currentCapsule.y = 0;
         this.currentCapsule.x = 3;
-        this.nextCapsule = new DrMarioCapsule(3, -2);
+        this.nextCapsule = new PillPanicCapsule(3, -2);
         this.fallTimer = 0;
         
         const positions = this.currentCapsule.getPositions();
@@ -125,9 +125,9 @@ class DrMarioGameLogic {
     update(deltaTime) {
         this.animationTime += deltaTime;
         
-        if (this.game.gameState === DR_MARIO_CONSTANTS.STATES.PLAYING) {
+        if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PLAYING) {
             this.updatePlayingState(deltaTime);
-        } else if (this.game.gameState === DR_MARIO_CONSTANTS.STATES.CLEARING) {
+        } else if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.CLEARING) {
             this.updateClearingState(deltaTime);
         }
         
@@ -140,12 +140,12 @@ class DrMarioGameLogic {
         const speedMultipliers = [0.7, 1.0, 1.5];
         const speedMultiplier = speedMultipliers[this.selectedSpeed] || 1.0;
         const baseSpeed = Math.max(
-            DR_MARIO_CONSTANTS.PHYSICS.MIN_FALL_SPEED,
-            DR_MARIO_CONSTANTS.PHYSICS.BASE_FALL_SPEED / speedMultiplier
+            PILL_PANIC_CONSTANTS.PHYSICS.MIN_FALL_SPEED,
+            PILL_PANIC_CONSTANTS.PHYSICS.BASE_FALL_SPEED / speedMultiplier
         );
         
         const fallSpeed = this.game.input.isKeyPressed("DirDown")
-            ? baseSpeed / DR_MARIO_CONSTANTS.PHYSICS.FAST_DROP_MULTIPLIER
+            ? baseSpeed / PILL_PANIC_CONSTANTS.PHYSICS.FAST_DROP_MULTIPLIER
             : baseSpeed;
         
         this.fallTimer += deltaTime;
@@ -156,7 +156,7 @@ class DrMarioGameLogic {
             if (!this.moveCapsule(0, 1)) {
                 if (!this.currentCapsule.locked) {
                     this.currentCapsule.locked = true;
-                    this.currentCapsule.lockTimer = DR_MARIO_CONSTANTS.PHYSICS.LOCK_DELAY;
+                    this.currentCapsule.lockTimer = PILL_PANIC_CONSTANTS.PHYSICS.LOCK_DELAY;
                 }
             } else {
                 this.currentCapsule.locked = false;
@@ -176,8 +176,8 @@ class DrMarioGameLogic {
         const positions = this.currentCapsule.getPositions();
         const colors = this.currentCapsule.getColors();
         
-        const leftCell = new DrMarioCell(colors.leftColor, "capsule");
-        const rightCell = new DrMarioCell(colors.rightColor, "capsule");
+        const leftCell = new PillPanicCell(colors.leftColor, "capsule");
+        const rightCell = new PillPanicCell(colors.rightColor, "capsule");
         
         leftCell.connectedTo = { x: positions.right.x, y: positions.right.y };
         rightCell.connectedTo = { x: positions.left.x, y: positions.left.y };
@@ -194,13 +194,13 @@ class DrMarioGameLogic {
         const toRemove = new Set();
         
         // Check horizontal matches
-        for (let row = 0; row < DR_MARIO_CONSTANTS.GRID.ROWS; row++) {
-            for (let col = 0; col <= DR_MARIO_CONSTANTS.GRID.COLS - DR_MARIO_CONSTANTS.GRID.MATCH_COUNT; col++) {
+        for (let row = 0; row < PILL_PANIC_CONSTANTS.GRID.ROWS; row++) {
+            for (let col = 0; col <= PILL_PANIC_CONSTANTS.GRID.COLS - PILL_PANIC_CONSTANTS.GRID.MATCH_COUNT; col++) {
                 const color = this.grid[row][col].color;
                 if (!color || this.grid[row][col].isEmpty()) continue;
                 
                 let matchLength = 1;
-                for (let i = 1; col + i < DR_MARIO_CONSTANTS.GRID.COLS; i++) {
+                for (let i = 1; col + i < PILL_PANIC_CONSTANTS.GRID.COLS; i++) {
                     if (this.grid[row][col + i].color === color && !this.grid[row][col + i].isEmpty()) {
                         matchLength++;
                     } else {
@@ -208,7 +208,7 @@ class DrMarioGameLogic {
                     }
                 }
                 
-                if (matchLength >= DR_MARIO_CONSTANTS.GRID.MATCH_COUNT) {
+                if (matchLength >= PILL_PANIC_CONSTANTS.GRID.MATCH_COUNT) {
                     foundMatches = true;
                     for (let i = 0; i < matchLength; i++) {
                         toRemove.add(`${row},${col + i}`);
@@ -218,13 +218,13 @@ class DrMarioGameLogic {
         }
         
         // Check vertical matches
-        for (let col = 0; col < DR_MARIO_CONSTANTS.GRID.COLS; col++) {
-            for (let row = 0; row <= DR_MARIO_CONSTANTS.GRID.ROWS - DR_MARIO_CONSTANTS.GRID.MATCH_COUNT; row++) {
+        for (let col = 0; col < PILL_PANIC_CONSTANTS.GRID.COLS; col++) {
+            for (let row = 0; row <= PILL_PANIC_CONSTANTS.GRID.ROWS - PILL_PANIC_CONSTANTS.GRID.MATCH_COUNT; row++) {
                 const color = this.grid[row][col].color;
                 if (!color || this.grid[row][col].isEmpty()) continue;
                 
                 let matchLength = 1;
-                for (let i = 1; row + i < DR_MARIO_CONSTANTS.GRID.ROWS; i++) {
+                for (let i = 1; row + i < PILL_PANIC_CONSTANTS.GRID.ROWS; i++) {
                     if (this.grid[row + i][col].color === color && !this.grid[row + i][col].isEmpty()) {
                         matchLength++;
                     } else {
@@ -232,7 +232,7 @@ class DrMarioGameLogic {
                     }
                 }
                 
-                if (matchLength >= DR_MARIO_CONSTANTS.GRID.MATCH_COUNT) {
+                if (matchLength >= PILL_PANIC_CONSTANTS.GRID.MATCH_COUNT) {
                     foundMatches = true;
                     for (let i = 0; i < matchLength; i++) {
                         toRemove.add(`${row + i},${col}`);
@@ -244,14 +244,14 @@ class DrMarioGameLogic {
         if (foundMatches) {
             this.clearMatches(toRemove);
         } else {
-            this.game.setState(DR_MARIO_CONSTANTS.STATES.PLAYING);
+            this.game.setState(PILL_PANIC_CONSTANTS.STATES.PLAYING);
             this.spawnCapsule();
         }
     }
     
     clearMatches(toRemove) {
-        this.game.setState(DR_MARIO_CONSTANTS.STATES.CLEARING);
-        this.clearingTimer = DR_MARIO_CONSTANTS.PHYSICS.CLEAR_ANIMATION_TIME;
+        this.game.setState(PILL_PANIC_CONSTANTS.STATES.CLEARING);
+        this.clearingTimer = PILL_PANIC_CONSTANTS.PHYSICS.CLEAR_ANIMATION_TIME;
         this.chainCount++;
         
         let virusesCleared = 0;
@@ -274,8 +274,8 @@ class DrMarioGameLogic {
             }
         });
         
-        this.score += virusesCleared * DR_MARIO_CONSTANTS.GAMEPLAY.POINTS_PER_VIRUS * this.chainCount;
-        this.score += pillsCleared * DR_MARIO_CONSTANTS.GAMEPLAY.POINTS_PER_PILL * this.chainCount;
+        this.score += virusesCleared * PILL_PANIC_CONSTANTS.GAMEPLAY.POINTS_PER_VIRUS * this.chainCount;
+        this.score += pillsCleared * PILL_PANIC_CONSTANTS.GAMEPLAY.POINTS_PER_PILL * this.chainCount;
         this.virusCount -= virusesCleared;
         
         if (virusesCleared > 0) this.game.playSound("virusClear");
@@ -285,7 +285,7 @@ class DrMarioGameLogic {
         }
         
         if (this.virusCount <= 0) {
-            setTimeout(() => this.handleVictory(), DR_MARIO_CONSTANTS.PHYSICS.CLEAR_ANIMATION_TIME * 1000);
+            setTimeout(() => this.handleVictory(), PILL_PANIC_CONSTANTS.PHYSICS.CLEAR_ANIMATION_TIME * 1000);
         }
     }
     
@@ -293,10 +293,10 @@ class DrMarioGameLogic {
         this.clearingTimer -= deltaTime;
         
         if (this.clearingTimer <= 0) {
-            for (let row = 0; row < DR_MARIO_CONSTANTS.GRID.ROWS; row++) {
-                for (let col = 0; col < DR_MARIO_CONSTANTS.GRID.COLS; col++) {
+            for (let row = 0; row < PILL_PANIC_CONSTANTS.GRID.ROWS; row++) {
+                for (let col = 0; col < PILL_PANIC_CONSTANTS.GRID.COLS; col++) {
                     if (this.grid[row][col].matched) {
-                        this.grid[row][col] = new DrMarioCell();
+                        this.grid[row][col] = new PillPanicCell();
                     }
                 }
             }
@@ -304,10 +304,10 @@ class DrMarioGameLogic {
             const fell = this.applyGravity();
             
             if (fell) {
-                this.clearingTimer = DR_MARIO_CONSTANTS.PHYSICS.CHAIN_DELAY;
+                this.clearingTimer = PILL_PANIC_CONSTANTS.PHYSICS.CHAIN_DELAY;
             } else {
                 this.checkAndClearMatches();
-                if (this.game.gameState !== DR_MARIO_CONSTANTS.STATES.CLEARING) {
+                if (this.game.gameState !== PILL_PANIC_CONSTANTS.STATES.CLEARING) {
                     this.chainCount = 0;
                 }
             }
@@ -318,8 +318,8 @@ class DrMarioGameLogic {
         let somethingFell = false;
         const processed = new Set();
         
-        for (let row = DR_MARIO_CONSTANTS.GRID.ROWS - 2; row >= 0; row--) {
-            for (let col = 0; col < DR_MARIO_CONSTANTS.GRID.COLS; col++) {
+        for (let row = PILL_PANIC_CONSTANTS.GRID.ROWS - 2; row >= 0; row--) {
+            for (let col = 0; col < PILL_PANIC_CONSTANTS.GRID.COLS; col++) {
                 const key = `${row},${col}`;
                 if (processed.has(key)) continue;
                 
@@ -341,18 +341,18 @@ class DrMarioGameLogic {
                     
                     if (isVertical) {
                         const bottomRow = Math.max(row, otherRow);
-                        pillCanFall = (bottomRow + 1 < DR_MARIO_CONSTANTS.GRID.ROWS) && 
+                        pillCanFall = (bottomRow + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) && 
                                      this.grid[bottomRow + 1][col].isEmpty();
                     } else if (isHorizontal) {
                         const thisHasSpace = canFall;
-                        const otherHasSpace = (otherRow + 1 < DR_MARIO_CONSTANTS.GRID.ROWS) && 
+                        const otherHasSpace = (otherRow + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) && 
                                             this.grid[otherRow + 1][otherCol].isEmpty();
                         pillCanFall = thisHasSpace && otherHasSpace;
                     }
                     
                     if (pillCanFall) {
-                        this.grid[row][col] = new DrMarioCell();
-                        this.grid[otherRow][otherCol] = new DrMarioCell();
+                        this.grid[row][col] = new PillPanicCell();
+                        this.grid[otherRow][otherCol] = new PillPanicCell();
                         
                         this.grid[row + 1][col] = cell;
                         this.grid[otherRow + 1][otherCol] = otherCell;
@@ -366,7 +366,7 @@ class DrMarioGameLogic {
                     }
                 } else {
                     this.grid[row + 1][col] = cell;
-                    this.grid[row][col] = new DrMarioCell();
+                    this.grid[row][col] = new PillPanicCell();
                     processed.add(key);
                     somethingFell = true;
                 }
@@ -377,29 +377,29 @@ class DrMarioGameLogic {
     }
     
     handleVictory() {
-        this.game.setState(DR_MARIO_CONSTANTS.STATES.VICTORY);
+        this.game.setState(PILL_PANIC_CONSTANTS.STATES.VICTORY);
         this.game.playSound("victory");
         this.bottleShake = { intensity: 5, duration: 1.0 };
     }
     
     handleGameOver() {
-        this.game.setState(DR_MARIO_CONSTANTS.STATES.GAME_OVER);
+        this.game.setState(PILL_PANIC_CONSTANTS.STATES.GAME_OVER);
         this.game.playSound("gameOver");
     }
     
     /******* PARTICLE EFFECTS *******/
     createClearParticles(gridX, gridY, color) {
-        const x = DR_MARIO_CONSTANTS.GRID.OFFSET_X + gridX * DR_MARIO_CONSTANTS.GRID.CELL_SIZE + DR_MARIO_CONSTANTS.GRID.CELL_SIZE / 2;
-        const y = DR_MARIO_CONSTANTS.GRID.OFFSET_Y + gridY * DR_MARIO_CONSTANTS.GRID.CELL_SIZE + DR_MARIO_CONSTANTS.GRID.CELL_SIZE / 2;
+        const x = PILL_PANIC_CONSTANTS.GRID.OFFSET_X + gridX * PILL_PANIC_CONSTANTS.GRID.CELL_SIZE + PILL_PANIC_CONSTANTS.GRID.CELL_SIZE / 2;
+        const y = PILL_PANIC_CONSTANTS.GRID.OFFSET_Y + gridY * PILL_PANIC_CONSTANTS.GRID.CELL_SIZE + PILL_PANIC_CONSTANTS.GRID.CELL_SIZE / 2;
         
         const colorMap = {
-            red: DR_MARIO_CONSTANTS.COLORS.GAME.RED,
-            blue: DR_MARIO_CONSTANTS.COLORS.GAME.BLUE,
-            yellow: DR_MARIO_CONSTANTS.COLORS.GAME.YELLOW
+            red: PILL_PANIC_CONSTANTS.COLORS.GAME.RED,
+            blue: PILL_PANIC_CONSTANTS.COLORS.GAME.BLUE,
+            yellow: PILL_PANIC_CONSTANTS.COLORS.GAME.YELLOW
         };
         
-        for (let i = 0; i < DR_MARIO_CONSTANTS.VISUAL.PARTICLE_COUNT; i++) {
-            const angle = (Math.PI * 2 * i) / DR_MARIO_CONSTANTS.VISUAL.PARTICLE_COUNT;
+        for (let i = 0; i < PILL_PANIC_CONSTANTS.VISUAL.PARTICLE_COUNT; i++) {
+            const angle = (Math.PI * 2 * i) / PILL_PANIC_CONSTANTS.VISUAL.PARTICLE_COUNT;
             const speed = 100 + Math.random() * 100;
             
             this.particles.push({
@@ -420,8 +420,8 @@ class DrMarioGameLogic {
         const particles = [];
         for (let i = 0; i < 30; i++) {
             particles.push({
-                x: Math.random() * DR_MARIO_CONSTANTS.WIDTH,
-                y: Math.random() * DR_MARIO_CONSTANTS.HEIGHT,
+                x: Math.random() * PILL_PANIC_CONSTANTS.WIDTH,
+                y: Math.random() * PILL_PANIC_CONSTANTS.HEIGHT,
                 size: Math.random() * 3 + 1,
                 speed: Math.random() * 20 + 10,
                 opacity: Math.random() * 0.3 + 0.1,
@@ -449,9 +449,9 @@ class DrMarioGameLogic {
         // Update background particles
         this.backgroundParticles.forEach((p) => {
             p.y += p.speed * deltaTime;
-            if (p.y > DR_MARIO_CONSTANTS.HEIGHT) {
+            if (p.y > PILL_PANIC_CONSTANTS.HEIGHT) {
                 p.y = -10;
-                p.x = Math.random() * DR_MARIO_CONSTANTS.WIDTH;
+                p.x = Math.random() * PILL_PANIC_CONSTANTS.WIDTH;
             }
         });
         

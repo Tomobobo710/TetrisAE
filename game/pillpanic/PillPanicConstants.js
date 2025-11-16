@@ -1,10 +1,10 @@
 /**
- * Dr. Mario Game Constants
+ * Pill Panic Game Constants
  * Extracted from original Pill Panic implementation
  */
 
 /******* MENU POSITIONING CONSTANTS *******/
-const DR_MARIO_MENU_POSITIONS = {
+const PILL_PANIC_MENU_POSITIONS = {
     // Main panel
     PANEL: {
         WIDTH: 520,
@@ -31,8 +31,6 @@ const DR_MARIO_MENU_POSITIONS = {
         VIRUS_LEVEL_TEXT: "VIRUS LEVEL",
         SPEED_TEXT: "SPEED",
         GAME_SETTINGS_TEXT: "GAME SETTINGS",
-        START_GAME_TEXT: "START GAME",
-        ONE_PLAYER_GAME_TEXT: "1 PLAYER GAME",
         INSTRUCTIONS_TEXT: "Use Arrow Keys to navigate, Action1 to select",
         BACK_TO_TETRIS_TEXT: "BACK TO TETRIS"
     },
@@ -140,7 +138,7 @@ const DR_MARIO_MENU_POSITIONS = {
 };
 
 /******* GAME CONFIGURATION CONSTANTS *******/
-const DR_MARIO_CONSTANTS = {
+const PILL_PANIC_CONSTANTS = {
     // ActionEngine requires these exact dimensions
     WIDTH: 800,
     HEIGHT: 600,
@@ -149,9 +147,14 @@ const DR_MARIO_CONSTANTS = {
     GRID: {
         COLS: 8,
         ROWS: 16,
-        CELL_SIZE: 24,
-        OFFSET_X: 280, // Center the bottle
-        OFFSET_Y: 80,
+        CELL_SIZE: 30, // Adjust this value to change grid size
+        // Calculated offsets to center grid like Tetris
+        get OFFSET_X() {
+            return (PILL_PANIC_CONSTANTS.WIDTH - this.COLS * this.CELL_SIZE) / 2;
+        },
+        get OFFSET_Y() {
+            return 60; // Match Tetris grid Y position
+        },
         MATCH_COUNT: 4 // Need 4 in a row to clear
     },
 
@@ -171,8 +174,13 @@ const DR_MARIO_CONSTANTS = {
         PARTICLE_COUNT: 12,
         VIRUS_EYES_BLINK_CHANCE: 0.02,
         BOTTLE_BORDER: 4,
-        PREVIEW_OFFSET_X: 540,
-        PREVIEW_OFFSET_Y: 150
+        // Scaled preview panel positioning to match relative layout
+        get PREVIEW_OFFSET_X() {
+            return PILL_PANIC_CONSTANTS.GRID.OFFSET_X + PILL_PANIC_CONSTANTS.GRID.COLS * PILL_PANIC_CONSTANTS.GRID.CELL_SIZE + 40;
+        },
+        get PREVIEW_OFFSET_Y() {
+            return PILL_PANIC_CONSTANTS.GRID.OFFSET_Y + 70;
+        }
     },
 
     // Color scheme

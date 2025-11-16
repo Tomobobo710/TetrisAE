@@ -1,9 +1,9 @@
 /**
- * Dr. Mario Audio Manager
- * Handles all sound setup and playback for Dr. Mario game
+ * Pill Panic Audio Manager
+ * Handles all sound setup and playback for Pill Panic game
  * Extracted from original implementation
  */
-class DrMarioAudioManager {
+class PillPanicAudioManager {
     constructor(actionEngineAudio) {
         this.audio = actionEngineAudio;
         this.setupSounds();
@@ -11,7 +11,7 @@ class DrMarioAudioManager {
 
     setupSounds() {
         // Capsule rotation - quick chirp
-        this.audio.createSweepSound("dr_mario_rotate", {
+        this.audio.createSweepSound("pill_panic_rotate", {
             startFreq: 600,
             endFreq: 900,
             type: "sine",
@@ -20,7 +20,7 @@ class DrMarioAudioManager {
         });
 
         // Capsule movement - subtle tick
-        this.audio.createSweepSound("dr_mario_move", {
+        this.audio.createSweepSound("pill_panic_move", {
             startFreq: 400,
             endFreq: 450,
             type: "triangle",
@@ -29,7 +29,7 @@ class DrMarioAudioManager {
         });
 
         // Capsule lock/land - soft thud
-        this.audio.createNoiseSound("dr_mario_land", {
+        this.audio.createNoiseSound("pill_panic_land", {
             noiseType: "brown",
             duration: 0.15,
             envelope: { attack: 0.01, decay: 0.14, sustain: 0, release: 0 },
@@ -37,7 +37,7 @@ class DrMarioAudioManager {
         });
 
         // Match found - ascending tone
-        this.audio.createComplexSound("dr_mario_match", {
+        this.audio.createComplexSound("pill_panic_match", {
             frequencies: [440, 554, 659],
             types: ["sine", "sine", "triangle"],
             mix: [0.4, 0.3, 0.3],
@@ -46,7 +46,7 @@ class DrMarioAudioManager {
         });
 
         // Virus eliminated - special sparkle
-        this.audio.createFMSound("dr_mario_virus_clear", {
+        this.audio.createFMSound("pill_panic_virus_clear", {
             carrierFreq: 880,
             modulatorFreq: 440,
             modulationIndex: 60,
@@ -56,7 +56,7 @@ class DrMarioAudioManager {
         });
 
         // Chain reaction - excitement builds
-        this.audio.createSweepSound("dr_mario_chain", {
+        this.audio.createSweepSound("pill_panic_chain", {
             startFreq: 440,
             endFreq: 880,
             type: "square",
@@ -65,7 +65,7 @@ class DrMarioAudioManager {
         });
 
         // Victory fanfare
-        this.audio.createComplexSound("dr_mario_victory", {
+        this.audio.createComplexSound("pill_panic_victory", {
             frequencies: [523, 659, 784, 1047],
             types: ["sine", "sine", "sine", "triangle"],
             mix: [0.3, 0.3, 0.2, 0.2],
@@ -74,7 +74,7 @@ class DrMarioAudioManager {
         });
 
         // Game over - descending sweep
-        this.audio.createSweepSound("dr_mario_game_over", {
+        this.audio.createSweepSound("pill_panic_game_over", {
             startFreq: 440,
             endFreq: 110,
             type: "sawtooth",
@@ -85,37 +85,37 @@ class DrMarioAudioManager {
         // Menu sounds reuse Tetris sounds for consistency
     }
 
-    // Convenience methods for playing Dr. Mario sounds
+    // Convenience methods for playing Pill Panic sounds
     playRotate(options = {}) {
-        this.audio.play("dr_mario_rotate", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_rotate", { volume: 0.3, ...options });
     }
 
     playMove(options = {}) {
-        this.audio.play("dr_mario_move", { volume: 0.2, ...options });
+        this.audio.play("pill_panic_move", { volume: 0.2, ...options });
     }
 
     playLand(options = {}) {
-        this.audio.play("dr_mario_land", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_land", { volume: 0.3, ...options });
     }
 
     playMatch(options = {}) {
-        this.audio.play("dr_mario_match", { volume: 0.4, ...options });
+        this.audio.play("pill_panic_match", { volume: 0.4, ...options });
     }
 
     playVirusClear(options = {}) {
-        this.audio.play("dr_mario_virus_clear", { volume: 0.5, ...options });
+        this.audio.play("pill_panic_virus_clear", { volume: 0.5, ...options });
     }
 
     playChain(options = {}) {
-        this.audio.play("dr_mario_chain", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_chain", { volume: 0.3, ...options });
     }
 
     playVictory(options = {}) {
-        this.audio.play("dr_mario_victory", { volume: 0.6, ...options });
+        this.audio.play("pill_panic_victory", { volume: 0.6, ...options });
     }
 
     playGameOver(options = {}) {
-        this.audio.play("dr_mario_game_over", { volume: 0.5, ...options });
+        this.audio.play("pill_panic_game_over", { volume: 0.5, ...options });
     }
 
     // For menu sounds, delegate to Tetris sounds for consistency

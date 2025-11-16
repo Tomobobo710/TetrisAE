@@ -30,8 +30,8 @@ class GameMenuManager {
             buttonsRegistered: false
         };
 
-        // Hidden Dr. Mario option - added dynamically when unlocked
-        this.drMarioButton = { text: "?????", action: "drMario" };
+        // Hidden Pill Panic option - added dynamically when unlocked
+        this.pillPanicButton = { text: "?????", action: "pillPanic" };
 
         this.multiplayerMenu = {
             selectedIndex: 0,
@@ -201,21 +201,19 @@ class GameMenuManager {
     }
 
     /******* Easter Egg Methods *******/
-    unlockDrMario() {
-        // Add the Dr. Mario button if not already added
-        const hasDrMarioButton = this.mainMenu.buttons.some(button => button.action === "drMario");
-        if (!hasDrMarioButton) {
-            this.mainMenu.buttons.push(this.drMarioButton);
+    unlockPillPanic() {
+        // Add the Pill Panic button if not already added
+        const hasPillPanicButton = this.mainMenu.buttons.some(button => button.action === "pillPanic");
+        if (!hasPillPanicButton) {
+            this.mainMenu.buttons.push(this.pillPanicButton);
             
             // Force re-registration of main menu buttons to include new button
             this.mainMenu.buttonsRegistered = false;
-            
-            console.log("🎉 Dr. Mario Easter Egg Unlocked! Hidden game discovered!");
         }
     }
 
-    isDrMarioUnlocked() {
-        return this.mainMenu.buttons.some(button => button.action === "drMario");
+    isPillPanicUnlocked() {
+        return this.mainMenu.buttons.some(button => button.action === "pillPanic");
     }
     getWaitingMenu() {
         return this.waitingMenu;

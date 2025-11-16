@@ -1,8 +1,7 @@
 /**
  * Cell class - represents one grid cell (half a capsule, virus, or empty)
- * Extracted from original Dr. Mario implementation
  */
-class DrMarioCell {
+class PillPanicCell {
     constructor(color = null, type = "empty") {
         this.color = color; // 'red', 'blue', 'yellow', or null
         this.type = type; // 'empty', 'virus', 'capsule', 'half'

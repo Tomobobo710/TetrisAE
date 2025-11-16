@@ -117,7 +117,7 @@ class CustomInputAdapter {
     }
 
     /**
-     * Check if custom action is currently pressed (for single player, Dr. Mario, and online modes)
+     * Check if custom action is currently pressed (for single player, Pill Panic, and online modes)
      * Each device checks its own profile
      */
     isActionPressed(action) {
@@ -211,7 +211,7 @@ class CustomInputAdapter {
     }
     
     /**
-     * Check if custom action was just pressed this frame (for single player, Dr. Mario, and online modes)
+     * Check if custom action was just pressed this frame (for single player, Pill Panic, and online modes)
      * Each device checks its own profile
      */
     isActionJustPressed(action) {

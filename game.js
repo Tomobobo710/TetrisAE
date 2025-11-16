@@ -82,7 +82,7 @@ class Game {
 
         /******* Input State (prevents input bleed-through) *******/
         this.skipAction1ThisFrame = false;
-        this.skipDrMarioInputFrame = false;
+        this.skipPillPanicInputFrame = false;
 
         /******* Game Over Transition State *******/
         this.gameOverTransition = {
@@ -214,14 +214,11 @@ class Game {
         this.inputHandler.actionNetInputManager.wireGUIEvents();
 
         /******* Setup Systems *******/
-        // Sounds are now defined centrally in setupGameSounds (see game/soundconstants.js),
-        // invoked by GameAudioManager during construction.
         this.setupInputElements();
         this.initializeThemesWindow();
         this.initializeGame();
 
         console.log("TETRIS - ActionEngine Edition Ready!");
-        console.log("Prepare for visual excellence and perfect gameplay.");
     }
 
     /******* NETWORK SETUP *******/
@@ -272,18 +269,18 @@ class Game {
         // Update custom controls system
         this.customControls.update(rawDeltaTime);
 
-        // Handle easter egg detection (Dr. Mario unlock)
+        // Handle easter egg detection
         this.updateEasterEgg(rawDeltaTime);
 
-        // Handle Dr. Mario game mode
-        if (this.gameState === "drMario" && this.drMarioGame) {
-            // Skip Dr. Mario input processing for one frame to prevent click-through
-            if (!this.skipDrMarioInputFrame) {
-                this.drMarioGame.update(rawDeltaTime);
+        // Handle Pill Panic game mode
+        if (this.gameState === "pillPanic" && this.pillPanicGame) {
+            // Skip Pill Panic input processing for one frame to prevent click-through
+            if (!this.skipPillPanicInputFrame) {
+                this.pillPanicGame.update(rawDeltaTime);
             } else {
-                this.skipDrMarioInputFrame = false;
+                this.skipPillPanicInputFrame = false;
             }
-            return; // Skip Tetris updates when in Dr. Mario mode
+            return; // Skip Tetris updates when in Pill Panic mode
         }
 
         // Update network session for online multiplayer (handles WAITING, COUNTDOWN, PLAYING states)
@@ -387,10 +384,10 @@ class Game {
     action_draw() {
         const theme = this.themeManager.getCurrentTheme();
 
-        // Handle Dr. Mario game mode
-        if (this.gameState === "drMario" && this.drMarioGame) {
-            this.drMarioGame.draw();
-            return; // Skip Tetris rendering when in Dr. Mario mode
+        // Handle Pill Panic game mode
+        if (this.gameState === "pillPanic" && this.pillPanicGame) {
+            this.pillPanicGame.draw();
+            return; // Skip Tetris rendering when in Pill Panic mode
         }
 
         // Handle multiplayer login / lobby screen
@@ -802,10 +799,10 @@ class Game {
         }
 
         // Skip timer check if already unlocked (but don't return - we still need to preserve state)
-        if (this.easterEgg.unlocked || this.menuManager.isDrMarioUnlocked()) {
+        if (this.easterEgg.unlocked || this.menuManager.isPillPanicUnlocked()) {
             // Make sure the button stays unlocked
-            if (!this.menuManager.isDrMarioUnlocked()) {
-                this.menuManager.unlockDrMario();
+            if (!this.menuManager.isPillPanicUnlocked()) {
+                this.menuManager.unlockPillPanic();
             }
             return;
         }
@@ -836,7 +833,7 @@ class Game {
 
             // Check if we've held long enough
             if (this.easterEgg.downHoldTimer >= this.easterEgg.unlockDuration) {
-                this.unlockDrMario();
+                this.unlockPillPanic();
             }
         } else {
             // Reset when key is released - start reverse animation
@@ -859,9 +856,9 @@ class Game {
         }
     }
 
-    unlockDrMario() {
+    unlockPillPanic() {
         this.easterEgg.unlocked = true;
-        this.menuManager.unlockDrMario();
+        this.menuManager.unlockPillPanic();
         
         // Play a special unlock sound
         this.playSound("change_theme", { volume: 0.7 });
@@ -874,45 +871,47 @@ class Game {
         };
     }
 
-    // Method called by Dr. Mario to return to Tetris
-    returnFromDrMario() {
-        console.log("🎲 Returning to Tetris from Dr. Mario...");
-        
-        // Clean up Dr. Mario state
-        if (this.drMarioGame) {
-            this.drMarioGame.inputManager.cleanup();
+    // Method called by Pill Panic to return to Tetris
+    returnFromPillPanic() {
+        // Clean up Pill Panic state
+        if (this.pillPanicGame) {
+            this.pillPanicGame.inputManager.cleanup();
+            // Re-register Pill Panic menu elements for next time
+            this.pillPanicGame.inputManager.registerMenuElements();
         }
-        
+
         // Return to Tetris main menu
         this.gameState = "title";
         this.menuStack.current = null;
-        
+
         // Play transition sound
         this.playSound("menu_back");
     }
 
-    // Method to start Dr. Mario game
-    startDrMario() {
-        console.log("🎮 Starting Dr. Mario game...");
+    // Method to start Pill Panic game
+    startPillPanic() {
         this.playSound("menu_confirm");
 
-        // Reset sticky device detection for Dr. Mario mode (uses single player logic)
+        // Reset sticky device detection for Pill Panic mode (uses single player logic)
         if (this.customControls) {
             this.customControls.getInputAdapter().resetStickyDevice();
         }
 
-        // Initialize Dr. Mario game
-        if (!this.drMarioGame) {
-            this.drMarioGame = new DrMarioGame(this);
+        // Reset main menu selection when entering Pill Panic
+        if (this.mainMenu && this.mainMenu.selectedIndex !== undefined) {
+            this.mainMenu.selectedIndex = 0;
+        }
+
+        // Initialize Pill Panic game
+        if (!this.pillPanicGame) {
+            this.pillPanicGame = new PillPanicGame(this);
         }
 
         // Skip input for one frame to prevent click-through from menu transition
-        this.skipDrMarioInputFrame = true;
+        this.skipPillPanicInputFrame = true;
 
-        // Switch to Dr. Mario mode
-        this.gameState = "drMario";
-        this.menuStack.current = "drMario";
-
-        console.log("🎉 Dr. Mario launched successfully!");
+        // Switch to Pill Panic mode
+        this.gameState = "pillPanic";
+        this.menuStack.current = "pillPanic";
     }
 }

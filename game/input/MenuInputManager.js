@@ -149,8 +149,8 @@ class MenuInputManager {
                 this.game.settingsMenu.selectedIndex = 0; // Reset to top option
                 this.game.playSound("menu_confirm");
                 break;
-            case "drMario":
-                this.game.startDrMario();
+            case "pillPanic":
+                this.game.startPillPanic();
                 this.unregisterMainMenuButtons();
                 break;
         }

@@ -191,8 +191,8 @@ class MenuRenderer {
             const isHovered = game.input && game.input.isElementHovered(`main_button_${index}`);
             const shouldHighlight = isHovered || isSelected;
 
-            // Special "poop" animation for Dr. Mario button - draw UNDERNEATH first
-            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isDrMarioUnlocked()) {
+            // Special "poop" animation for Pill Panic button - draw UNDERNEATH first
+            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isPillPanicUnlocked()) {
                 // Add 0.5s delay before starting animation: button only emerges after delay passes
                 const effectiveTimer = Math.max(0, game.easterEgg.downHoldTimer - 0.5);
                 const progress = effectiveTimer / (game.easterEgg.unlockDuration - 0.5);
@@ -201,10 +201,10 @@ class MenuRenderer {
                 if (clampedProgress > 0) {
                     // Calculate position: starts at same Y as settings button, moves up
                     const settingsButtonY = startY + 2 * spacing; // Y position of settings button
-                    const targetY = startY + 3 * spacing; // Where Dr. Mario button will be
+                    const targetY = startY + 3 * spacing; // Where Pill Panic button will be
                     const currentY = settingsButtonY - (settingsButtonY - targetY) * clampedProgress;
 
-                    // Draw the "emerging" Dr. Mario button during animation (drawn first, underneath)
+                    // Draw the "emerging" Pill Panic button during animation (drawn first, underneath)
                     this.drawMenuButton(x, currentY, buttonWidth, buttonHeight, "?????", false, theme);
                 }
             }
@@ -212,7 +212,7 @@ class MenuRenderer {
             // Add shaking effect to SETTINGS button (index 2) when holding down or reversing, but only if not already unlocked
             let shakeOffsetX = 0;
             let shakeOffsetY = 0;
-            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isDrMarioUnlocked()) {
+            if (index === 2 && (game.easterEgg.isHoldingDown || game.easterEgg.isReversing) && game.easterEgg.downHoldTimer > 0 && !game.easterEgg.unlocked && !game.menuManager.isPillPanicUnlocked()) {
                 const progress = game.easterEgg.downHoldTimer / game.easterEgg.unlockDuration; // 0 to 1 over 3 seconds
                 const shakeIntensity = progress * 3; // Max 3px shake at full time (half as intense)
                 const shakeSpeed = 4; // Even slower shake
@@ -222,16 +222,16 @@ class MenuRenderer {
             this.drawMenuButton(x + shakeOffsetX, y + shakeOffsetY, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);
         });
 
-        // Draw the actual Dr. Mario button (only when unlocked)
-        if (game.easterEgg.unlocked || game.menuManager.isDrMarioUnlocked()) {
-            const drmarioIndex = menu.buttons.findIndex(btn => btn.action === "drMario");
-            if (drmarioIndex !== -1) {
-                const button = menu.buttons[drmarioIndex];
+        // Draw the actual Pill Panic button (only when unlocked)
+        if (game.easterEgg.unlocked || game.menuManager.isPillPanicUnlocked()) {
+            const pillPanicIndex = menu.buttons.findIndex(btn => btn.action === "pillPanic");
+            if (pillPanicIndex !== -1) {
+                const button = menu.buttons[pillPanicIndex];
                 const x = this.SCREEN_WIDTH / 2 - buttonWidth / 2;
-                const y = startY + drmarioIndex * spacing;
+                const y = startY + pillPanicIndex * spacing;
 
-                const isSelected = drmarioIndex === menu.selectedIndex;
-                const isHovered = game.input && game.input.isElementHovered(`main_button_${drmarioIndex}`);
+                const isSelected = pillPanicIndex === menu.selectedIndex;
+                const isHovered = game.input && game.input.isElementHovered(`main_button_${pillPanicIndex}`);
                 const shouldHighlight = isHovered || isSelected;
 
                 this.drawMenuButton(x, y, buttonWidth, buttonHeight, button.text, shouldHighlight, theme);

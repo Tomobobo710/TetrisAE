@@ -1,8 +1,7 @@
 /**
- * Capsule class - the falling piece in Dr. Mario
- * Extracted from original Dr. Mario implementation
+ * Capsule class - the falling piece in Pill Panic
  */
-class DrMarioCapsule {
+class PillPanicCapsule {
     constructor(x, y) {
         this.x = x; // Grid X position
         this.y = y; // Grid Y position (can be fractional)
@@ -75,7 +74,7 @@ class DrMarioCapsule {
             const testX = this.x + kick[0];
             const testY = this.y + kick[1];
 
-            if (testX < 0 || testX >= DR_MARIO_CONSTANTS.GRID.COLS) continue;
+            if (testX < 0 || testX >= PILL_PANIC_CONSTANTS.GRID.COLS) continue;
 
             const oldX = this.x;
             const oldY = this.y;
@@ -102,8 +101,8 @@ class DrMarioCapsule {
     }
 
     isValidPosition(pos, grid) {
-        if (pos.x < 0 || pos.x >= DR_MARIO_CONSTANTS.GRID.COLS) return false;
-        if (pos.y < 0 || pos.y >= DR_MARIO_CONSTANTS.GRID.ROWS) return false;
+        if (pos.x < 0 || pos.x >= PILL_PANIC_CONSTANTS.GRID.COLS) return false;
+        if (pos.y < 0 || pos.y >= PILL_PANIC_CONSTANTS.GRID.ROWS) return false;
         if (!grid[pos.y][pos.x].isEmpty()) return false;
         return true;
     }
