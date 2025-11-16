@@ -18,6 +18,7 @@ const boidsTheme = new BoidsTheme();
 const countryDriveTheme = new CountryDriveTheme();
 const travelerTheme = new TravelerTheme();
 const tunnelTheme = new TunnelTheme();
+const voxelTheme = new VoxelTheme();
 
 // Warm-start all themes (fast-forward animations to populate initial state)
 defaultTheme.setup();
@@ -33,6 +34,7 @@ fractalTheme.setup();
 boidsTheme.setup();
 countryDriveTheme.setup();
 travelerTheme.setup();
+voxelTheme.setup();
 
 // Global theme registry (replaces TETRIS.THEMES)
 window.TETRIS_THEMES = {
@@ -49,7 +51,8 @@ window.TETRIS_THEMES = {
     'BOIDS': boidsTheme,
     'COUNTRY_DRIVE': countryDriveTheme,
     'TRAVELER': travelerTheme,
-    'TUNNEL': tunnelTheme
+    'TUNNEL': tunnelTheme,
+    'VOXEL': voxelTheme
 };
 
 // Theme names array for cycling
