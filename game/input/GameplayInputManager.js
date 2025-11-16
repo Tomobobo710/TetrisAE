@@ -27,10 +27,92 @@ class GameplayInputManager {
         const gm = this.game.gameManager;
         const playerCount = gm.players.length;
 
-        // Handle input for each player based on their assigned input device
-        gm.players.forEach((player) => {
-            this.handlePlayerInput(player, deltaTime, playerCount);
-        });
+        // Single player mode: use special logic that accepts input from any device
+        if (playerCount === 1) {
+            this.handleAnyDeviceInput(gm.players[0], deltaTime);
+            return;
+        }
+
+        // Multi-player mode: Handle input for each player based on their assigned input device
+        // For online multiplayer, local player (player 1) uses any device input
+        if (this.game.gameState === "onlineMultiplayer" || this.game.gameState === "onlineMultiplayerPaused") {
+            // Online multiplayer: local player uses any device input, remote player is network controlled
+            const localPlayer = gm.players.find(p => p.playerNumber === 1);
+            if (localPlayer && !localPlayer.gameOver && localPlayer.currentPiece) {
+                this.handleAnyDeviceInput(localPlayer, deltaTime);
+            }
+        } else {
+            // Local multiplayer: Handle input for each player based on their assigned input device
+            gm.players.forEach((player) => {
+                this.handlePlayerInput(player, deltaTime, playerCount);
+            });
+        }
+    }
+
+    /**
+     * Handle input for any device input (accepts input from ANY device)
+     */
+    handleAnyDeviceInput(player, deltaTime) {
+        // Skip if no current piece or game over
+        if (!player.currentPiece || player.gameOver) return;
+
+        // Use custom controls with ANY device input (keyboard or any gamepad)
+        if (this.customInput) {
+            // Hold input
+            if (this.customInput.isActionJustPressed('hold')) {
+                const heldPiece = player.holdPiece();
+                if (heldPiece !== null) {
+                    this.game.playSound("hold");
+                } else {
+                    this.game.playSound("hold_failed");
+                }
+            }
+
+            // Hard drop
+            if (this.customInput.isActionJustPressed('hardDrop')) {
+                const hardDropResult = player.hardDrop();
+                if (hardDropResult !== null) {
+                    this.game.playSound("hard_drop", { volume: 0.5 });
+                }
+                return;
+            }
+
+            // Rotation
+            const currentTime = performance.now();
+            if (currentTime - player.lastRotateTime > this.rotateDelay) {
+                if (this.customInput.isActionJustPressed('rotateCW')) {
+                    if (player.rotatePiece(1)) {
+                        player.lastRotateTime = currentTime;
+                        this.game.playSound("rotate");
+                    }
+                } else if (this.customInput.isActionJustPressed('rotateCCW')) {
+                    if (player.rotatePiece(-1)) {
+                        player.lastRotateTime = currentTime;
+                        this.game.playSound("rotate");
+                    }
+                }
+            }
+
+            // Soft drop
+            if (this.customInput.isActionPressed('softDrop')) {
+                if (player.softDrop()) {
+                    // Soft drop sound could be added here if desired
+                }
+            }
+
+            // Movement (DAS)
+            const leftPressed = this.customInput.isActionPressed('moveLeft');
+            const rightPressed = this.customInput.isActionPressed('moveRight');
+            
+            if (leftPressed || rightPressed) {
+                const direction = leftPressed ? -1 : 1;
+                this.handlePlayerMovement(player, direction, deltaTime);
+            } else {
+                // Reset DAS when no movement input
+                player.dasActive = false;
+                player.dasTimer = 0;
+            }
+        }
     }
 
     /**
@@ -164,12 +246,12 @@ class GameplayInputManager {
      * Check if hold input is pressed for the given input device
      */
     isHoldInputPressed(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            return this.customInput.isActionJustPressed('hold');
+        // Use custom controls for all players
+        if (this.customInput) {
+            return this.customInput.isPlayerActionJustPressed('hold', playerNumber);
         }
         
-        // Fallback to original logic for other players or when custom controls not available
+        // Fallback to original logic when custom controls not available
         const keyboardPressed =
             playerNumber === 1 && (this.input.isKeyJustPressed("Action3") || this.input.isKeyJustPressed("Action5"));
 
@@ -188,12 +270,12 @@ class GameplayInputManager {
      * Check if hard drop input is pressed for the given input device
      */
     isHardDropInputPressed(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            return this.customInput.isActionJustPressed('hardDrop');
+        // Use custom controls for all players
+        if (this.customInput) {
+            return this.customInput.isPlayerActionJustPressed('hardDrop', playerNumber);
         }
         
-        // Fallback to original logic for other players or when custom controls not available
+        // Fallback to original logic when custom controls not available
         const keyboardPressed = playerNumber === 1 && this.input.isKeyJustPressed("DirUp");
 
         // Also check assigned gamepad if available
@@ -209,14 +291,14 @@ class GameplayInputManager {
      * Get rotation input for the given input device (1 for clockwise, -1 for counter-clockwise, 0 for none)
      */
     getRotateInput(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            if (this.customInput.isActionJustPressed('rotateCW')) return 1;
-            if (this.customInput.isActionJustPressed('rotateCCW')) return -1;
+        // Use custom controls for all players
+        if (this.customInput) {
+            if (this.customInput.isPlayerActionJustPressed('rotateCW', playerNumber)) return 1;
+            if (this.customInput.isPlayerActionJustPressed('rotateCCW', playerNumber)) return -1;
             return 0;
         }
         
-        // Fallback to original logic for other players or when custom controls not available
+        // Fallback to original logic when custom controls not available
         if (playerNumber === 1) {
             if (this.input.isKeyJustPressed("Action1")) return 1; // A/Cross - clockwise
             if (this.input.isKeyJustPressed("Action2")) return -1; // B/Circle - counter-clockwise
@@ -235,12 +317,12 @@ class GameplayInputManager {
      * Check if soft drop input is pressed for the given input device
      */
     isSoftDropInputPressed(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            return this.customInput.isActionPressed('softDrop');
+        // Use custom controls for all players
+        if (this.customInput) {
+            return this.customInput.isPlayerActionPressed('softDrop', playerNumber);
         }
         
-        // Fallback to original logic for other players or when custom controls not available
+        // Fallback to original logic when custom controls not available
         const keyboardPressed = playerNumber === 1 && this.input.isKeyPressed("DirDown");
 
         // Also check assigned gamepad if available
@@ -256,16 +338,16 @@ class GameplayInputManager {
      * Get movement input for the given input device (-1 for left, 1 for right, 0 for none)
      */
     getMoveInput(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            const leftPressed = this.customInput.isActionPressed('moveLeft');
-            const rightPressed = this.customInput.isActionPressed('moveRight');
+        // Use custom controls for all players
+        if (this.customInput) {
+            const leftPressed = this.customInput.isPlayerActionPressed('moveLeft', playerNumber);
+            const rightPressed = this.customInput.isPlayerActionPressed('moveRight', playerNumber);
             if (leftPressed && !rightPressed) return -1;
             if (rightPressed && !leftPressed) return 1;
             return 0;
         }
         
-        // Fallback to original logic for other players or when custom controls not available
+        // Fallback to original logic when custom controls not available
         if (playerNumber === 1) {
             const keyboardLeftPressed = this.input.isKeyPressed("DirLeft");
             const keyboardRightPressed = this.input.isKeyPressed("DirRight");
@@ -402,9 +484,9 @@ class GameplayInputManager {
      * Only active meaningfully in 3-4P modes (call sites already guard by player count).
      */
     isTargetCycleInputPressed(inputDevice, playerNumber) {
-        // For Player 1, use custom controls if available
-        if (playerNumber === 1 && this.customInput) {
-            return this.customInput.isActionJustPressed('targetSelect');
+        // Use custom controls for all players
+        if (this.customInput) {
+            return this.customInput.isPlayerActionJustPressed('targetSelect', playerNumber);
         }
         
         // Fallback to original logic

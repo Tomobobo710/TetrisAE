@@ -293,19 +293,20 @@ class ControlsWindowManager {
     startWaitingForInput(actionIndex, inputType, column) {
         const win = this.game.controlsWindow;
         const actionId = win.actions[actionIndex].id;
+        const profileName = win.editingProfile || 'PLAYER_1';
 
         this.game.inputWaitingModal.startWaiting(
             actionId,
             inputType,
             column,
             (inputData) => {
-                // Input received callback
+                // Input received callback - save to the active profile
                 if (inputData.type === 'keyboard') {
-                    this.game.customControls.getControlsManager().setKeyboardControl(actionId, inputData.value, column);
+                    this.game.customControls.getControlsManager().setKeyboardControl(actionId, inputData.value, column, profileName);
                 } else if (inputData.type === 'gamepad') {
-                    this.game.customControls.getControlsManager().setGamepadControl(actionId, inputData.value, column);
+                    this.game.customControls.getControlsManager().setGamepadControl(actionId, inputData.value, column, profileName);
                 } else if (inputData.type === 'axis') {
-                    this.game.customControls.getControlsManager().setAxisControl(actionId, inputData.axis, inputData.direction, column);
+                    this.game.customControls.getControlsManager().setAxisControl(actionId, inputData.axis, inputData.direction, column, profileName);
                 }
                 this.refreshWindowData();
                 this.game.playSound('menu_confirm');
@@ -322,10 +323,11 @@ class ControlsWindowManager {
     refreshWindowData() {
         const win = this.game.controlsWindow;
         const controlsManager = this.game.customControls.getControlsManager();
+        const profileName = win.editingProfile || 'PLAYER_1';
 
-        // Update each action with current control data
+        // Update each action with current control data from the active profile
         win.actions.forEach(action => {
-            const controls = controlsManager.getControls(action.id);
+            const controls = controlsManager.getControls(action.id, profileName);
 
             action.keyboard = {
                 primary: controls.keyboard.primary || null,

@@ -72,21 +72,26 @@ class CustomControlsIntegration {
     }
     
     /**
-     * Export current controls configuration
+     * Export current controls configuration (all profiles)
      */
     exportControls() {
-        const controls = JSON.stringify(this.controlsManager.currentControls, null, 2);
+        const controls = JSON.stringify(this.controlsManager.profiles, null, 2);
         console.log('[CustomControlsIntegration] Current controls:', controls);
         return controls;
     }
     
     /**
-     * Import controls configuration
+     * Import controls configuration (all profiles)
      */
     importControls(controlsJson) {
         try {
             const controls = JSON.parse(controlsJson);
-            this.controlsManager.currentControls = this.controlsManager.mergeWithDefaults(controls);
+            // Validate and merge each profile
+            for (const profileName in this.controlsManager.profiles) {
+                if (controls[profileName]) {
+                    this.controlsManager.profiles[profileName] = this.controlsManager.mergeWithDefaults(controls[profileName]);
+                }
+            }
             this.controlsManager.saveControls();
             this.inputAdapter.refreshBindings();
             console.log('[CustomControlsIntegration] Controls imported successfully');

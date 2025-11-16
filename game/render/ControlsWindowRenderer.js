@@ -55,7 +55,9 @@ class ControlsWindowRenderer {
         ctx.font = `${ControlsLayoutConstants.TITLE_FONT_WEIGHT} ${ControlsLayoutConstants.TITLE_FONT_SIZE}px ${ControlsLayoutConstants.TITLE_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("CONTROLS", win.x + win.width / 2, win.y + ControlsLayoutConstants.TITLE_Y_OFFSET);
+        // Display profile-specific title
+        const titleText = `${win.triggeringDeviceName || 'PLAYER 1'} CONTROLS`;
+        ctx.fillText(titleText, win.x + win.width / 2, win.y + ControlsLayoutConstants.TITLE_Y_OFFSET);
 
         // Column headers
         ctx.fillStyle = theme.ui.accent;

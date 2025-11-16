@@ -635,9 +635,13 @@ class MenuInputManager {
                 this.game.playSound("menu_confirm");
                 break;
             case "controls":
+                // Detect which input device triggered the controls window
+                const triggeringDevice = this.detectTriggeringDevice();
                 this.game.controlsWindow.visible = true;
                 this.game.controlsWindow.selectedActionIndex = 0;
                 this.game.controlsWindow.selectedColumn = 0;
+                this.game.controlsWindow.editingProfile = triggeringDevice.profile;
+                this.game.controlsWindow.triggeringDeviceName = triggeringDevice.displayName;
                 this.unregisterSettingsMenuButtons();
                 this.uiWindowsCoordinator.registerElements();
                 this.game.playSound("menu_confirm");
@@ -935,6 +939,28 @@ class MenuInputManager {
             const selectedButton = menu.buttons[menu.selectedIndex];
             this.executeLocalMultiplayerMenuAction(selectedButton.action);
         }
+    }
+
+    /**
+     * Detect which input device triggered the controls button
+     */
+    detectTriggeringDevice() {
+        // Check which device just pressed Action1 to open controls
+        // Check keyboard first
+        if (this.input.isKeyJustPressed("Action1")) {
+            return { profile: 'PLAYER_1', displayName: 'PLAYER 1' };
+        }
+        
+        // Check each gamepad
+        for (let i = 0; i < 4; i++) {
+            if (this.input.isGamepadConnected(i) && this.input.isGamepadButtonJustPressed(0, i)) {
+                const playerNum = i + 1;
+                return { profile: `PLAYER_${playerNum}`, displayName: `PLAYER ${playerNum}` };
+            }
+        }
+        
+        // Default to PLAYER_1 (keyboard/gamepad0)
+        return { profile: 'PLAYER_1', displayName: 'PLAYER 1' };
     }
 
     /**

@@ -78,7 +78,14 @@ class CustomControlsManager {
             }
         };
         
-        this.currentControls = null;
+        // Multi-profile system
+        this.profiles = {
+            PLAYER_1: null, // Keyboard + Gamepad 0
+            PLAYER_2: null, // Gamepad 1
+            PLAYER_3: null, // Gamepad 2
+            PLAYER_4: null  // Gamepad 3
+        };
+        
         this.loadControls();
     }
     
@@ -87,17 +94,44 @@ class CustomControlsManager {
      */
     loadControls() {
         try {
-            const saved = localStorage.getItem('tetris_custom_controls');
+            const saved = localStorage.getItem('tetris_custom_controls_v2');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Validate the structure and merge with defaults
-                this.currentControls = this.mergeWithDefaults(parsed);
+                // Load all profiles
+                for (const profileName in this.profiles) {
+                    if (parsed[profileName]) {
+                        this.profiles[profileName] = this.mergeWithDefaults(parsed[profileName]);
+                    } else {
+                        this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
+                    }
+                }
             } else {
-                this.currentControls = JSON.parse(JSON.stringify(this.defaultControls));
+                // Try legacy migration from single profile
+                const legacy = localStorage.getItem('tetris_custom_controls');
+                if (legacy) {
+                    const parsed = JSON.parse(legacy);
+                    // Migrate legacy controls to PLAYER_1
+                    this.profiles.PLAYER_1 = this.mergeWithDefaults(parsed);
+                    // Others get defaults
+                    this.profiles.PLAYER_2 = JSON.parse(JSON.stringify(this.defaultControls));
+                    this.profiles.PLAYER_3 = JSON.parse(JSON.stringify(this.defaultControls));
+                    this.profiles.PLAYER_4 = JSON.parse(JSON.stringify(this.defaultControls));
+                    // Save migrated data
+                    this.saveControls();
+                    console.log('[CustomControlsManager] Migrated legacy controls to PLAYER_1 profile');
+                } else {
+                    // Initialize all profiles with defaults
+                    for (const profileName in this.profiles) {
+                        this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
+                    }
+                }
             }
         } catch (error) {
             console.warn('[CustomControlsManager] Failed to load controls from localStorage:', error);
-            this.currentControls = JSON.parse(JSON.stringify(this.defaultControls));
+            // Initialize all profiles with defaults
+            for (const profileName in this.profiles) {
+                this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
+            }
         }
     }
     
@@ -106,20 +140,22 @@ class CustomControlsManager {
      */
     saveControls() {
         try {
-            localStorage.setItem('tetris_custom_controls', JSON.stringify(this.currentControls));
-            console.log('[CustomControlsManager] Controls saved to localStorage');
+            localStorage.setItem('tetris_custom_controls_v2', JSON.stringify(this.profiles));
+            console.log('[CustomControlsManager] All profiles saved to localStorage');
         } catch (error) {
             console.error('[CustomControlsManager] Failed to save controls to localStorage:', error);
         }
     }
     
     /**
-     * Reset all controls to defaults
+     * Reset all controls to defaults (ALL profiles)
      */
     resetToDefaults() {
-        this.currentControls = JSON.parse(JSON.stringify(this.defaultControls));
+        for (const profileName in this.profiles) {
+            this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
+        }
         this.saveControls();
-        console.log('[CustomControlsManager] Controls reset to defaults');
+        console.log('[CustomControlsManager] All profiles reset to defaults');
     }
     
     /**
@@ -145,26 +181,28 @@ class CustomControlsManager {
     }
     
     /**
-     * Get all key bindings for an action
+     * Get all key bindings for an action from a specific profile
      */
-    getControls(action) {
-        return this.currentControls[action] || { keyboard: { primary: null, alt: null }, gamepad: { primary: null, alt: null } };
+    getControls(action, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return { keyboard: { primary: null, alt: null }, gamepad: { primary: null, alt: null } };
+        return profile[action] || { keyboard: { primary: null, alt: null }, gamepad: { primary: null, alt: null } };
     }
 
     /**
-     * Get keyboard bindings for an action
+     * Get keyboard bindings for an action from a specific profile
      */
-    getKeyboardControls(action) {
-        const controls = this.currentControls[action];
+    getKeyboardControls(action, profileName = 'PLAYER_1') {
+        const controls = this.getControls(action, profileName);
         if (!controls?.keyboard) return [];
         return [controls.keyboard.primary, controls.keyboard.alt].filter(k => k !== null);
     }
 
     /**
-      * Get gamepad bindings for an action
+      * Get gamepad bindings for an action from a specific profile
       */
-     getGamepadControls(action) {
-         const controls = this.currentControls[action];
+     getGamepadControls(action, profileName = 'PLAYER_1') {
+         const controls = this.getControls(action, profileName);
          if (!controls?.gamepad) return [];
          const result = [];
          if (controls.gamepad.primary?.type === 'button') result.push(controls.gamepad.primary.value);
@@ -173,10 +211,10 @@ class CustomControlsManager {
      }
 
      /**
-      * Get axis bindings for an action
+      * Get axis bindings for an action from a specific profile
       */
-     getAxisControls(action) {
-         const controls = this.currentControls[action];
+     getAxisControls(action, profileName = 'PLAYER_1') {
+         const controls = this.getControls(action, profileName);
          if (!controls?.gamepad) return null;
          if (controls.gamepad.primary?.type === 'axis') return controls.gamepad.primary.value;
          if (controls.gamepad.alt?.type === 'axis') return controls.gamepad.alt.value;
@@ -184,21 +222,27 @@ class CustomControlsManager {
      }
     
     /**
-     * Set keyboard binding for an action
+     * Set keyboard binding for an action in a specific profile
      */
-    setKeyboardControl(action, keyCode, slot = 'primary') {
-        if (!this.currentControls[action]) {
-            this.currentControls[action] = {
+    setKeyboardControl(action, keyCode, slot = 'primary', profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) {
+            console.error(`[CustomControlsManager] Profile ${profileName} not found`);
+            return;
+        }
+
+        if (!profile[action]) {
+            profile[action] = {
                 keyboard: { primary: null, alt: null },
                 gamepad: { primary: null, alt: null }
             };
         }
 
-        // Remove this key from any other actions first to prevent conflicts
-        this.removeKeyboardControl(keyCode, action);
+        // Remove this key from any other actions in this profile first to prevent conflicts
+        this.removeKeyboardControl(keyCode, action, profileName);
 
         // Also remove from the same action's other slot to prevent duplicates within the same action
-        const actionKeyboard = this.currentControls[action].keyboard;
+        const actionKeyboard = profile[action].keyboard;
         if (slot === 'primary' && actionKeyboard.alt === keyCode) {
             actionKeyboard.alt = null;
         } else if (slot === 'alt' && actionKeyboard.primary === keyCode) {
@@ -206,28 +250,34 @@ class CustomControlsManager {
         }
 
         // Set binding in the specified slot
-        this.currentControls[action].keyboard[slot] = keyCode;
+        profile[action].keyboard[slot] = keyCode;
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} keyboard control for ${action}: ${keyCode}`);
+        console.log(`[CustomControlsManager] Set ${slot} keyboard control for ${action} in ${profileName}: ${keyCode}`);
     }
 
     /**
-     * Set gamepad binding for an action
+     * Set gamepad binding for an action in a specific profile
      */
-    setGamepadControl(action, buttonIndex, slot = 'primary') {
-        if (!this.currentControls[action]) {
-            this.currentControls[action] = {
+    setGamepadControl(action, buttonIndex, slot = 'primary', profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) {
+            console.error(`[CustomControlsManager] Profile ${profileName} not found`);
+            return;
+        }
+
+        if (!profile[action]) {
+            profile[action] = {
                 keyboard: { primary: null, alt: null },
                 gamepad: { primary: null, alt: null }
             };
         }
 
-        // Remove this button from any other actions and slots first to prevent conflicts
-        this.removeGamepadControl(buttonIndex, action);
+        // Remove this button from any other actions and slots in this profile first to prevent conflicts
+        this.removeGamepadControl(buttonIndex, action, profileName);
 
         // Also remove from the same action's other slot to prevent duplicates within the same action
-        const actionGamepad = this.currentControls[action].gamepad;
+        const actionGamepad = profile[action].gamepad;
         if (slot === 'primary' && actionGamepad.alt?.type === 'button' && actionGamepad.alt.value === buttonIndex) {
             actionGamepad.alt = null;
         } else if (slot === 'alt' && actionGamepad.primary?.type === 'button' && actionGamepad.primary.value === buttonIndex) {
@@ -235,28 +285,34 @@ class CustomControlsManager {
         }
 
         // Set binding in the specified slot
-        this.currentControls[action].gamepad[slot] = { type: 'button', value: buttonIndex };
+        profile[action].gamepad[slot] = { type: 'button', value: buttonIndex };
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} gamepad control for ${action}: Button ${buttonIndex}`);
+        console.log(`[CustomControlsManager] Set ${slot} gamepad control for ${action} in ${profileName}: Button ${buttonIndex}`);
     }
 
     /**
-     * Set axis binding for an action
+     * Set axis binding for an action in a specific profile
      */
-    setAxisControl(action, axisIndex, direction = 'positive', slot = 'primary') {
-        if (!this.currentControls[action]) {
-            this.currentControls[action] = {
+    setAxisControl(action, axisIndex, direction = 'positive', slot = 'primary', profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) {
+            console.error(`[CustomControlsManager] Profile ${profileName} not found`);
+            return;
+        }
+
+        if (!profile[action]) {
+            profile[action] = {
                 keyboard: { primary: null, alt: null },
                 gamepad: { primary: null, alt: null }
             };
         }
 
-        // Remove this axis from any other actions first to prevent conflicts
-        this.removeAxisControl(axisIndex, direction, action);
+        // Remove this axis from any other actions in this profile first to prevent conflicts
+        this.removeAxisControl(axisIndex, direction, action, profileName);
 
         // Set axis binding - ONLY allow one axis per action (replace any existing axis binding)
-        const actionGamepad = this.currentControls[action].gamepad;
+        const actionGamepad = profile[action].gamepad;
 
         // Clear any existing axis bindings in this action
         if (actionGamepad.primary?.type === 'axis') {
@@ -273,16 +329,19 @@ class CustomControlsManager {
         };
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} axis control for ${action}: Axis ${axisIndex} (${direction})`);
+        console.log(`[CustomControlsManager] Set ${slot} axis control for ${action} in ${profileName}: Axis ${axisIndex} (${direction})`);
     }
 
     /**
-     * Remove a keyboard control from all actions except the specified one
+     * Remove a keyboard control from all actions in a profile except the specified one
      */
-    removeKeyboardControl(keyCode, exceptAction = null) {
-        for (const action in this.currentControls) {
-            if (action !== exceptAction && this.currentControls[action].keyboard) {
-                const keyboard = this.currentControls[action].keyboard;
+    removeKeyboardControl(keyCode, exceptAction = null, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return;
+
+        for (const action in profile) {
+            if (action !== exceptAction && profile[action].keyboard) {
+                const keyboard = profile[action].keyboard;
                 if (keyboard.primary === keyCode) {
                     keyboard.primary = null;
                 }
@@ -294,12 +353,15 @@ class CustomControlsManager {
     }
     
     /**
-     * Remove a gamepad control from all actions except the specified one
+     * Remove a gamepad control from all actions in a profile except the specified one
      */
-    removeGamepadControl(buttonIndex, exceptAction = null) {
-        for (const action in this.currentControls) {
-            if (action !== exceptAction && this.currentControls[action].gamepad) {
-                const gamepad = this.currentControls[action].gamepad;
+    removeGamepadControl(buttonIndex, exceptAction = null, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return;
+
+        for (const action in profile) {
+            if (action !== exceptAction && profile[action].gamepad) {
+                const gamepad = profile[action].gamepad;
                 if (gamepad.primary?.type === 'button' && gamepad.primary.value === buttonIndex) {
                     gamepad.primary = null;
                 }
@@ -311,12 +373,15 @@ class CustomControlsManager {
     }
 
     /**
-     * Remove an axis control from all actions except the specified one
+     * Remove an axis control from all actions in a profile except the specified one
      */
-    removeAxisControl(axisIndex, direction, exceptAction = null) {
-        for (const action in this.currentControls) {
-            if (action !== exceptAction && this.currentControls[action].gamepad) {
-                const gamepad = this.currentControls[action].gamepad;
+    removeAxisControl(axisIndex, direction, exceptAction = null, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return;
+
+        for (const action in profile) {
+            if (action !== exceptAction && profile[action].gamepad) {
+                const gamepad = profile[action].gamepad;
                 if (gamepad.primary?.type === 'axis' &&
                     gamepad.primary.value.index === axisIndex &&
                     gamepad.primary.value.direction === direction) {
@@ -332,11 +397,14 @@ class CustomControlsManager {
     }
     
     /**
-     * Check if a keyboard key is currently bound to any action
+     * Check if a keyboard key is currently bound to any action in a profile
      */
-    isKeyboardKeyBound(keyCode) {
-        for (const action in this.currentControls) {
-            const keyboard = this.currentControls[action].keyboard;
+    isKeyboardKeyBound(keyCode, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return null;
+
+        for (const action in profile) {
+            const keyboard = profile[action].keyboard;
             if (keyboard?.primary === keyCode || keyboard?.alt === keyCode) {
                 return action;
             }
@@ -345,11 +413,14 @@ class CustomControlsManager {
     }
     
     /**
-     * Check if a gamepad button is currently bound to any action
+     * Check if a gamepad button is currently bound to any action in a profile
      */
-    isGamepadButtonBound(buttonIndex) {
-        for (const action in this.currentControls) {
-            const gamepad = this.currentControls[action].gamepad;
+    isGamepadButtonBound(buttonIndex, profileName = 'PLAYER_1') {
+        const profile = this.profiles[profileName];
+        if (!profile) return null;
+
+        for (const action in profile) {
+            const gamepad = profile[action].gamepad;
             if (gamepad?.primary?.type === 'button' && gamepad.primary.value === buttonIndex) {
                 return action;
             }

@@ -166,7 +166,9 @@ class Game {
             width: 800,
             height: 500,
             x: (TETRIS.WIDTH - 800) / 2,
-            y: (TETRIS.HEIGHT - 500) / 2
+            y: (TETRIS.HEIGHT - 500) / 2,
+            editingProfile: 'PLAYER_1', // Which profile is being edited
+            triggeringDeviceName: 'PLAYER 1' // Display name for the window title
         };
 
         /******* Game Settings (persisted to localStorage) *******/
@@ -667,6 +669,11 @@ class Game {
     startGame() {
         this.gameMode = "single";
 
+        // Reset sticky device detection for single player mode
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
+
         // Initialize GameManager with 1 player for consistency with multiplayer modes
         this.gameManager.initialize(1);
 
@@ -678,6 +685,11 @@ class Game {
 
     startTwoPlayerGame() {
         this.gameMode = "twoPlayer";
+
+        // Reset sticky device detection (not used in multiplayer, but keep clean)
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
 
         // Initialize the new multiplayer system for 2 players
         this.gameManager.initialize(2);
@@ -694,6 +706,11 @@ class Game {
     startThreePlayerGame() {
         this.gameMode = "threePlayer";
 
+        // Reset sticky device detection (not used in multiplayer, but keep clean)
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
+
         // Initialize the new multiplayer system for 3 players
         this.gameManager.initialize(3);
 
@@ -709,6 +726,11 @@ class Game {
     startFourPlayerGame() {
         this.gameMode = "fourPlayer";
 
+        // Reset sticky device detection (not used in multiplayer, but keep clean)
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
+
         // Initialize the new multiplayer system for 4 players
         this.gameManager.initialize(4);
 
@@ -723,6 +745,11 @@ class Game {
      */
     startVersusCPU() {
         this.gameMode = "versusCPU";
+
+        // Reset sticky device detection for single player vs CPU mode
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
 
         // Initialize human vs CPU mode (1 human + 1 CPU)
         this.gameManager.initializeVersusCPU(1, 1);
@@ -868,6 +895,11 @@ class Game {
     startDrMario() {
         console.log("🎮 Starting Dr. Mario game...");
         this.playSound("menu_confirm");
+
+        // Reset sticky device detection for Dr. Mario mode (uses single player logic)
+        if (this.customControls) {
+            this.customControls.getInputAdapter().resetStickyDevice();
+        }
 
         // Initialize Dr. Mario game
         if (!this.drMarioGame) {
