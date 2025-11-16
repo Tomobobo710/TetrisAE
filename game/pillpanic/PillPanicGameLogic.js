@@ -4,8 +4,8 @@
  * Extracted from original implementation and modularized
  */
 class PillPanicGameLogic {
-    constructor(drMarioGame) {
-        this.game = drMarioGame;
+    constructor(pillPanicGame) {
+        this.game = pillPanicGame;
         
         /******* Game State *******/
         this.score = 0;

@@ -32,12 +32,14 @@ class PillPanicGame {
     /******* ActionEngine Framework Hooks *******/
     update(deltaTime) {
         this.frameCount++;
-        
+
         // Handle input
         this.inputManager.handleInput(deltaTime);
-        
-        // Update game logic
-        this.gameLogic.update(deltaTime);
+
+        // Update game logic only if not paused
+        if (this.gameState !== PILL_PANIC_CONSTANTS.STATES.PAUSED) {
+            this.gameLogic.update(deltaTime);
+        }
     }
     
     draw() {

@@ -48,6 +48,14 @@ class PillPanicInputManager {
             selectedIndex: 0
         };
 
+        this.pauseMenu = {
+            buttons: [
+                { text: "RESUME", action: "resume" },
+                { text: "BACK TO MENU", action: "backToMenu" }
+            ],
+            selectedIndex: 0
+        };
+
         // Game settings
         this.selectedVirusLevel = 1;
         this.selectedSpeed = 1;
@@ -97,6 +105,13 @@ class PillPanicInputManager {
             this.buttonElements[id] = { x: 0, y: 0, width: 100, height: 50 };
             this.input.registerElement(id, { bounds: () => this.buttonElements[id] });
         });
+
+        // Register pause menu buttons
+        this.pauseMenu.buttons.forEach((button, i) => {
+            const id = `dr_pause_button_${i}`;
+            this.buttonElements[id] = { x: 0, y: 0, width: 100, height: 50 };
+            this.input.registerElement(id, { bounds: () => this.buttonElements[id] });
+        });
     }
     
     updateMenuElementPositions(state, buttonPositions) {
@@ -105,6 +120,7 @@ class PillPanicInputManager {
         if (state === "levelSelect") prefix = "dr_level";
         else if (state === "victory") prefix = "dr_gameover";
         else if (state === "gameOver") prefix = "dr_gameover";
+        else if (state === "pause") prefix = "dr_pause";
 
         buttonPositions.forEach((pos, i) => {
             this.buttonElements[`${prefix}_button_${i}`] = { x: pos.x, y: pos.y, width: pos.width, height: pos.height };
@@ -162,6 +178,9 @@ class PillPanicInputManager {
                 break;
             case PILL_PANIC_CONSTANTS.STATES.PLAYING:
                 this.handleGameplayInput(deltaTime);
+                break;
+            case PILL_PANIC_CONSTANTS.STATES.PAUSED:
+                this.handlePauseInput();
                 break;
             case PILL_PANIC_CONSTANTS.STATES.VICTORY:
                 this.handleVictoryInput();
@@ -342,6 +361,13 @@ class PillPanicInputManager {
     }
     
     handleGameplayInput(deltaTime) {
+        // Handle pause input - use custom controls only
+        if (this.customInput && this.customInput.isActionJustPressed('pause')) {
+            this.game.setState(PILL_PANIC_CONSTANTS.STATES.PAUSED);
+            this.game.playSound("menu_pause");
+            return;
+        }
+
         const currentCapsule = this.game.gameLogic.currentCapsule;
         if (!currentCapsule || currentCapsule.locked) return;
 
@@ -556,6 +582,73 @@ class PillPanicInputManager {
         }
     }
 
+    handlePauseInput() {
+        const menu = this.pauseMenu;
+
+        // Check for mouse clicks FIRST
+        for (let i = 0; i < menu.buttons.length; i++) {
+            if (this.input.isElementJustPressed(`dr_pause_button_${i}`)) {
+                this.executePauseAction(menu.buttons[i].action);
+                return;
+            }
+        }
+
+        // Check for mouse hover - mouse overrides keyboard selection
+        for (let i = 0; i < menu.buttons.length; i++) {
+            if (this.input.isElementHovered(`dr_pause_button_${i}`)) {
+                if (menu.selectedIndex !== i) {
+                    menu.selectedIndex = i;
+                    this.game.playSound("menu_navigate");
+                }
+                break;
+            }
+        }
+
+        // Handle unpause with pause key - use custom controls only
+        if (this.customInput && this.customInput.isActionJustPressed('pause')) {
+            this.executePauseAction("resume");
+            return;
+        }
+
+        // Keyboard/gamepad navigation
+        if (this.input.isKeyJustPressed("DirUp") ||
+            this.input.isGamepadButtonJustPressed(12, this.getActiveGamepadIndex())) {
+            menu.selectedIndex = Math.max(0, menu.selectedIndex - 1);
+            this.game.playSound("menu_navigate");
+        }
+
+        if (this.input.isKeyJustPressed("DirDown") ||
+            this.input.isGamepadButtonJustPressed(13, this.getActiveGamepadIndex())) {
+            menu.selectedIndex = Math.min(menu.buttons.length - 1, menu.selectedIndex + 1);
+            this.game.playSound("menu_navigate");
+        }
+
+        // Action buttons
+        if (this.input.isKeyJustPressed("Action1") ||
+            this.input.isGamepadButtonJustPressed(0, this.getActiveGamepadIndex())) {
+            this.executePauseAction(menu.buttons[menu.selectedIndex].action);
+        }
+
+        // Action2 for back (same as Action1 for pause screen)
+        if (this.input.isKeyJustPressed("Action2") ||
+            this.input.isGamepadButtonJustPressed(1, this.getActiveGamepadIndex())) {
+            this.executePauseAction(menu.buttons[menu.selectedIndex].action);
+        }
+    }
+
+    executePauseAction(action) {
+        switch (action) {
+            case "resume":
+                this.game.setState(PILL_PANIC_CONSTANTS.STATES.PLAYING);
+                this.game.playSound("menu_confirm");
+                break;
+            case "backToMenu":
+                this.game.setState(PILL_PANIC_CONSTANTS.STATES.LEVEL_SELECT);
+                this.game.playSound("menu_back");
+                break;
+        }
+    }
+
     // Victory and game over actions now handled by their own execute methods
     
     cleanup() {
@@ -576,6 +669,10 @@ class PillPanicInputManager {
 
         this.gameOverMenu.buttons.forEach((button, i) => {
             this.input.removeElement(`dr_gameover_button_${i}`);
+        });
+
+        this.pauseMenu.buttons.forEach((button, i) => {
+            this.input.removeElement(`dr_pause_button_${i}`);
         });
     }
 

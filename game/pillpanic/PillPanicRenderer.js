@@ -30,8 +30,9 @@ class PillPanicRenderer {
         this.drawBackgroundParticles();
         
         // Draw bottle and game area
-        if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PLAYING || 
-            this.game.gameState === PILL_PANIC_CONSTANTS.STATES.CLEARING) {
+        if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PLAYING ||
+            this.game.gameState === PILL_PANIC_CONSTANTS.STATES.CLEARING ||
+            this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PAUSED) {
             this.drawBottle();
         }
         
@@ -80,6 +81,10 @@ class PillPanicRenderer {
 
         if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.LEVEL_SELECT) {
             this.drawLevelSelectMenu();
+        } else if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PAUSED) {
+            this.drawHUD();
+            this.drawNextCapsule();
+            this.drawPauseMenu();
         } else {
             this.drawHUD();
             this.drawNextCapsule();
@@ -279,8 +284,8 @@ class PillPanicRenderer {
         const checkSize = 40;
         for (let x = 0; x < PILL_PANIC_CONSTANTS.WIDTH; x += checkSize) {
             for (let y = 0; y < PILL_PANIC_CONSTANTS.HEIGHT; y += checkSize) {
-                const isPink = (x / checkSize + y / checkSize) % 2 === 0;
-                this.guiCtx.fillStyle = isPink ? "#ff69b4" : "#ffa500";
+                const isLight = (x / checkSize + y / checkSize) % 2 === 0;
+                this.guiCtx.fillStyle = isLight ? "#0a9104" : "#035103";
                 this.guiCtx.fillRect(x, y, checkSize, checkSize);
             }
         }
@@ -582,16 +587,67 @@ class PillPanicRenderer {
         }
     }
     
+    drawPauseMenu() {
+        // Semi-transparent overlay
+        this.guiCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        this.guiCtx.fillRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
+
+        // Draw pause menu
+        const menu = this.game.inputManager.pauseMenu;
+        const buttonPositions = [];
+        const buttonWidth = 200;
+        const buttonHeight = 50;
+        const startY = PILL_PANIC_CONSTANTS.HEIGHT / 2 - 50;
+        const spacing = 60;
+
+        // Title
+        this.guiCtx.fillStyle = "#ffffff";
+        this.guiCtx.font = "bold 36px Arial";
+        this.guiCtx.textAlign = "center";
+        this.guiCtx.fillText("PAUSED", PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 100);
+
+        // Draw menu buttons
+        for (let i = 0; i < menu.buttons.length; i++) {
+            const button = menu.buttons[i];
+            const x = PILL_PANIC_CONSTANTS.WIDTH / 2 - buttonWidth / 2;
+            const y = startY + i * spacing;
+            const isHighlighted = menu.selectedIndex === i;
+
+            let accentColor = "#666666";
+
+            if (i === 0) { // Resume
+                accentColor = "#44aa44";
+            } else { // Back to Menu
+                accentColor = "#aa4444";
+            }
+
+            const theme = {
+                ui: {
+                    accent: accentColor,
+                    text: "#ffffff"
+                }
+            };
+
+            this.drawTetrisMenuButton(x, y, buttonWidth, buttonHeight, button.text, isHighlighted, theme);
+
+            // Store position for mouse interaction
+            buttonPositions.push({ x, y, width: buttonWidth, height: buttonHeight });
+        }
+
+        // Update mouse hit areas
+        this.game.inputManager.updateMenuElementPositions("pause", buttonPositions);
+    }
+
     drawDebugLayer() {
         this.debugCtx.clearRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
-        
+
         this.debugCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
         this.debugCtx.fillRect(10, 10, 300, 200);
-        
+
         this.debugCtx.fillStyle = "#00ff00";
         this.debugCtx.font = "14px monospace";
         this.debugCtx.textAlign = "left";
-        
+
         const info = [
             "Pill Panic DEBUG",
             `State: ${this.game.gameState}`,
@@ -599,7 +655,7 @@ class PillPanicRenderer {
             `Viruses: ${this.game.gameLogic.virusCount}`,
             `Chain: ${this.game.gameLogic.chainCount}`
         ];
-        
+
         info.forEach((line, i) => {
             this.debugCtx.fillText(line, 20, 35 + i * 18);
         });

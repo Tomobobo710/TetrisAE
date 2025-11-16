@@ -236,6 +236,7 @@ const PILL_PANIC_CONSTANTS = {
         LEVEL_SELECT: "levelSelect",
         PLAYING: "playing",
         CLEARING: "clearing",
+        PAUSED: "paused",
         VICTORY: "victory",
         GAME_OVER: "gameOver"
     }
