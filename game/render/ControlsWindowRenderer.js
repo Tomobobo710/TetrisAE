@@ -59,20 +59,45 @@ class ControlsWindowRenderer {
         const titleText = `${win.triggeringDeviceName || 'PLAYER 1'} CONTROLS`;
         ctx.fillText(titleText, win.x + win.width / 2, win.y + ControlsLayoutConstants.TITLE_Y_OFFSET);
 
-        // Column headers
+        // Determine if this player can edit keyboard controls (only PLAYER_1)
+        const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+
+        // Column headers - conditionally show Keyboard column
         ctx.fillStyle = theme.ui.accent;
         ctx.font = `${ControlsLayoutConstants.COLUMN_HEADER_FONT_WEIGHT} ${ControlsLayoutConstants.COLUMN_HEADER_FONT_SIZE}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText("Keyboard", win.x + ControlsLayoutConstants.KEYBOARD_COLUMN_X + ControlsLayoutConstants.KEYBOARD_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.COLUMN_HEADER_Y_OFFSET + ControlsLayoutConstants.KEYBOARD_HEADER_Y_OFFSET);
-        ctx.fillText("Gamepad", win.x + ControlsLayoutConstants.GAMEPAD_COLUMN_X + ControlsLayoutConstants.GAMEPAD_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.COLUMN_HEADER_Y_OFFSET + ControlsLayoutConstants.GAMEPAD_HEADER_Y_OFFSET);
 
-        // Sub-headers for Primary/Alt
+        if (canEditKeyboard) {
+            // Show both Keyboard and Gamepad headers when PLAYER_1
+            ctx.fillText("Keyboard", win.x + ControlsLayoutConstants.KEYBOARD_COLUMN_X + ControlsLayoutConstants.KEYBOARD_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.COLUMN_HEADER_Y_OFFSET + ControlsLayoutConstants.KEYBOARD_HEADER_Y_OFFSET);
+            ctx.fillText("Gamepad", win.x + ControlsLayoutConstants.GAMEPAD_COLUMN_X + ControlsLayoutConstants.GAMEPAD_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.COLUMN_HEADER_Y_OFFSET + ControlsLayoutConstants.GAMEPAD_HEADER_Y_OFFSET);
+        } else {
+            // Show only Gamepad header for players 2-4, centered over the two columns
+            const gamepadOffset = ControlsLayoutConstants.PRIMARY_KEYBOARD_X - ControlsLayoutConstants.PRIMARY_GAMEPAD_X;
+            const centeredGamepadHeaderX = (ControlsLayoutConstants.PRIMARY_GAMEPAD_X + ControlsLayoutConstants.ALT_GAMEPAD_X + gamepadOffset * 2) / 2;
+            ctx.fillText("Gamepad", win.x + 42 + centeredGamepadHeaderX, win.y + ControlsLayoutConstants.COLUMN_HEADER_Y_OFFSET + ControlsLayoutConstants.GAMEPAD_HEADER_Y_OFFSET);
+        }
+
+        // Sub-headers for Primary/Alt - conditionally show keyboard columns
         ctx.fillStyle = theme.ui.text;
         ctx.font = `${ControlsLayoutConstants.SUB_HEADER_FONT_SIZE}px Arial`;
-        ctx.fillText("Primary", win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X + ControlsLayoutConstants.PRIMARY_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.PRIMARY_SUB_HEADER_Y_OFFSET);
-        ctx.fillText("Alt", win.x + ControlsLayoutConstants.ALT_KEYBOARD_X + ControlsLayoutConstants.ALT_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.ALT_SUB_HEADER_Y_OFFSET);
-        ctx.fillText("Primary", win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X + ControlsLayoutConstants.PRIMARY_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.PRIMARY_SUB_HEADER_Y_OFFSET);
-        ctx.fillText("Alt", win.x + ControlsLayoutConstants.ALT_GAMEPAD_X + ControlsLayoutConstants.ALT_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.ALT_SUB_HEADER_Y_OFFSET);
+
+        if (canEditKeyboard) {
+            // Show keyboard sub-headers for PLAYER_1
+            ctx.fillText("Primary", win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X + ControlsLayoutConstants.PRIMARY_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.PRIMARY_SUB_HEADER_Y_OFFSET);
+            ctx.fillText("Alt", win.x + ControlsLayoutConstants.ALT_KEYBOARD_X + ControlsLayoutConstants.ALT_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.ALT_SUB_HEADER_Y_OFFSET);
+        }
+
+        if (canEditKeyboard) {
+            // Show gamepad sub-headers in original position for PLAYER_1
+            ctx.fillText("Primary", win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X + ControlsLayoutConstants.PRIMARY_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.PRIMARY_SUB_HEADER_Y_OFFSET);
+            ctx.fillText("Alt", win.x + ControlsLayoutConstants.ALT_GAMEPAD_X + ControlsLayoutConstants.ALT_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.ALT_SUB_HEADER_Y_OFFSET);
+        } else {
+            // Show gamepad sub-headers centered over the shifted columns for players 2-4
+            const gamepadOffset = ControlsLayoutConstants.PRIMARY_KEYBOARD_X - ControlsLayoutConstants.PRIMARY_GAMEPAD_X;
+            ctx.fillText("Primary", win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X + gamepadOffset + ControlsLayoutConstants.PRIMARY_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.PRIMARY_SUB_HEADER_Y_OFFSET);
+            ctx.fillText("Alt", win.x + ControlsLayoutConstants.ALT_GAMEPAD_X + gamepadOffset + ControlsLayoutConstants.ALT_SUB_HEADER_X_OFFSET, win.y + ControlsLayoutConstants.SUB_HEADER_Y_OFFSET + ControlsLayoutConstants.ALT_SUB_HEADER_Y_OFFSET);
+        }
 
         // Draw action list in 4-column layout
         this.drawControlsList(win, theme);
@@ -99,11 +124,23 @@ class ControlsWindowRenderer {
             ctx.textAlign = "left";
             ctx.fillText(action.name, win.x + ControlsLayoutConstants.ACTION_NAME_X_OFFSET, nameRowY + ControlsLayoutConstants.ACTION_NAME_Y_OFFSET);
 
-            // 4 columns of controls
-            this.drawControlColumn(win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X, rowY + ControlsLayoutConstants.PRIMARY_KEYBOARD_Y, ControlsLayoutConstants.PRIMARY_KEYBOARD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.keyboard?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 0, theme);
-            this.drawControlColumn(win.x + ControlsLayoutConstants.ALT_KEYBOARD_X, rowY + ControlsLayoutConstants.ALT_KEYBOARD_Y, ControlsLayoutConstants.ALT_KEYBOARD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.keyboard?.alt, actionIndex === win.selectedActionIndex && win.selectedColumn === 1, theme);
-            this.drawControlColumn(win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X, rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y, ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 2, theme);
-            this.drawControlColumn(win.x + ControlsLayoutConstants.ALT_GAMEPAD_X, rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y, ControlsLayoutConstants.ALT_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.alt || action.axis, actionIndex === win.selectedActionIndex && win.selectedColumn === 3, theme);
+            // Determine if this player can edit keyboard controls (only PLAYER_1)
+            const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+
+            // Draw columns conditionally based on profile
+            if (canEditKeyboard) {
+                // Draw all 4 columns for PLAYER_1 (keyboard + gamepad)
+                this.drawControlColumn(win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X, rowY + ControlsLayoutConstants.PRIMARY_KEYBOARD_Y, ControlsLayoutConstants.PRIMARY_KEYBOARD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.keyboard?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 0, theme);
+                this.drawControlColumn(win.x + ControlsLayoutConstants.ALT_KEYBOARD_X, rowY + ControlsLayoutConstants.ALT_KEYBOARD_Y, ControlsLayoutConstants.ALT_KEYBOARD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.keyboard?.alt, actionIndex === win.selectedActionIndex && win.selectedColumn === 1, theme);
+                this.drawControlColumn(win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X, rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y, ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 2, theme);
+                this.drawControlColumn(win.x + ControlsLayoutConstants.ALT_GAMEPAD_X, rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y, ControlsLayoutConstants.ALT_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.alt || action.axis, actionIndex === win.selectedActionIndex && win.selectedColumn === 3, theme);
+            } else {
+                // Draw only 2 gamepad columns for players 2-4
+                // Shift gamepad columns left to center them in the window
+                const gamepadOffset = ControlsLayoutConstants.PRIMARY_KEYBOARD_X - ControlsLayoutConstants.PRIMARY_GAMEPAD_X;
+                this.drawControlColumn(win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X + gamepadOffset, rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y, ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.primary, actionIndex === win.selectedActionIndex && win.selectedColumn === 0, theme);
+                this.drawControlColumn(win.x + ControlsLayoutConstants.ALT_GAMEPAD_X + gamepadOffset, rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y, ControlsLayoutConstants.ALT_GAMEPAD_WIDTH, ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION, action.gamepad?.alt || action.axis, actionIndex === win.selectedActionIndex && win.selectedColumn === 1, theme);
+            }
         }
 
         // Scroll indicators

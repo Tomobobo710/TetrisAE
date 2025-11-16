@@ -28,56 +28,90 @@ class ControlsWindowManager {
             return; // Modal is active
         }
 
+        // Determine if this player can edit keyboard controls (only PLAYER_1)
+        const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+        const maxColumns = canEditKeyboard ? 4 : 2;
+
         // Handle mouse clicks on action rows
         for (let i = 0; i < Math.min(win.maxVisibleActions, win.actions.length - win.scrollOffset); i++) {
             const actionIndex = i + win.scrollOffset;
 
-            // Check all 4 column clicks
-            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_primary`)) {
-                this.startWaitingForInput(actionIndex, 'keyboard', 'primary');
-                return;
-            }
-            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_alt`)) {
-                this.startWaitingForInput(actionIndex, 'keyboard', 'alt');
-                return;
-            }
-            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_primary`)) {
-                this.startWaitingForInput(actionIndex, 'gamepad', 'primary');
-                return;
-            }
-            if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_alt`)) {
-                this.startWaitingForInput(actionIndex, 'gamepad', 'alt');
-                return;
-            }
+            // Check column clicks based on profile
+            if (canEditKeyboard) {
+                // PLAYER_1: Check all 4 column clicks
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_primary`)) {
+                    this.startWaitingForInput(actionIndex, 'keyboard', 'primary');
+                    return;
+                }
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_kb_alt`)) {
+                    this.startWaitingForInput(actionIndex, 'keyboard', 'alt');
+                    return;
+                }
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_primary`)) {
+                    this.startWaitingForInput(actionIndex, 'gamepad', 'primary');
+                    return;
+                }
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_alt`)) {
+                    this.startWaitingForInput(actionIndex, 'gamepad', 'alt');
+                    return;
+                }
 
-            // Update selection on hover for all 4 columns - switch to action navigation mode
-            if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_primary`)) {
-                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 0 || win.navigatingButtons) {
-                    win.selectedActionIndex = actionIndex;
-                    win.selectedColumn = 0;
-                    win.navigatingButtons = false; // Switch to action navigation
-                    this.game.playSound('menu_navigate');
+                // Update selection on hover for all 4 columns - switch to action navigation mode
+                if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_primary`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 0 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 0;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
+                } else if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_alt`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 1 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 1;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
+                } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_primary`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 2 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 2;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
+                } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_alt`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 3 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 3;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
                 }
-            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_kb_alt`)) {
-                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 1 || win.navigatingButtons) {
-                    win.selectedActionIndex = actionIndex;
-                    win.selectedColumn = 1;
-                    win.navigatingButtons = false; // Switch to action navigation
-                    this.game.playSound('menu_navigate');
+            } else {
+                // Players 2-4: Only check gamepad columns (remapped to columns 0 and 1)
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_primary`)) {
+                    this.startWaitingForInput(actionIndex, 'gamepad', 'primary');
+                    return;
                 }
-            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_primary`)) {
-                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 2 || win.navigatingButtons) {
-                    win.selectedActionIndex = actionIndex;
-                    win.selectedColumn = 2;
-                    win.navigatingButtons = false; // Switch to action navigation
-                    this.game.playSound('menu_navigate');
+                if (this.input.isElementJustPressed(`controls_action_${actionIndex}_gp_alt`)) {
+                    this.startWaitingForInput(actionIndex, 'gamepad', 'alt');
+                    return;
                 }
-            } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_alt`)) {
-                if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 3 || win.navigatingButtons) {
-                    win.selectedActionIndex = actionIndex;
-                    win.selectedColumn = 3;
-                    win.navigatingButtons = false; // Switch to action navigation
-                    this.game.playSound('menu_navigate');
+
+                // Update selection on hover for gamepad columns only - remapped to columns 0 and 1
+                if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_primary`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 0 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 0;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
+                } else if (this.input.isElementHovered(`controls_action_${actionIndex}_gp_alt`)) {
+                    if (win.selectedActionIndex !== actionIndex || win.selectedColumn !== 1 || win.navigatingButtons) {
+                        win.selectedActionIndex = actionIndex;
+                        win.selectedColumn = 1;
+                        win.navigatingButtons = false; // Switch to action navigation
+                        this.game.playSound('menu_navigate');
+                    }
                 }
             }
         }
@@ -140,6 +174,8 @@ class ControlsWindowManager {
 
     handleKeyboardNavigation() {
         const win = this.game.controlsWindow;
+        const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+        const maxColumns = canEditKeyboard ? 4 : 2;
 
         // Multi-device navigation - use existing API directly (same as options/themes)
         if (
@@ -154,14 +190,20 @@ class ControlsWindowManager {
                 // If navigating buttons, go back to last action in column-aware position
                 win.navigatingButtons = false;
                 win.selectedActionIndex = win.actions.length - 1;
-                // DEFAULT button (0) -> keyboard primary (0), CLOSE button (1) -> gamepad alt (3)
-                win.selectedColumn = win.selectedButtonIndex === 0 ? 0 : 3;
+                // For players 2-4, remap column selection (only 2 columns: 0=gp_primary, 1=gp_alt)
+                if (!canEditKeyboard) {
+                    win.selectedColumn = win.selectedButtonIndex === 0 ? 0 : 1;
+                } else {
+                    // DEFAULT button (0) -> keyboard primary (0), CLOSE button (1) -> gamepad alt (3)
+                    win.selectedColumn = win.selectedButtonIndex === 0 ? 0 : 3;
+                }
                 this.updateScrollOffset();
             } else if (win.selectedActionIndex <= 0) {
                 // At first action, switch to button navigation based on column
                 win.navigatingButtons = true;
-                // Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
-                win.selectedButtonIndex = win.selectedColumn < 2 ? 0 : 1;
+                // For players 2-4, both columns map to CLOSE button (1)
+                // For PLAYER_1: Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
+                win.selectedButtonIndex = canEditKeyboard ? (win.selectedColumn < 2 ? 0 : 1) : 1;
                 // Clear action selection when navigating to buttons
                 win.selectedActionIndex = -1;
                 win.selectedColumn = -1;
@@ -186,8 +228,9 @@ class ControlsWindowManager {
             } else if (win.selectedActionIndex >= win.actions.length - 1) {
                 // At last action, switch to button navigation based on current column
                 win.navigatingButtons = true;
-                // Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
-                win.selectedButtonIndex = win.selectedColumn < 2 ? 0 : 1;
+                // For players 2-4, both columns map to CLOSE button (1)
+                // For PLAYER_1: Keyboard columns (0,1) -> DEFAULT button (0), Gamepad columns (2,3) -> CLOSE button (1)
+                win.selectedButtonIndex = canEditKeyboard ? (win.selectedColumn < 2 ? 0 : 1) : 1;
                 // Clear action selection when navigating to buttons
                 win.selectedActionIndex = -1;
                 win.selectedColumn = -1;
@@ -209,6 +252,8 @@ class ControlsWindowManager {
             if (win.navigatingButtons) {
                 win.selectedButtonIndex = Math.max(0, win.selectedButtonIndex - 1);
             } else {
+                // For players 2-4, columns are remapped (0=gp_primary, 1=gp_alt), so min is 0
+                // For PLAYER_1, normal column navigation (0-3)
                 win.selectedColumn = Math.max(0, win.selectedColumn - 1);
             }
             this.game.playSound("menu_navigate");
@@ -225,7 +270,8 @@ class ControlsWindowManager {
             if (win.navigatingButtons) {
                 win.selectedButtonIndex = Math.min(1, win.selectedButtonIndex + 1);
             } else {
-                win.selectedColumn = Math.min(3, win.selectedColumn + 1);
+                // For players 2-4, max column is 1 (only 2 columns), for PLAYER_1 max is 3
+                win.selectedColumn = Math.min(maxColumns - 1, win.selectedColumn + 1);
             }
             this.game.playSound("menu_navigate");
         }
@@ -274,8 +320,16 @@ class ControlsWindowManager {
                 }
             } else {
                 // Start remapping control
-                const inputType = win.selectedColumn < 2 ? 'keyboard' : 'gamepad';
-                const column = win.selectedColumn % 2 === 0 ? 'primary' : 'alt';
+                let inputType, column;
+                if (canEditKeyboard) {
+                    // PLAYER_1: Normal mapping (columns 0-3)
+                    inputType = win.selectedColumn < 2 ? 'keyboard' : 'gamepad';
+                    column = win.selectedColumn % 2 === 0 ? 'primary' : 'alt';
+                } else {
+                    // Players 2-4: Only gamepad columns (remapped to 0-1)
+                    inputType = 'gamepad';
+                    column = win.selectedColumn === 0 ? 'primary' : 'alt';
+                }
                 this.startWaitingForInput(win.selectedActionIndex, inputType, column);
             }
         }
@@ -313,7 +367,8 @@ class ControlsWindowManager {
             },
             () => {
                 // Timeout callback - do nothing, just cancel
-            }
+            },
+            profileName // Pass the profile name to the modal
         );
 
         // Populate the actions list with current control data from the manager
@@ -348,9 +403,9 @@ class ControlsWindowManager {
     close() {
         this.unregisterElements();
         this.game.controlsWindow.visible = false;
-        // Reset all navigation state to default position (top-left action selection)
+        // Reset all navigation state to default position based on profile
         this.game.controlsWindow.selectedActionIndex = 0; // First action
-        this.game.controlsWindow.selectedColumn = 0; // Keyboard primary column
+        this.game.controlsWindow.selectedColumn = 0; // First available column (keyboard primary for PLAYER_1, gamepad primary for others)
         this.game.controlsWindow.navigatingButtons = false; // Not in button mode
         this.game.controlsWindow.selectedButtonIndex = 0; // DEFAULT button if in button mode
         this.game.controlsWindow.scrollOffset = 0; // Reset scroll to top
@@ -380,50 +435,79 @@ class ControlsWindowManager {
         // Refresh the data to ensure we have current controls
         this.refreshWindowData();
 
-        // Register action rows - 4 columns
+        // Determine if this player can edit keyboard controls (only PLAYER_1)
+        const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+
+        // Register action rows - conditionally register columns based on profile
         for (let i = 0; i < Math.min(win.maxVisibleActions, win.actions.length); i++) {
             const actionIndex = i + win.scrollOffset;
             const rowY = listY + i * rowHeight;
 
-            // Keyboard primary
-            this.input.registerElement(`controls_action_${actionIndex}_kb_primary`, {
-                bounds: () => ({
-                    x: win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X,
-                    y: rowY + ControlsLayoutConstants.PRIMARY_KEYBOARD_Y,
-                    width: ControlsLayoutConstants.PRIMARY_KEYBOARD_WIDTH,
-                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
-                })
-            });
+            if (canEditKeyboard) {
+                // PLAYER_1: Register all 4 columns
+                // Keyboard primary
+                this.input.registerElement(`controls_action_${actionIndex}_kb_primary`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.PRIMARY_KEYBOARD_X,
+                        y: rowY + ControlsLayoutConstants.PRIMARY_KEYBOARD_Y,
+                        width: ControlsLayoutConstants.PRIMARY_KEYBOARD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
 
-            // Keyboard alt
-            this.input.registerElement(`controls_action_${actionIndex}_kb_alt`, {
-                bounds: () => ({
-                    x: win.x + ControlsLayoutConstants.ALT_KEYBOARD_X,
-                    y: rowY + ControlsLayoutConstants.ALT_KEYBOARD_Y,
-                    width: ControlsLayoutConstants.ALT_KEYBOARD_WIDTH,
-                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
-                })
-            });
+                // Keyboard alt
+                this.input.registerElement(`controls_action_${actionIndex}_kb_alt`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.ALT_KEYBOARD_X,
+                        y: rowY + ControlsLayoutConstants.ALT_KEYBOARD_Y,
+                        width: ControlsLayoutConstants.ALT_KEYBOARD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
 
-            // Gamepad primary
-            this.input.registerElement(`controls_action_${actionIndex}_gp_primary`, {
-                bounds: () => ({
-                    x: win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X,
-                    y: rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y,
-                    width: ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH,
-                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
-                })
-            });
+                // Gamepad primary
+                this.input.registerElement(`controls_action_${actionIndex}_gp_primary`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X,
+                        y: rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y,
+                        width: ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
 
-            // Gamepad alt
-            this.input.registerElement(`controls_action_${actionIndex}_gp_alt`, {
-                bounds: () => ({
-                    x: win.x + ControlsLayoutConstants.ALT_GAMEPAD_X,
-                    y: rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y,
-                    width: ControlsLayoutConstants.ALT_GAMEPAD_WIDTH,
-                    height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
-                })
-            });
+                // Gamepad alt
+                this.input.registerElement(`controls_action_${actionIndex}_gp_alt`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.ALT_GAMEPAD_X,
+                        y: rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y,
+                        width: ControlsLayoutConstants.ALT_GAMEPAD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
+            } else {
+                // Players 2-4: Only register gamepad columns (shifted left to center)
+                const gamepadOffset = ControlsLayoutConstants.PRIMARY_KEYBOARD_X - ControlsLayoutConstants.PRIMARY_GAMEPAD_X;
+
+                // Gamepad primary (shifted left)
+                this.input.registerElement(`controls_action_${actionIndex}_gp_primary`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.PRIMARY_GAMEPAD_X + gamepadOffset,
+                        y: rowY + ControlsLayoutConstants.PRIMARY_GAMEPAD_Y,
+                        width: ControlsLayoutConstants.PRIMARY_GAMEPAD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
+
+                // Gamepad alt (shifted left)
+                this.input.registerElement(`controls_action_${actionIndex}_gp_alt`, {
+                    bounds: () => ({
+                        x: win.x + ControlsLayoutConstants.ALT_GAMEPAD_X + gamepadOffset,
+                        y: rowY + ControlsLayoutConstants.ALT_GAMEPAD_Y,
+                        width: ControlsLayoutConstants.ALT_GAMEPAD_WIDTH,
+                        height: ControlsLayoutConstants.ROW_HEIGHT - ControlsLayoutConstants.COLUMN_HEIGHT_REDUCTION
+                    })
+                });
+            }
         }
 
         // Register buttons
@@ -455,12 +539,22 @@ class ControlsWindowManager {
     unregisterElements() {
         const win = this.game.controlsWindow;
 
-        // Unregister action rows - 4 columns
+        // Determine if this player can edit keyboard controls (only PLAYER_1)
+        const canEditKeyboard = win.editingProfile === 'PLAYER_1';
+
+        // Unregister action rows - conditionally unregister columns based on profile
         for (let i = 0; i < win.actions.length; i++) {
-            this.input.removeElement(`controls_action_${i}_kb_primary`);
-            this.input.removeElement(`controls_action_${i}_kb_alt`);
-            this.input.removeElement(`controls_action_${i}_gp_primary`);
-            this.input.removeElement(`controls_action_${i}_gp_alt`);
+            if (canEditKeyboard) {
+                // PLAYER_1: Unregister all 4 columns
+                this.input.removeElement(`controls_action_${i}_kb_primary`);
+                this.input.removeElement(`controls_action_${i}_kb_alt`);
+                this.input.removeElement(`controls_action_${i}_gp_primary`);
+                this.input.removeElement(`controls_action_${i}_gp_alt`);
+            } else {
+                // Players 2-4: Only unregister gamepad columns
+                this.input.removeElement(`controls_action_${i}_gp_primary`);
+                this.input.removeElement(`controls_action_${i}_gp_alt`);
+            }
         }
 
         // Unregister buttons

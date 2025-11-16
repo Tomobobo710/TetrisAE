@@ -11,6 +11,7 @@ class InputWaitingModal {
         this.waitingForAction = null;
         this.waitingForInputType = null;
         this.waitingForColumn = null;
+        this.waitingForProfile = null; // Profile being edited (PLAYER_1, PLAYER_2, etc.)
         this.onInputReceived = null; // Callback for when input is received
         this.onTimeout = null; // Callback for when timeout expires
 
@@ -21,15 +22,16 @@ class InputWaitingModal {
     /**
      * Start waiting for input
      */
-    startWaiting(actionId, inputType, column, onInputReceived, onTimeout) {
+    startWaiting(actionId, inputType, column, onInputReceived, onTimeout, profileName = 'PLAYER_1') {
         this.isActive = true;
         this.waitingForAction = actionId;
         this.waitingForInputType = inputType;
         this.waitingForColumn = column;
+        this.waitingForProfile = profileName;
         this.timeout = 3000; // 3 seconds
         this.onInputReceived = onInputReceived;
         this.onTimeout = onTimeout;
-        console.log(`[InputWaitingModal] Waiting for ${inputType} ${column} input for action: ${actionId}`);
+        console.log(`[InputWaitingModal] Waiting for ${inputType} ${column} input for action: ${actionId} (Profile: ${profileName})`);
     }
 
     /**
@@ -58,6 +60,11 @@ class InputWaitingModal {
      * Check for keyboard input
      */
     checkKeyboardInput() {
+        // Only allow keyboard input when editing PLAYER_1 profile
+        if (this.waitingForProfile !== 'PLAYER_1') {
+            return;
+        }
+
         const currentKeys = this.input.currentSnapshot.keys;
         const previousKeys = this.input.previousSnapshot.keys;
 
@@ -75,8 +82,25 @@ class InputWaitingModal {
      * Check for gamepad input (buttons and axes)
      */
     checkGamepadInput() {
-        // Check for any gamepad button input
-        for (let gamepadIndex = 0; gamepadIndex < 4; gamepadIndex++) {
+        // Determine which gamepad to accept input from based on the profile being edited
+        let allowedGamepadIndices = [];
+
+        if (this.waitingForProfile === 'PLAYER_1') {
+            // PLAYER_1 can use gamepad 0
+            allowedGamepadIndices = [0];
+        } else if (this.waitingForProfile === 'PLAYER_2') {
+            // PLAYER_2 can only use gamepad 1
+            allowedGamepadIndices = [1];
+        } else if (this.waitingForProfile === 'PLAYER_3') {
+            // PLAYER_3 can only use gamepad 2
+            allowedGamepadIndices = [2];
+        } else if (this.waitingForProfile === 'PLAYER_4') {
+            // PLAYER_4 can only use gamepad 3
+            allowedGamepadIndices = [3];
+        }
+
+        // Check for gamepad button input from allowed gamepads only
+        for (const gamepadIndex of allowedGamepadIndices) {
             if (this.input.isGamepadConnected(gamepadIndex)) {
                 for (let buttonIndex = 0; buttonIndex < 16; buttonIndex++) {
                     if (this.input.isGamepadButtonJustPressed(buttonIndex, gamepadIndex)) {
@@ -115,6 +139,7 @@ class InputWaitingModal {
         this.waitingForAction = null;
         this.waitingForInputType = null;
         this.waitingForColumn = null;
+        this.waitingForProfile = null;
         this.timeout = 0;
         this.onInputReceived = null;
         this.onTimeout = null;
