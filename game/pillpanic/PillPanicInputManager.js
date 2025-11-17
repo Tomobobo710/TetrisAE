@@ -453,14 +453,14 @@ class PillPanicInputManager {
 
         if (leftPressed && canMove) {
             if (this.game.gameLogic.moveCapsule(-1, 0)) {
-                this.game.playSound("move");
+                this.game.playSound("move", { volume: 0.35 });
                 this.moveRepeatTimer = 0;
             }
         }
 
         if (rightPressed && canMove) {
             if (this.game.gameLogic.moveCapsule(1, 0)) {
-                this.game.playSound("move");
+                this.game.playSound("move", { volume: 0.35 });
                 this.moveRepeatTimer = 0;
             }
         }
@@ -691,7 +691,7 @@ class PillPanicInputManager {
 
         // Always lock after hard drop attempt, even if no movement occurred
         // (capsule might already be at bottom)
-        this.game.playSound("hard_drop");
+        this.game.playSound("hard_drop", { volume: 0.35 });
         currentCapsule.locked = true;
         currentCapsule.lockTimer = 0; // Lock immediately
     }

@@ -88,7 +88,7 @@ class GameplayInputManager {
             if (this.customInput.isActionJustPressed('hardDrop')) {
                 const hardDropResult = player.hardDrop();
                 if (hardDropResult !== null) {
-                    this.game.playSound("hard_drop");
+                    this.game.playSound("hard_drop", { volume: 0.35 });
                 }
                 return;
             }
@@ -182,7 +182,7 @@ class GameplayInputManager {
         if (this.isHardDropInputPressed(inputDevice, player.playerNumber)) {
             const hardDropResult = player.hardDrop();
             if (hardDropResult !== null) {
-                this.game.playSound("hard_drop");
+                this.game.playSound("hard_drop", { volume: 0.35 });
             }
             return;
         }
@@ -223,7 +223,7 @@ class GameplayInputManager {
     handlePlayerMovement(player, direction, deltaTime) {
         if (!player.dasActive || player.dasDirection !== direction) {
             if (player.movePiece(direction)) {
-                this.game.playSound("move");
+                this.game.playSound("move", { volume: 0.35 });
             }
             player.dasTimer = 0;
             player.dasActive = true;
@@ -235,7 +235,7 @@ class GameplayInputManager {
                 const moves = Math.floor(dasProgress / TETRIS.TIMING.DAS_SPEED);
                 if (moves > 0) {
                     if (player.movePiece(direction)) {
-                        this.game.playSound("move");
+                        this.game.playSound("move", { volume: 0.35 });
                     }
                     player.dasTimer = TETRIS.TIMING.DAS_DELAY + (dasProgress % TETRIS.TIMING.DAS_SPEED);
                 }

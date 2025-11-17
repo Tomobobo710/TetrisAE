@@ -511,7 +511,7 @@ class PillPanicGameLogic {
         // Only play move sound if something fell but nothing landed
         // (pieces that land shouldn't also play move sound)
         if (somethingFell && !somethingLanded) {
-            this.game.playSound("move");
+            this.game.playSound("move", { volume: 0.35 });
         }
         if (somethingLanded) {
             this.game.playSound("land");

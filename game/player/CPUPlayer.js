@@ -622,14 +622,14 @@ window.CPUPlayer = class CPUPlayer {
             const direction = target.targetX > current.x ? 1 : -1;
 
             if (this.playerInstance.movePiece(direction)) {
-                this.game.playSound("move");
+                this.game.playSound("move", { volume: 0.35 });
                 actionTaken = true;
             }
         }
         // Drop!
         else {
             this.playerInstance.hardDrop();
-            this.game.playSound("hard_drop");
+            this.game.playSound("hard_drop", { volume: 0.35 });
             this.currentStrategy = null;
             this.nextActionDelay = this.reactionDelay * 1.5;
             return;
@@ -654,7 +654,7 @@ window.CPUPlayer = class CPUPlayer {
                 } else {
                     // Last resort: hard drop
                     this.playerInstance.hardDrop();
-                    this.game.playSound("hard_drop");
+                    this.game.playSound("hard_drop", { volume: 0.35 });
                     this.currentStrategy = null;
                     this.stuckTimer = 0;
                 }
