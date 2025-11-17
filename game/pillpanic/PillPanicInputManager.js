@@ -691,7 +691,7 @@ class PillPanicInputManager {
 
         // Always lock after hard drop attempt, even if no movement occurred
         // (capsule might already be at bottom)
-        this.game.playSound("hard_drop", { volume: 0.5 });
+        this.game.playSound("hard_drop");
         currentCapsule.locked = true;
         currentCapsule.lockTimer = 0; // Lock immediately
     }
