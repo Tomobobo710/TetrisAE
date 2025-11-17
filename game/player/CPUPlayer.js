@@ -11,7 +11,6 @@
  * 
  * ATTACK STRATEGY:
  * - Prioritizes 4-line Tetrises (4 garbage lines)
- * - T-spin setups for powerful attacks (2-6 garbage lines)
  * - Back-to-back bonuses for continuous pressure
  * - Opening strategies to build attack setups
  * - Perfect clear opportunities for massive damage
@@ -44,28 +43,24 @@ window.CPUPlayer = class CPUPlayer {
     setDifficultyParameters() {
         switch (this.difficulty) {
             case "easy":
-                this.thinkingInterval = 200; // ms between decisions - sped up!
-                this.reactionDelay = 250;    // ms between actions
+                this.thinkingInterval = 150; // ms between decisions - slower than hard
+                this.reactionDelay = 120;    // ms between actions - slower than hard
                 this.mistakeRate = 0.15;     // some mistakes for realism
-                this.lookaheadDepth = 1;     // pieces to look ahead
-                this.attackFocus = 0.2;      // survival-focused
+                this.lookaheadDepth = 1;     // pieces to look ahead - same as others
                 break;
 
             case "medium":
-                this.thinkingInterval = 150; // faster decisions
-                this.reactionDelay = 120;    // quicker reactions
+                this.thinkingInterval = 150; // faster decisions than easy
+                this.reactionDelay = 90;    // quicker reactions than easy
                 this.mistakeRate = 0.03;     // few mistakes
-                this.lookaheadDepth = 2;     // look ahead 2 pieces
-                this.attackFocus = 0.6;      // balanced attack/defense
+                this.lookaheadDepth = 1;     // pieces to look ahead - same as others
                 break;
 
             case "hard":
-                this.thinkingInterval = 100; // fast but stable
+                this.thinkingInterval = 100; // fast decisions
                 this.reactionDelay = 60;     // quick reactions
                 this.mistakeRate = 0.0;      // perfect execution
-                this.lookaheadDepth = 1;     // simple lookahead to avoid freezes
-                this.attackFocus = 0.9;      // heavy attack focus
-                // removed perfectPlay feature for performance
+                this.lookaheadDepth = 1;     // pieces to look ahead - same as others
                 break;
         }
     }
@@ -126,27 +121,21 @@ window.CPUPlayer = class CPUPlayer {
         const heldPiece = this.playerInstance.heldPiece;
         const nextQueue = this.playerInstance.nextQueue.slice(0, this.lookaheadDepth);
 
-        let bestMove = null;
-        let bestScore = -Infinity;
-
-        // Try all possible moves with current piece
+        // Evaluate all current moves with scores
         const currentMoves = this.generateAllMoves(currentPiece);
-        for (const move of currentMoves) {
-            const score = this.evaluateMove(move);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-        }
+        let allMoves = currentMoves.map(move => ({
+            move,
+            score: this.evaluateMove(move)
+        }));
 
-        // I-PIECE FOCUSED HOLD STRATEGY
+        // Try hold moves and add to evaluation
         if (this.playerInstance.canHold) {
             // Try swapping with held piece
             if (heldPiece !== null) {
                 const holdMoves = this.generateAllMoves(heldPiece);
                 for (const move of holdMoves) {
                     let holdPenalty = -50;  // Default hold penalty
-                    
+
                     // JACKPOT BONUS: Swapping held I-piece for a Tetris
                     if (heldPiece === 'I' && this.countLinesCleared(move) === 4) {
                         holdPenalty = +1500;  // MASSIVE BONUS for I-piece Tetris swap!
@@ -155,12 +144,9 @@ window.CPUPlayer = class CPUPlayer {
                     else if (heldPiece === 'I') {
                         holdPenalty = -200;  // Don't waste the held I-piece
                     }
-                    
+
                     const score = this.evaluateMove(move) + holdPenalty;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { ...move, useHold: true };
-                    }
+                    allMoves.push({ move: { ...move, useHold: true }, score });
                 }
             }
             // Try holding current piece for next piece
@@ -169,25 +155,30 @@ window.CPUPlayer = class CPUPlayer {
                 const nextMoves = this.generateAllMoves(nextPiece);
                 for (const move of nextMoves) {
                     let holdPenalty = -100;  // Default hold penalty
-                    
+
                     // BIG BONUS: Holding an I-piece for later Tetris
                     if (currentPiece.type === 'I') {
                         holdPenalty = +500;  // Encourage holding I-pieces!
                     }
-                    
+
                     const score = this.evaluateMove(move) + holdPenalty;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { ...move, useHold: true };
-                    }
+                    allMoves.push({ move: { ...move, useHold: true }, score });
                 }
             }
         }
 
-        // Apply mistakes for easier difficulties
-        if (Math.random() < this.mistakeRate && currentMoves.length > 1) {
-            const randomOptions = currentMoves.slice(0, Math.min(5, currentMoves.length));
-            bestMove = randomOptions[Math.floor(Math.random() * randomOptions.length)];
+        // Sort all moves by score descending (best first)
+        allMoves.sort((a, b) => b.score - a.score);
+
+        let bestMove = allMoves[0].move;
+
+        // Apply mistakes for easier difficulties - pick from suboptimal moves
+        if (Math.random() < this.mistakeRate && allMoves.length > 1) {
+            // Pick from bottom 50% of moves (suboptimal but not terrible)
+            const numOptions = Math.ceil(allMoves.length * 0.5);
+            const startIndex = allMoves.length - numOptions;
+            const randomIndex = startIndex + Math.floor(Math.random() * numOptions);
+            bestMove = allMoves[randomIndex].move;
         }
 
         return bestMove;
@@ -288,7 +279,7 @@ window.CPUPlayer = class CPUPlayer {
         if (maxHeight >= 22) score -= 10000;
         
         // Add small random factor for non-deterministic play
-        score += (Math.random() - 0.5) * (this.mistakeRate * 50);
+        //score += (Math.random() - 0.5) * (this.mistakeRate * 50);
         
         return score;
     }
