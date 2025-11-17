@@ -174,6 +174,7 @@ gulp.task('bundle', function() {
     'game/themes/TunnelTheme.js',
     'game/themes/VirtualBoyTheme.js',
     'game/themes/VoxelTheme.js',
+    'game/themes/RainTheme.js',
     'game/themes/ThemeRegistry.js',
     
     // Networking

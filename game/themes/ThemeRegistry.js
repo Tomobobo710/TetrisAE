@@ -4,22 +4,23 @@
  */
 
  // Create global theme instances
-const defaultTheme = new DefaultTheme();
-const neonCityTheme = new NeonCityTheme();
-const matrixTheme = new MatrixTheme();
-const crystalTheme = new CrystalTheme();
-const fireTheme = new FireTheme();
-const oceanTheme = new OceanTheme();
-const gameBoyTheme = new GameBoyTheme();
-const virtualBoyTheme = new VirtualBoyTheme();
-const monochromeTheme = new MonochromeTheme();
-const cyberpunkCityTheme = new CyberpunkCityTheme();
-const fractalTheme = new FractalTheme();
-const boidsTheme = new BoidsTheme();
-const countryDriveTheme = new CountryDriveTheme();
-const travelerTheme = new TravelerTheme();
-const tunnelTheme = new TunnelTheme();
-const voxelTheme = new VoxelTheme();
+ const defaultTheme = new DefaultTheme();
+ const neonCityTheme = new NeonCityTheme();
+ const matrixTheme = new MatrixTheme();
+ const crystalTheme = new CrystalTheme();
+ const fireTheme = new FireTheme();
+ const oceanTheme = new OceanTheme();
+ const gameBoyTheme = new GameBoyTheme();
+ const virtualBoyTheme = new VirtualBoyTheme();
+ const monochromeTheme = new MonochromeTheme();
+ const cyberpunkCityTheme = new CyberpunkCityTheme();
+ const fractalTheme = new FractalTheme();
+ const boidsTheme = new BoidsTheme();
+ const countryDriveTheme = new CountryDriveTheme();
+ const travelerTheme = new TravelerTheme();
+ const tunnelTheme = new TunnelTheme();
+ const voxelTheme = new VoxelTheme();
+ const rainTheme = new RainTheme();
 
 // Warm-start all themes (fast-forward animations to populate initial state)
 virtualBoyTheme.setup();
@@ -37,6 +38,7 @@ boidsTheme.setup();
 countryDriveTheme.setup();
 travelerTheme.setup();
 voxelTheme.setup();
+rainTheme.setup();
 
 // Global theme registry (replaces TETRIS.THEMES)
 window.TETRIS_THEMES = {
@@ -55,6 +57,7 @@ window.TETRIS_THEMES = {
     'TRAVELER': travelerTheme,
     'TUNNEL': tunnelTheme,
     'VOXEL': voxelTheme,
+    'RAIN': rainTheme,
     'VIRTUAL_BOY': virtualBoyTheme
 };
 
