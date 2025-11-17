@@ -88,7 +88,7 @@ class GameplayInputManager {
             if (this.customInput.isActionJustPressed('hardDrop')) {
                 const hardDropResult = player.hardDrop();
                 if (hardDropResult !== null) {
-                    this.game.playSound("hard_drop", { volume: 0.5 });
+                    this.game.playSound("hard_drop");
                 }
                 return;
             }
@@ -182,7 +182,7 @@ class GameplayInputManager {
         if (this.isHardDropInputPressed(inputDevice, player.playerNumber)) {
             const hardDropResult = player.hardDrop();
             if (hardDropResult !== null) {
-                this.game.playSound("hard_drop", { volume: 0.5 });
+                this.game.playSound("hard_drop");
             }
             return;
         }
