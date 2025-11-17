@@ -890,7 +890,7 @@ class GameRenderer {
 
         // Center within the visible playfield area
         const textX = gridX + gridWidth / 2;
-        const textY = gridY + (TETRIS.GRID.VISIBLE_ROWS * cellSize) * 0.5;
+        const textY = gridY + (TETRIS.GRID.VISIBLE_ROWS * cellSize) * 0.3;
 
         ctx.save();
 
