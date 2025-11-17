@@ -494,14 +494,14 @@ class VirtualBoyTheme extends BaseTheme {
 
         // Virtual Boy color palette - classic red/black
         this.playfield = {
-            background: 'rgba(0, 0, 0, 0.98)',
+            background: 'rgba(0, 0, 0, 0.9)',
             border: '#ff0000',
             grid: 'rgba(255, 0, 0, 0.15)',
             shadow: 'rgba(255, 0, 0, 0.3)'
         };
         this.pieces = {
             I: { base: '#ff0000', glow: '#ff4444', shadow: '#880000' },      // Pure bright red
-            O: { base: '#851c25ff', glow: '#f00e15ff', shadow: '#880055' },      // Hot pink red
+            O: { base: '#851c4aff', glow: '#f00e15ff', shadow: '#880055' },      // Hot pink red
             T: { base: '#800000', glow: '#aa4444', shadow: '#330000' },      // Blood red
             S: { base: '#ff4040', glow: '#ff8484', shadow: '#992020' },      // Coral red
             Z: { base: '#400000', glow: '#844444', shadow: '#110000' },      // Burgundy red
