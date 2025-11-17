@@ -22,6 +22,7 @@ class Player {
         // Spin / T-Spin tracking
         this.lastMoveWasRotation = false;
         this.lastRotationKick = { x: 0, y: 0 }; // Offset applied on last successful rotate
+        this.lastMoveRequiredRotation = false; // True only when piece couldn't move laterally before rotating
         this.lastClearSpinType = "none"; // 'none' | 'tspin' | 'tspin_mini'
         this.lastClearLines = [];
 
@@ -129,8 +130,9 @@ class Player {
         if (!this.checkCollision(this.currentPiece, newX, this.currentY, this.currentRotation)) {
             this.currentX = newX;
             this.calculateGhostPosition();
-            // Only clear rotation flag if the piece actually moved
+            // Only clear rotation flags if the piece actually moved
             this.lastMoveWasRotation = false;
+            this.lastMoveRequiredRotation = false;
             this.lastRotationKick = { x: 0, y: 0 };
             this.lockTimer = 0;
             return true;
@@ -143,6 +145,12 @@ class Player {
      */
     rotatePiece(direction) {
         if (!this.currentPiece || this.gameOver) return false;
+
+        // Before attempting rotation, check if piece could move laterally
+        // This determines if the rotation is truly a "spin" maneuver
+        const couldMoveLeft = !this.checkCollision(this.currentPiece, this.currentX - 1, this.currentY, this.currentRotation);
+        const couldMoveRight = !this.checkCollision(this.currentPiece, this.currentX + 1, this.currentY, this.currentRotation);
+        const isLaterallyBlocked = !couldMoveLeft && !couldMoveRight;
 
         const currentRotation = this.currentRotation;
         const newRotation = (currentRotation + direction + 4) % 4;
@@ -167,6 +175,7 @@ class Player {
 
                 // Track spin info: last action was rotation and record kick offset
                 this.lastMoveWasRotation = true;
+                this.lastMoveRequiredRotation = isLaterallyBlocked; // Only true if piece couldn't move left/right
                 this.lastRotationKick = { x: appliedKickX, y: appliedKickY };
 
                 return true;
@@ -278,6 +287,7 @@ class Player {
 
         // Reset spin state for new piece
         this.lastMoveWasRotation = false;
+        this.lastMoveRequiredRotation = false;
         this.lastRotationKick = { x: 0, y: 0 };
         this.lastClearSpinType = "none";
         this.lastClearLines = [];
@@ -336,15 +346,14 @@ class Player {
 
         const clearedLines = this.checkLines();
 
-        // Determine T-Spin / Mini T-Spin using modern 3-corner rule + last-rotation requirement
+        // Determine T-Spin / Mini T-Spin using modern 3-corner rule + required rotation requirement
         // - Requires:
         //     * T piece
-        //     * lastMoveWasRotation true (no overriding movement after final rotate)
+        //     * lastMoveRequiredRotation true (piece was laterally blocked before rotating)
         let spinType = "none"; // 'none' | 'tspin' | 'tspin_mini'
 
-        if (wasTPiece && this.lastMoveWasRotation) {
+        if (wasTPiece && this.lastMoveRequiredRotation) {
             spinType = this.detectTSpinPlacement(lockX, lockY, lockRotation, this.lastRotationKick);
-        } else if (wasTPiece) {
         }
 
         // Expose for GameManager / scoring / visuals
@@ -353,6 +362,7 @@ class Player {
 
         // Once we've consumed this lock, clear last-move spin flags
         this.lastMoveWasRotation = false;
+        this.lastMoveRequiredRotation = false;
         this.lastRotationKick = { x: 0, y: 0 };
 
         if (clearedLines.length > 0) {
