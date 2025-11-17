@@ -1000,6 +1000,12 @@ class GameManager {
         } else if (isTetris) {
             this.game.playSound("tetris");
             player.screenShake = { intensity: 8, duration: 0.3 };
+
+            // Notify theme of tetris event
+            const theme = this.game.themeManager.getCurrentTheme();
+            if (theme && theme.handleGameEvent) {
+                theme.handleGameEvent('tetris', { player: player, lines: numLines });
+            }
         } else {
             this.game.playSound("line_clear");
             player.screenShake = { intensity: 4, duration: 0.2 };
