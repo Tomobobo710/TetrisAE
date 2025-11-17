@@ -26,6 +26,9 @@ class PillPanicGame {
         this.inputManager = new PillPanicInputManager(this);
         this.renderer = new PillPanicRenderer(this);
         this.gameLogic = new PillPanicGameLogic(this);
+
+        // Pass through game settings reference for ghost piece toggle
+        this.gameSettings = parentGame.gameSettings;
         
     }
     

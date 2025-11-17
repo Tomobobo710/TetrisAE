@@ -130,7 +130,7 @@ class OptionsWindowManager {
         const windowX = (TETRIS.WIDTH - windowWidth) / 2;
         const windowY = (TETRIS.HEIGHT - windowHeight) / 2;
 
-        const settingY = windowY + 80;
+        const settingY = windowY + 100;
         const settingSpacing = 60;
 
         // Register toggle buttons

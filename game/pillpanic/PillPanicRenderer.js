@@ -176,8 +176,12 @@ class PillPanicRenderer {
         // Draw grid contents
         this.drawGridContents();
 
-        // Draw current capsule
+        // Draw ghost capsule first (behind current capsule)
         if (this.game.gameLogic.currentCapsule && this.game.gameState === PILL_PANIC_CONSTANTS.STATES.PLAYING) {
+            // Check if ghost piece is enabled in Tetris settings
+            if (this.game.gameSettings && this.game.gameSettings.ghostPieceEnabled) {
+                this.drawGhostCapsule();
+            }
             this.drawCapsule(this.game.gameLogic.currentCapsule);
         }
 
@@ -334,12 +338,12 @@ class PillPanicRenderer {
                     // Left arrow
                     const leftArrowHovered = this.game.inputManager.input.isElementHovered("dr_level_left_arrow_0");
                     this.guiCtx.fillStyle = leftArrowHovered ? "#ffff00" : "#ffffff";
-                    this.guiCtx.font = "20px Arial";
+                    this.guiCtx.font = "40px Arial";
                     this.guiCtx.textAlign = "center";
                     // Properly center arrows vertically
                     const textMetrics = this.guiCtx.measureText("◀");
                     const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-                    const arrowY = y + buttonHeight / 2 - textMetrics.actualBoundingBoxDescent + 9;
+                    const arrowY = y + buttonHeight / 2 - textMetrics.actualBoundingBoxDescent + 17;
                     this.guiCtx.fillText("◀", x - 40, arrowY);
 
                     // Right arrow
@@ -357,12 +361,12 @@ class PillPanicRenderer {
                     // Left arrow
                     const leftArrowHovered = this.game.inputManager.input.isElementHovered("dr_level_left_arrow_" + i);
                     this.guiCtx.fillStyle = leftArrowHovered ? "#ffff00" : "#ffffff";
-                    this.guiCtx.font = "20px Arial";
+                    this.guiCtx.font = "40px Arial";
                     this.guiCtx.textAlign = "center";
                     // Properly center arrows vertically
                     const textMetrics = this.guiCtx.measureText("◀");
                     const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-                    const arrowY = y + buttonHeight / 2 - textMetrics.actualBoundingBoxDescent + 9;
+                    const arrowY = y + buttonHeight / 2 - textMetrics.actualBoundingBoxDescent + 17;
                     this.guiCtx.fillText("◀", x - 40, arrowY);
 
                     // Right arrow
@@ -537,10 +541,22 @@ class PillPanicRenderer {
         });
     }
     
+    drawBackgroundPills() {
+        this.guiCtx.save();
+        this.guiCtx.globalAlpha = 0.7;
+        this.guiCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
+
+        // Draw single centered background panel
+        const panelWidth = 500;
+        const panelHeight = 300;
+        const x = PILL_PANIC_CONSTANTS.WIDTH / 2 - panelWidth / 2;
+        const y = PILL_PANIC_CONSTANTS.HEIGHT / 2 - panelHeight / 2;
+
+        this.guiCtx.fillRect(x, y, panelWidth, panelHeight);
+
+        this.guiCtx.restore();
+    }
     drawVictoryScreen() {
-        this.guiCtx.fillStyle = "rgba(0, 100, 0, 0.8)";
-        this.guiCtx.fillRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
-        
         this.guiCtx.fillStyle = "#00ff00";
         this.guiCtx.font = "48px Arial";
         this.guiCtx.textAlign = "center";
@@ -548,10 +564,6 @@ class PillPanicRenderer {
     }
     
     drawGameOverScreen() {
-        // Draw background (same as before)
-        this.guiCtx.fillStyle = "rgba(100, 0, 0, 0.8)";
-        this.guiCtx.fillRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
-
         // Draw title (moved up to make room for menu)
         this.guiCtx.fillStyle = "#ff0000";
         this.guiCtx.font = "48px Arial";
@@ -927,30 +939,22 @@ class PillPanicRenderer {
             this.guiCtx.font = "bold 18px Arial";
             this.guiCtx.fillText(`CHAIN x${this.game.gameLogic.chainCount}!`, panelX + 20, yPos);
         }
-        
-        // Instructions
-        yPos = panelY + panelHeight - 60;
-        this.guiCtx.fillStyle = "#aaaaaa";
-        this.guiCtx.font = "12px Arial";
-        this.guiCtx.fillText("Arrows: Move", panelX + 20, yPos);
-        this.guiCtx.fillText("Action1/2: Rotate", panelX + 20, yPos + 18);
-        this.guiCtx.fillText("Down: Fast Drop", panelX + 20, yPos + 36);
     }
     
     drawVictoryScreen() {
-        // Draw background (same as before)
-        this.guiCtx.fillStyle = "rgba(0, 100, 0, 0.8)";
-        this.guiCtx.fillRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
+        // Draw background panel
+        this.drawBackgroundPills();
 
-        // Draw title and score (moved up to make room for menu)
+        // Draw title
         this.guiCtx.fillStyle = "#00ff00";
         this.guiCtx.font = "48px Arial";
         this.guiCtx.textAlign = "center";
         this.guiCtx.fillText("STAGE CLEAR!", PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 80);
 
+        // Draw score
         this.guiCtx.fillStyle = "#ffffff";
         this.guiCtx.font = "24px Arial";
-        this.guiCtx.fillText(`Score: ${this.game.gameLogic.score}`, PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 40);
+        this.guiCtx.fillText(`Score: ${this.game.gameLogic.score}`, PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 20);
 
         // Draw single button for victory screen
         if (this.game.gameState === PILL_PANIC_CONSTANTS.STATES.VICTORY) {
@@ -982,15 +986,19 @@ class PillPanicRenderer {
     }
     
     drawGameOverScreen() {
-        // Draw background (same as before)
-        this.guiCtx.fillStyle = "rgba(100, 0, 0, 0.8)";
-        this.guiCtx.fillRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
+        // Draw background panel
+        this.drawBackgroundPills();
 
-        // Draw title (moved up to make room for menu)
+        // Draw title
         this.guiCtx.fillStyle = "#ff0000";
         this.guiCtx.font = "48px Arial";
         this.guiCtx.textAlign = "center";
-        this.guiCtx.fillText("GAME OVER", PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 20);
+        this.guiCtx.fillText("GAME OVER", PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 80);
+
+        // Draw score
+        this.guiCtx.fillStyle = "#ffffff";
+        this.guiCtx.font = "24px Arial";
+        this.guiCtx.fillText(`Score: ${this.game.gameLogic.score}`, PILL_PANIC_CONSTANTS.WIDTH / 2, PILL_PANIC_CONSTANTS.HEIGHT / 2 - 20);
 
         // Use EXACT Tetris menu system for game over screen (single button)
         const menu = this.game.inputManager.gameOverMenu;
@@ -1023,14 +1031,14 @@ class PillPanicRenderer {
     
     drawDebugLayer() {
         this.debugCtx.clearRect(0, 0, PILL_PANIC_CONSTANTS.WIDTH, PILL_PANIC_CONSTANTS.HEIGHT);
-        
+
         this.debugCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
         this.debugCtx.fillRect(10, 10, 300, 200);
-        
+
         this.debugCtx.fillStyle = "#00ff00";
         this.debugCtx.font = "14px monospace";
         this.debugCtx.textAlign = "left";
-        
+
         const info = [
             "Pill Panic DEBUG",
             `State: ${this.game.gameState}`,
@@ -1038,9 +1046,31 @@ class PillPanicRenderer {
             `Viruses: ${this.game.gameLogic.virusCount}`,
             `Chain: ${this.game.gameLogic.chainCount}`
         ];
-        
+
         info.forEach((line, i) => {
             this.debugCtx.fillText(line, 20, 35 + i * 18);
         });
+    }
+
+    drawGhostCapsule() {
+        const ghostX = PILL_PANIC_CONSTANTS.GRID.OFFSET_X + this.game.gameLogic.ghostX * PILL_PANIC_CONSTANTS.GRID.CELL_SIZE;
+        const ghostY = PILL_PANIC_CONSTANTS.GRID.OFFSET_Y + this.game.gameLogic.ghostY * PILL_PANIC_CONSTANTS.GRID.CELL_SIZE;
+
+        if (!this.game.gameLogic.currentCapsule) return;
+
+        this.gameCtx.save();
+        this.gameCtx.globalAlpha = 0.3; // Semi-transparent like Tetris ghost piece
+
+        // Use the colors from the current capsule instead of creating a new one
+        const colors = this.game.gameLogic.currentCapsule.getColors();
+
+        // Draw as proper connected pill matching current capsule orientation
+        if (this.game.gameLogic.currentCapsule.orientation === "horizontal") {
+            this.drawHorizontalPill(ghostX, ghostY, colors.leftColor, colors.rightColor);
+        } else {
+            this.drawVerticalPill(ghostX, ghostY, colors.leftColor, colors.rightColor);
+        }
+
+        this.gameCtx.restore();
     }
 }

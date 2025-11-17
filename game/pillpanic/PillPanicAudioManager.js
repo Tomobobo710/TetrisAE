@@ -28,12 +28,14 @@ class PillPanicAudioManager {
             envelope: { attack: 0.01, decay: 0.04, sustain: 0, release: 0 }
         });
 
-        // Capsule lock/land - soft thud
-        this.audio.createNoiseSound("pill_panic_land", {
-            noiseType: "brown",
-            duration: 0.15,
-            envelope: { attack: 0.01, decay: 0.14, sustain: 0, release: 0 },
-            filterOptions: { frequency: 200, Q: 2, type: "lowpass" }
+        // Capsule lock/land - satisfying FM impact
+        this.audio.createFMSound("pill_panic_land", {
+            carrierFreq: 150,
+            modulatorFreq: 75,
+            modulationIndex: 20,
+            type: "sine",
+            duration: 0.2,
+            envelope: { attack: 0.005, decay: 0.15, sustain: 0, release: 0.05 }
         });
 
         // Match found - ascending tone
@@ -87,47 +89,47 @@ class PillPanicAudioManager {
 
     // Convenience methods for playing Pill Panic sounds
     playRotate(options = {}) {
-        this.audio.play("pill_panic_rotate", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_rotate");
     }
 
     playMove(options = {}) {
-        this.audio.play("pill_panic_move", { volume: 0.2, ...options });
+        this.audio.play("pill_panic_move");
     }
 
     playLand(options = {}) {
-        this.audio.play("pill_panic_land", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_land");
     }
 
     playMatch(options = {}) {
-        this.audio.play("pill_panic_match", { volume: 0.4, ...options });
+        this.audio.play("pill_panic_match");
     }
 
     playVirusClear(options = {}) {
-        this.audio.play("pill_panic_virus_clear", { volume: 0.5, ...options });
+        this.audio.play("pill_panic_virus_clear");
     }
 
     playChain(options = {}) {
-        this.audio.play("pill_panic_chain", { volume: 0.3, ...options });
+        this.audio.play("pill_panic_chain");
     }
 
     playVictory(options = {}) {
-        this.audio.play("pill_panic_victory", { volume: 0.6, ...options });
+        this.audio.play("pill_panic_victory");
     }
 
     playGameOver(options = {}) {
-        this.audio.play("pill_panic_game_over", { volume: 0.5, ...options });
+        this.audio.play("pill_panic_game_over");
     }
 
     // For menu sounds, delegate to Tetris sounds for consistency
     playMenuNavigate() {
-        this.audio.play("menu_navigate", { volume: 0.4 });
+        this.audio.play("menu_navigate");
     }
 
     playMenuConfirm() {
-        this.audio.play("menu_confirm", { volume: 0.5 });
+        this.audio.play("menu_confirm");
     }
 
     playMenuBack() {
-        this.audio.play("menu_back", { volume: 0.4 });
+        this.audio.play("menu_back");
     }
 }

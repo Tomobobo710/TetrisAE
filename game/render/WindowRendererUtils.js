@@ -244,9 +244,9 @@ class WindowRendererUtils {
         // Handle different setting types
         if (settingType === "cycle") {
             const displayValue = settingValue.charAt(0).toUpperCase() + settingValue.slice(1);
-            ctx.fillText(displayValue, x + width / 2, y + height / 2 + 5);
+            ctx.fillText(displayValue, x + width / 2, y + height / 2);
         } else {
-            ctx.fillText(isEnabled ? "ON" : "OFF", x + width / 2, y + height / 2 + 5);
+            ctx.fillText(isEnabled ? "ON" : "OFF", x + width / 2, y + height / 2);
         }
 
         if (isSelected) {

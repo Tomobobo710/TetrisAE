@@ -387,7 +387,7 @@ class PillPanicInputManager {
             }
             
             if (rotateCWPressed) {
-                if (currentCapsule.tryRotate(this.game.gameLogic.grid, true)) {
+                if (this.game.gameLogic.rotateCapsule(true)) {
                     this.game.playSound("rotate");
                     this.lastRotateTime = currentTime;
                 }
@@ -401,9 +401,9 @@ class PillPanicInputManager {
                 rotateCCWPressed = this.input.isKeyJustPressed("Action2") ||
                     (activeGamepadIndex !== -1 && this.input.isGamepadButtonJustPressed(1, activeGamepadIndex));
             }
-            
+
             if (rotateCCWPressed) {
-                if (currentCapsule.tryRotate(this.game.gameLogic.grid, false)) {
+                if (this.game.gameLogic.rotateCapsule(false)) {
                     this.game.playSound("rotate");
                     this.lastRotateTime = currentTime;
                 }

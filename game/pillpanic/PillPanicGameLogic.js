@@ -23,6 +23,11 @@ class PillPanicGameLogic {
         this.fallTimer = 0;
         this.clearingTimer = 0;
         this.particles = [];
+
+        /******* Ghost Piece *******/
+        this.ghostCapsule = null;
+        this.ghostX = 0;
+        this.ghostY = 0;
         
         /******* Game Settings *******/
         this.selectedVirusLevel = 1;
@@ -93,7 +98,9 @@ class PillPanicGameLogic {
         this.currentCapsule.x = 3;
         this.nextCapsule = new PillPanicCapsule(3, -2);
         this.fallTimer = 0;
-        
+
+        this.calculateGhostPosition();
+
         const positions = this.currentCapsule.getPositions();
         if (!this.currentCapsule.isValidPosition(positions.left, this.grid) ||
             !this.currentCapsule.isValidPosition(positions.right, this.grid)) {
@@ -103,13 +110,13 @@ class PillPanicGameLogic {
     
     moveCapsule(deltaX, deltaY) {
         if (!this.currentCapsule || this.currentCapsule.locked) return false;
-        
+
         const oldX = this.currentCapsule.x;
         const oldY = this.currentCapsule.y;
-        
+
         this.currentCapsule.x += deltaX;
         this.currentCapsule.y += deltaY;
-        
+
         const positions = this.currentCapsule.getPositions();
         if (!this.currentCapsule.isValidPosition(positions.left, this.grid) ||
             !this.currentCapsule.isValidPosition(positions.right, this.grid)) {
@@ -117,8 +124,19 @@ class PillPanicGameLogic {
             this.currentCapsule.y = oldY;
             return false;
         }
-        
+
+        this.calculateGhostPosition();
         return true;
+    }
+
+    rotateCapsule(clockwise = true) {
+        if (!this.currentCapsule || this.currentCapsule.locked) return false;
+
+        if (this.currentCapsule.tryRotate(this.grid, clockwise)) {
+            this.calculateGhostPosition();
+            return true;
+        }
+        return false;
     }
     
     /******* UPDATE LOGIC *******/
@@ -244,8 +262,13 @@ class PillPanicGameLogic {
         if (foundMatches) {
             this.clearMatches(toRemove);
         } else {
-            this.game.setState(PILL_PANIC_CONSTANTS.STATES.PLAYING);
-            this.spawnCapsule();
+            // Check for victory only after gravity has finished
+            if (this.virusCount <= 0) {
+                this.handleVictory();
+            } else {
+                this.game.setState(PILL_PANIC_CONSTANTS.STATES.PLAYING);
+                this.spawnCapsule();
+            }
         }
     }
     
@@ -284,9 +307,7 @@ class PillPanicGameLogic {
             setTimeout(() => this.game.playSound("chain"), 100);
         }
         
-        if (this.virusCount <= 0) {
-            setTimeout(() => this.handleVictory(), PILL_PANIC_CONSTANTS.PHYSICS.CLEAR_ANIMATION_TIME * 1000);
-        }
+        // Victory will be checked after gravity finishes in checkAndClearMatches
     }
     
     updateClearingState(deltaTime) {
@@ -302,7 +323,7 @@ class PillPanicGameLogic {
             }
             
             const fell = this.applyGravity();
-            
+
             if (fell) {
                 this.clearingTimer = PILL_PANIC_CONSTANTS.PHYSICS.CHAIN_DELAY;
             } else {
@@ -313,11 +334,56 @@ class PillPanicGameLogic {
             }
         }
     }
+
+    /******* GHOST PIECE *******/
+    calculateGhostPosition() {
+        if (!this.currentCapsule) return;
+
+        let testX = this.currentCapsule.x;
+        let testY = this.currentCapsule.y;
+
+        // Try to drop the capsule as far as possible
+        while (!this.checkCapsuleCollision(testX, testY + 1)) {
+            testY++;
+        }
+
+        this.ghostX = testX;
+        this.ghostY = testY;
+    }
+
+    checkCapsuleCollision(x, y) {
+        if (!this.currentCapsule) return false;
+
+        // Simulate capsule at test position with same orientation
+        const tempCapsule = {
+            x: x,
+            y: y,
+            orientation: this.currentCapsule.orientation,
+            getPositions: () => {
+                const left = { x: x, y: y };
+                const right = { x: x, y: y };
+
+                if (this.currentCapsule.orientation === "horizontal") {
+                    right.x = x + 1;
+                } else {
+                    right.y = y + 1;
+                }
+
+                return { left, right };
+            }
+        };
+
+        const positions = tempCapsule.getPositions();
+        return !this.currentCapsule.isValidPosition(positions.left, this.grid) ||
+               !this.currentCapsule.isValidPosition(positions.right, this.grid);
+    }
     
     applyGravity() {
         let somethingFell = false;
         const processed = new Set();
+        const movedPieces = new Set(); // Track pieces that actually moved
         
+        // First pass: move pieces that can fall
         for (let row = PILL_PANIC_CONSTANTS.GRID.ROWS - 2; row >= 0; row--) {
             for (let col = 0; col < PILL_PANIC_CONSTANTS.GRID.COLS; col++) {
                 const key = `${row},${col}`;
@@ -360,17 +426,95 @@ class PillPanicGameLogic {
                         cell.connectedTo = { x: otherCol, y: otherRow + 1 };
                         otherCell.connectedTo = { x: col, y: row + 1 };
                         
-                        processed.add(key);
-                        processed.add(`${otherRow},${otherCol}`);
+                        // Mark the NEW positions as moved pieces
+                        movedPieces.add(`${row + 1},${col}`);
+                        movedPieces.add(`${otherRow + 1},${otherCol}`);
+                        
                         somethingFell = true;
                     }
+                    
+                    processed.add(key);
+                    processed.add(`${otherRow},${otherCol}`);
                 } else {
                     this.grid[row + 1][col] = cell;
                     this.grid[row][col] = new PillPanicCell();
+                    
+                    // Mark the NEW position as moved piece
+                    movedPieces.add(`${row + 1},${col}`);
+                    
                     processed.add(key);
                     somethingFell = true;
                 }
             }
+        }
+        
+        // Second pass: check if any moved pieces are now blocked (landed)
+        let somethingLanded = false;
+        const landedProcessed = new Set();
+        
+        for (const movedKey of movedPieces) {
+            if (landedProcessed.has(movedKey)) continue;
+            
+            const [row, col] = movedKey.split(',').map(Number);
+            const cell = this.grid[row][col];
+            
+            if (cell.isEmpty()) continue; // Shouldn't happen but safety check
+            
+            // Check if this piece can fall further
+            const belowIsEmpty = (row + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) && 
+                                this.grid[row + 1][col].isEmpty();
+            
+            let canFallFurther = belowIsEmpty;
+            
+            // If there's something below, check if it's also a moved piece (still falling)
+            if (!belowIsEmpty && row + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) {
+                const belowKey = `${row + 1},${col}`;
+                if (movedPieces.has(belowKey)) {
+                    // The piece below also moved this cycle, so it will move out of the way
+                    canFallFurther = true;
+                }
+            }
+            
+            if (!canFallFurther) {
+                // This piece just moved but now can't fall further - it landed!
+                if (cell.connectedTo) {
+                    const otherRow = cell.connectedTo.y;
+                    const otherCol = cell.connectedTo.x;
+                    
+                    // Check if the connected piece also can't fall
+                    const otherBelowIsEmpty = (otherRow + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) && 
+                                             this.grid[otherRow + 1][otherCol].isEmpty();
+                    
+                    let otherCanFall = otherBelowIsEmpty;
+                    
+                    // If there's something below the other piece, check if it's also moving
+                    if (!otherBelowIsEmpty && otherRow + 1 < PILL_PANIC_CONSTANTS.GRID.ROWS) {
+                        const otherBelowKey = `${otherRow + 1},${otherCol}`;
+                        if (movedPieces.has(otherBelowKey)) {
+                            otherCanFall = true;
+                        }
+                    }
+                    
+                    if (!otherCanFall) {
+                        somethingLanded = true;
+                        landedProcessed.add(movedKey);
+                        landedProcessed.add(`${otherRow},${otherCol}`);
+                    }
+                } else {
+                    somethingLanded = true;
+                    landedProcessed.add(movedKey);
+                }
+            }
+        }
+        
+        // Play sounds immediately when things happen
+        // Only play move sound if something fell but nothing landed
+        // (pieces that land shouldn't also play move sound)
+        if (somethingFell && !somethingLanded) {
+            this.game.playSound("move");
+        }
+        if (somethingLanded) {
+            this.game.playSound("land");
         }
         
         return somethingFell;

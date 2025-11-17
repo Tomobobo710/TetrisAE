@@ -54,24 +54,26 @@ class OptionsWindowRenderer {
         ctx.fillText("OPTIONS", windowX + windowWidth / 2, windowY + 25);
 
         // Draw settings toggles
-        const settingY = windowY + 80;
+        const settingY = windowY + 100;
         const settingSpacing = 60;
 
         win.settings.forEach((setting, index) => {
             const y = settingY + index * settingSpacing;
             const isSelected = index === win.selectedIndex;
 
-            // Setting name
-            ctx.fillStyle = isSelected ? theme.ui.accent : theme.ui.text;
-            ctx.font = isSelected ? "bold 20px Arial" : "18px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText(setting.name, windowX + 40, y);
-
             // Toggle button
             const toggleX = windowX + windowWidth - 120;
             const toggleWidth = 80;
             const toggleHeight = 35;
             const toggleY = y - 18;
+
+            // Setting name - align center with toggle button
+            ctx.fillStyle = isSelected ? theme.ui.accent : theme.ui.text;
+            ctx.font = isSelected ? "bold 20px Arial" : "18px Arial";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            const toggleCenterY = toggleY + toggleHeight / 2;
+            ctx.fillText(setting.name, windowX + 40, toggleCenterY);
 
             this.utils.drawToggleButton(
                 toggleX,
