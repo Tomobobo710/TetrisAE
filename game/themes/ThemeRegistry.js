@@ -11,6 +11,7 @@ const crystalTheme = new CrystalTheme();
 const fireTheme = new FireTheme();
 const oceanTheme = new OceanTheme();
 const gameBoyTheme = new GameBoyTheme();
+const virtualBoyTheme = new VirtualBoyTheme();
 const monochromeTheme = new MonochromeTheme();
 const cyberpunkCityTheme = new CyberpunkCityTheme();
 const fractalTheme = new FractalTheme();
@@ -21,6 +22,7 @@ const tunnelTheme = new TunnelTheme();
 const voxelTheme = new VoxelTheme();
 
 // Warm-start all themes (fast-forward animations to populate initial state)
+virtualBoyTheme.setup();
 defaultTheme.setup();
 neonCityTheme.setup();
 matrixTheme.setup();
@@ -52,7 +54,8 @@ window.TETRIS_THEMES = {
     'COUNTRY_DRIVE': countryDriveTheme,
     'TRAVELER': travelerTheme,
     'TUNNEL': tunnelTheme,
-    'VOXEL': voxelTheme
+    'VOXEL': voxelTheme,
+    'VIRTUAL_BOY': virtualBoyTheme
 };
 
 // Theme names array for cycling

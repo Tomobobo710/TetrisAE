@@ -162,15 +162,25 @@ class ThemeManager {
      * Cycle to next theme using bag system
      */
     cycleTheme() {
-        // Move to next theme in current bag
-        this.bagIndex++;
+        // Check if current bag contains any disabled themes - if so, regenerate it
+        const enabledThemes = this.getEnabledThemeNames();
+        const hasDisabledThemes = this.currentBag.some(theme => !enabledThemes.includes(theme));
 
-        // Check if we've exhausted the current bag
-        if (this.bagIndex >= this.currentBag.length) {
-            // Get the last theme from the old bag before generating new one
-            const lastTheme = this.currentBag[this.currentBag.length - 1];
-            this.generateNewBag(lastTheme); // Generate new bag, avoiding repeat
+        if (hasDisabledThemes) {
+            // Regenerate bag with current valid themes
+            this.generateNewBag();
             this.bagIndex = 0;
+        } else {
+            // Move to next theme in current bag
+            this.bagIndex++;
+
+            // Check if we've exhausted the current bag
+            if (this.bagIndex >= this.currentBag.length) {
+                // Get the last theme from the old bag before generating new one
+                const lastTheme = this.currentBag[this.currentBag.length - 1];
+                this.generateNewBag(lastTheme); // Generate new bag, avoiding repeat
+                this.bagIndex = 0;
+            }
         }
 
         // Transition to next theme from bag
