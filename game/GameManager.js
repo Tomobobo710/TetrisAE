@@ -1195,7 +1195,9 @@ class GameManager {
             lineClearEffect: player.lineClearEffect,
             tSpinTextEffect: player.tSpinTextEffect,
             levelUpAnimationTimer: player.levelUpAnimationTimer,
-            level: player.level
+            level: player.level,
+            // CRITICAL: Don't render current piece during garbage animation
+            isReceivingGarbage: this.garbageAnimation.has(player.playerNumber)
         };
 
         // UNIFIED: Always use layout + cellSize for both single and multiplayer.

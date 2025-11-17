@@ -81,12 +81,13 @@ class GameRenderer {
                 fadeLookup
             );
 
-            // 2) Draw current piece only if it's NOT on a clearing line.
+            // 2) Draw current piece only if it's NOT on a clearing line AND not receiving garbage.
             // Once handlePlayerLineClear is triggered, the completed rows are in the grid
             // and this current piece should no longer visually contribute to those rows.
+            // During garbage animation, the current piece should not be drawn.
             const isRowClearing = (y) => fadeLookup && Object.prototype.hasOwnProperty.call(fadeLookup, y);
 
-            if (game.currentPiece && game.gameState === "playing") {
+            if (game.currentPiece && game.gameState === "playing" && !game.isReceivingGarbage) {
                 // Check if any cell of currentPiece lies on a clearing line; if so, skip drawing it.
                 const matrix = this.getRotatedPiece(game.currentPiece, game.currentRotation);
                 const size = matrix.length;
