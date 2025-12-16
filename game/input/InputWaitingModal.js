@@ -31,7 +31,7 @@ class InputWaitingModal {
         this.timeout = 3000; // 3 seconds
         this.onInputReceived = onInputReceived;
         this.onTimeout = onTimeout;
-        console.log(`[InputWaitingModal] Waiting for ${inputType} ${column} input for action: ${actionId} (Profile: ${profileName})`);
+        // console.log(`[InputWaitingModal] Waiting for ${inputType} ${column} input for action: ${actionId} (Profile: ${profileName})`);
     }
 
     /**

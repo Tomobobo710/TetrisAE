@@ -12,7 +12,7 @@ class NetworkedPlayer extends Player {
         this.isLocal = isLocal; // true = send, false = receive
         this.isRemote = !isLocal; // Remote players don't run game logic
 
-        console.log(`[NetworkedPlayer] Created ${isLocal ? "LOCAL" : "REMOTE"} player ${playerNumber}`);
+        // console.log(`[NetworkedPlayer] Created ${isLocal ? "LOCAL" : "REMOTE"} player ${playerNumber}`);
     }
 
     /**
@@ -39,6 +39,20 @@ class NetworkedPlayer extends Player {
     }
 
     /**
+     * Override clearLines in GameManager to intercept garbage sends
+     */
+    sendGarbageToOpponent(toPlayerNumber, garbageLines) {
+        // Local player is sending garbage to opponent
+        if (this.isLocal && garbageLines > 0) {
+            this.session.sendMessage({
+                type: "garbageSent",
+                playerNumber: this.playerNumber,
+                lines: garbageLines
+            });
+        }
+    }
+
+    /**
      * Override holdPiece - send network update after holding
      */
     holdPiece() {
@@ -47,20 +61,7 @@ class NetworkedPlayer extends Player {
         return result;
     }
 
-    /**
-     * Handle garbage sent (local)
-     */
-    onGarbageSent(lines) {
-        if (!this.isLocal) return;
 
-        console.log("[NetworkedPlayer] Local player sent", lines, "garbage lines");
-
-        this.session.sendMessage({
-            type: "garbageSent",
-            playerNumber: 1,
-            lines: lines
-        });
-    }
 
     /**
      * Apply piece update from synced data (remote)
@@ -113,7 +114,7 @@ class NetworkedPlayer extends Player {
     onGameOver() {
         if (!this.isLocal) return;
 
-        console.log("[NetworkedPlayer] Local player game over");
+        // console.log("[NetworkedPlayer] Local player game over");
 
         this.gameOver = true;
     }

@@ -17,8 +17,8 @@ class CustomControlsIntegration {
         // Set up the adapter in ActionEngine for access
         this.input.setCustomControlsAdapter(this.inputAdapter);
 
-        console.log('[CustomControlsIntegration] Custom controls system initialized');
-    }
+        // console.log('[CustomControlsIntegration] Custom controls system initialized');
+        }
     
     /**
      * Update custom controls system - call every frame
@@ -37,7 +37,7 @@ class CustomControlsIntegration {
     setupDefaultAxisBindings() {
         // Default axis bindings are now set in the defaultControls structure
         // This method is kept for backward compatibility and future enhancements
-        console.log('[CustomControlsIntegration] Default left stick axis bindings set via defaultControls');
+        // console.log('[CustomControlsIntegration] Default left stick axis bindings set via defaultControls');
     }
     
     /**
@@ -68,7 +68,7 @@ class CustomControlsIntegration {
     resetToDefaults() {
         this.controlsManager.resetToDefaults();
         this.inputAdapter.refreshBindings();
-        console.log('[CustomControlsIntegration] Controls reset to defaults');
+        // console.log('[CustomControlsIntegration] Controls reset to defaults');
     }
     
     /**
@@ -76,7 +76,7 @@ class CustomControlsIntegration {
      */
     exportControls() {
         const controls = JSON.stringify(this.controlsManager.profiles, null, 2);
-        console.log('[CustomControlsIntegration] Current controls:', controls);
+        // console.log('[CustomControlsIntegration] Current controls:', controls);
         return controls;
     }
     
@@ -94,7 +94,7 @@ class CustomControlsIntegration {
             }
             this.controlsManager.saveControls();
             this.inputAdapter.refreshBindings();
-            console.log('[CustomControlsIntegration] Controls imported successfully');
+            // console.log('[CustomControlsIntegration] Controls imported successfully');
             return true;
         } catch (error) {
             console.error('[CustomControlsIntegration] Failed to import controls:', error);

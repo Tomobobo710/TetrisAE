@@ -17,7 +17,7 @@ class GameplayInputManager {
      */
     setCustomControlsAdapter(adapter) {
         this.customInput = adapter;
-        console.log('[GameplayInputManager] Custom controls adapter set');
+        // console.log('[GameplayInputManager] Custom controls adapter set');
     }
 
     /**

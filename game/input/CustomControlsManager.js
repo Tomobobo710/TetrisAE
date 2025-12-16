@@ -118,7 +118,7 @@ class CustomControlsManager {
     saveControls() {
         try {
             localStorage.setItem('tetris_custom_controls', JSON.stringify(this.profiles));
-            console.log('[CustomControlsManager] All profiles saved to localStorage');
+            // console.log('[CustomControlsManager] All profiles saved to localStorage');
         } catch (error) {
             console.error('[CustomControlsManager] Failed to save controls to localStorage:', error);
         }
@@ -132,7 +132,7 @@ class CustomControlsManager {
             this.profiles[profileName] = JSON.parse(JSON.stringify(this.defaultControls));
         }
         this.saveControls();
-        console.log('[CustomControlsManager] All profiles reset to defaults');
+        // console.log('[CustomControlsManager] All profiles reset to defaults');
     }
     
     /**
@@ -230,7 +230,7 @@ class CustomControlsManager {
         profile[action].keyboard[slot] = keyCode;
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} keyboard control for ${action} in ${profileName}: ${keyCode}`);
+        // console.log(`[CustomControlsManager] Set ${slot} keyboard control for ${action} in ${profileName}: ${keyCode}`);
     }
 
     /**
@@ -265,7 +265,7 @@ class CustomControlsManager {
         profile[action].gamepad[slot] = { type: 'button', value: buttonIndex };
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} gamepad control for ${action} in ${profileName}: Button ${buttonIndex}`);
+        // console.log(`[CustomControlsManager] Set ${slot} gamepad control for ${action} in ${profileName}: Button ${buttonIndex}`);
     }
 
     /**
@@ -306,7 +306,7 @@ class CustomControlsManager {
         };
 
         this.saveControls();
-        console.log(`[CustomControlsManager] Set ${slot} axis control for ${action} in ${profileName}: Axis ${axisIndex} (${direction})`);
+        // console.log(`[CustomControlsManager] Set ${slot} axis control for ${action} in ${profileName}: Axis ${axisIndex} (${direction})`);
     }
 
     /**

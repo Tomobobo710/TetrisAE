@@ -3,13 +3,13 @@
  */
 class Player {
     constructor(playerNumber, gameSettings, game) {
-        console.log(`Creating Player ${playerNumber}...`);
+        // console.log(`Creating Player ${playerNumber}...`);
         this.playerNumber = playerNumber;
         this.game = game; // Reference to parent game for shared systems
         this.gameSettings = gameSettings;
 
         // Debug: Check if holdPiece method exists after construction
-        console.log(`Player ${playerNumber} constructed. holdPiece method type:`, typeof this.holdPiece);
+        // console.log(`Player ${playerNumber} constructed. holdPiece method type:`, typeof this.holdPiece);
 
         // Core game state
         this.grid = this.createEmptyGrid();
@@ -383,7 +383,7 @@ class Player {
             // Check for pending garbage and process it before spawning new piece
             if (this.game.gameManager && this.game.gameManager.checkAndProcessPendingGarbage(this.playerNumber)) {
                 // Garbage was processed, the garbage handler will spawn the next piece
-                console.log(`Garbage processed for Player ${this.playerNumber}, garbage handler will spawn next piece`);
+                // console.log(`Garbage processed for Player ${this.playerNumber}, garbage handler will spawn next piece`);
             } else {
                 // No garbage, safe to spawn new piece
                 this.canHold = true;
@@ -680,6 +680,7 @@ class Player {
         this.dasDirection = 0;
 
         this.gameOver = false;
+        this.backToBack = false; // Reset B2B chain on rematch
 
         this.lockFlash = 0;
         this.spawnFlash = 0;

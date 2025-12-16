@@ -301,13 +301,13 @@ class MenuInputManager {
             case "mainMenu":
                 // Leave network session if in online multiplayer
                 if (this.game.networkSession) {
-                    console.log("[InputHandler] Leaving network session (pause menu → main menu)");
+                    // console.log("[InputHandler] Leaving network session (pause menu → main menu)");
                     this.game.networkSession.leave();
                     this.game.networkSession = null;
                 }
                 // Disconnect from server if connected (leave room and disconnect)
                 if (this.game.gui && this.game.gui.isConnected()) {
-                    console.log("[InputHandler] Disconnecting from server (pause menu → main menu)");
+                    // console.log("[InputHandler] Disconnecting from server (pause menu → main menu)");
                     this.game.gui.getNetManager().disconnect();
                     // Manually reset GUI state since disconnect() doesn't do it
                     this.game.gui.currentState = "LOGIN";
@@ -409,7 +409,7 @@ class MenuInputManager {
                 // Just check for networkSession existence - gameState will be 'gameOver' at this point
                 if (this.game.networkSession) {
                     // Request rematch through network session
-                    console.log("[InputHandler] Requesting multiplayer rematch...");
+                    // console.log("[InputHandler] Requesting multiplayer rematch...");
                     this.game.networkSession.requestRematch();
                     this.game.playSound("menu_confirm");
                     // Don't unregister buttons yet - wait for rematch flow
@@ -453,7 +453,7 @@ class MenuInputManager {
             case "mainMenu":
                 // Leave network session if in online multiplayer
                 if (this.game.networkSession) {
-                    console.log("[InputHandler] Leaving network session (game over → main menu)");
+                    // console.log("[InputHandler] Leaving network session (game over → main menu)");
                     this.game.networkSession.leave();
                     this.game.networkSession = null;
                 }
@@ -478,7 +478,7 @@ class MenuInputManager {
             case "backToLobby":
                 // Leave network session and return to lobby
                 if (this.game.networkSession) {
-                    console.log("[InputHandler] Leaving network session (game over → lobby)");
+                    // console.log("[InputHandler] Leaving network session (game over → lobby)");
                     this.game.networkSession.leave();
                     this.game.networkSession = null;
                 }

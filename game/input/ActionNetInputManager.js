@@ -17,19 +17,19 @@ class ActionNetInputManager {
      * Call once from Game.setupGUIEvents() after gui is created.
      */
     wireGUIEvents() {
-        console.log("[ActionNetInputManager] wireGUIEvents() START");
+         // console.log("[ActionNetInputManager] wireGUIEvents() START");
 
-        // Play sound for all GUI button presses (respect suppression flag)
-        this.gui.on("buttonPressed", () => {
-            console.log("[ActionNetInputManager] EVENT buttonPressed");
-            if (!this.game.skipMenuNavigateSound) {
-                this.game.playSound("menu_confirm");
-            }
-        });
+         // Play sound for all GUI button presses (respect suppression flag)
+         this.gui.on("buttonPressed", () => {
+             // console.log("[ActionNetInputManager] EVENT buttonPressed");
+             if (!this.game.skipMenuNavigateSound) {
+                 this.game.playSound("menu_confirm");
+             }
+         });
 
-        // Play sound for GUI selection changes (respect suppression flag)
-        this.gui.on("selectionChanged", (info) => {
-            console.log("[ActionNetInputManager] EVENT selectionChanged", info);
+         // Play sound for GUI selection changes (respect suppression flag)
+         this.gui.on("selectionChanged", (info) => {
+             // console.log("[ActionNetInputManager] EVENT selectionChanged", info);
 
             // Treat suppressNextFrameMenuNavigate as "suppress this frame AND next-frame menu navigate".
             // This handler may fire multiple times in quick succession after a back/transition.
@@ -48,19 +48,19 @@ class ActionNetInputManager {
 
         // Joined room → create/start NetworkSession and enter online multiplayer flow.
         this.gui.on("joinedRoom", (roomName) => {
-            console.log("[ActionNetInputManager] EVENT joinedRoom", roomName);
+            // console.log("[ActionNetInputManager] EVENT joinedRoom", roomName);
             this.onJoinedRoom(roomName);
         });
 
         // Left room → clean up session and reset to title.
         this.gui.on("leftRoom", (roomName) => {
-            console.log("[ActionNetInputManager] EVENT leftRoom", roomName);
+            // console.log("[ActionNetInputManager] EVENT leftRoom", roomName);
             this.onLeftRoom(roomName);
         });
 
         // Disconnected → drop to title.
         this.gui.on("disconnected", () => {
-            console.log("[ActionNetInputManager] EVENT disconnected");
+            // console.log("[ActionNetInputManager] EVENT disconnected");
 
             // When disconnect comes as part of a back/leave flow, we do NOT want another
             // stray navigate/confirm sound as menus reshuffle. Use the same suppression flag.
@@ -71,26 +71,26 @@ class ActionNetInputManager {
 
         // Back from login/lobby → go back to appropriate menu.
         this.gui.on("back", () => {
-            console.log("[ActionNetInputManager] EVENT back");
+            // console.log("[ActionNetInputManager] EVENT back");
             this.onBackFromGUI();
         });
 
         this.gui.on("backToLogin", () => {
-            console.log("[ActionNetInputManager] EVENT backToLogin");
+            // console.log("[ActionNetInputManager] EVENT backToLogin");
             this.onBackToLoginFromGUI();
         });
 
         this._wired = true;
-        console.log("[ActionNetInputManager] wireGUIEvents() COMPLETE");
-    }
+        // console.log("[ActionNetInputManager] wireGUIEvents() COMPLETE");
+        }
 
-    // ===== GUI EVENT HANDLERS =====
+        // ===== GUI EVENT HANDLERS =====
 
-    onJoinedRoom(roomName) {
+        onJoinedRoom(roomName) {
         if (!this.networkManager) {
             this.networkManager = this.gui ? this.gui.getNetManager() : null;
         }
-        console.log("[ActionNetInputManager] onJoinedRoom()", roomName);
+        // console.log("[ActionNetInputManager] onJoinedRoom()", roomName);
 
         // Create NetworkSession and start in WAITING/online flow
         this.game.gameState = "onlineMultiplayer";

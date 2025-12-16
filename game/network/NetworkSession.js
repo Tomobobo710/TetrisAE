@@ -33,6 +33,8 @@ class NetworkSession {
         this.messageHandler = null;
         this.syncSystem = null; // Will reference GUI's SyncSystem
 
+
+
         // Setup network message listener
         this.setupNetworkListener();
     }
@@ -46,38 +48,38 @@ class NetworkSession {
             this.handleGarbageSent(message);
         });
 
-        // Listen for user joined
-        this.networkManager.on("userJoined", (user) => {
-            console.log("[NetworkSession] User joined:", user);
-            this.checkStartConditions();
-        });
+        // Listen for join requests (host side)
+         this.networkManager.on("joinRequest", (req) => {
+             // console.log("[NetworkSession] Join request from:", req.username);
+             // Auto-accept joiners for now
+             this.networkManager.acceptJoin(req.peerId);
+         });
 
-        // Listen for user list updates
-        this.networkManager.on("userList", (users) => {
-            console.log("[NetworkSession] User list updated:", users.length, "users");
-
-            // Update remote player username
-            if (this.remotePlayers.length > 0) {
+         // Listen for user list updates
+         this.networkManager.on("userList", (users) => {
+             // console.log("[NetworkSession] User list updated:", users.length, "users");
+            
+            // Update remote player username when list arrives
+            if (this.remotePlayers.length > 0 && users && users.length > 1) {
                 const myUsername = this.game.gui.getUsername();
                 const remoteUser = users.find((u) => u.username !== myUsername);
                 if (remoteUser) {
-                    this.remotePlayers[0].username = remoteUser.displayName || remoteUser.username;
-                    console.log("[NetworkSession] Remote player username:", this.remotePlayers[0].username);
+                    this.remotePlayers[0].username = remoteUser.username;
                 }
             }
-
+            
             this.checkStartConditions();
         });
 
         // Listen for disconnections
         this.networkManager.on("userLeft", (user) => {
-            console.log("[NetworkSession] User left:", user);
+            // console.log("[NetworkSession] User left:", user);
             this.handleOpponentLeft(user);
         });
 
         // Listen for host leaving (room closing)
         this.networkManager.on("hostLeft", (message) => {
-            console.log("[NetworkSession] Host left the room:", message.displayName);
+            // console.log("[NetworkSession] Host left the room:", message.displayName);
             this.handleHostLeft(message);
         });
     }
@@ -86,7 +88,7 @@ class NetworkSession {
      * Start the multiplayer session
      */
     start() {
-        console.log("[NetworkSession] Starting session...");
+         // console.log("[NetworkSession] Starting session...");
 
         // Clear existing players
         this.gameManager.players = [];
@@ -102,6 +104,17 @@ class NetworkSession {
         // Add NetworkedPlayers to GameManager
         this.gameManager.players.push(this.localPlayer);
         this.gameManager.players.push(remotePlayer);
+
+        // Update remote player username from current user list (if host has already accepted the join)
+        const connectedUsers = this.networkManager.getConnectedUsers();
+        if (connectedUsers && connectedUsers.length > 1) {
+            const myUsername = this.game.gui.getUsername();
+            const remoteUser = connectedUsers.find((u) => u.username !== myUsername);
+            if (remoteUser) {
+                remotePlayer.username = remoteUser.username;
+                // console.log("[NetworkSession] Set initial remote player username from user list:", remoteUser.username);
+            }
+            }
 
         // Update game mode and initialize state
         this.gameManager.updateGameMode();
@@ -125,6 +138,35 @@ class NetworkSession {
 
         // Use GUI's built-in SyncSystem
         this.syncSystem = this.game.gui.syncSystem;
+
+        // For P2P mode: set up data channel message handler
+        if (typeof this.networkManager.getDataChannel === 'function') {
+            const dataChannel = this.networkManager.getDataChannel();
+            if (dataChannel) {
+                dataChannel.onmessage = (evt) => {
+                    try {
+                        const message = JSON.parse(evt.data);
+                        if (message.type === 'syncUpdate') {
+                            this.syncSystem.handleSyncUpdate(message);
+                        } else {
+                            // Emit all other messages to networkManager for GUI routing
+                            this.networkManager.emit('message', message);
+                        }
+                    } catch (e) {
+                        console.error("[NetworkSession] Failed to handle message:", e.message);
+                    }
+                };
+                // Data channel already open, sync can start immediately
+                this._syncReadyToStart = true;
+            } else {
+                // Data channel not ready yet - wait for it to be established
+                this._syncReadyToStart = false;
+            }
+        } else {
+            // WebSocket mode: messages come through GUI's message routing
+            // Sync can start immediately since WebSocket is already connected
+            this._syncReadyToStart = true;
+        }
 
         // New joiners are ready immediately (set BEFORE registering)
         this.ready = true;
@@ -182,19 +224,8 @@ class NetworkSession {
             })
         });
 
-        // Register pending garbage as a sync source
-        this.syncSystem.register("garbage", {
-            getFields: () => {
-                const localPlayerNum = this.localPlayer ? this.localPlayer.playerNumber : 1;
-                const pendingGarbage =
-                    this.gameManager && this.gameManager.pendingGarbage
-                        ? this.gameManager.pendingGarbage.get(localPlayerNum) || 0
-                        : 0;
-                return {
-                    pending: pendingGarbage
-                };
-            }
-        });
+        // REMOVED: Garbage is handled via explicit garbageSent messages (see lines 273-279)
+        // Syncing garbage here would cause duplicate messages to be received
 
         // Listen for remote state updates
         this.syncSystem.on("remoteUpdated", () => {
@@ -206,23 +237,32 @@ class NetworkSession {
             this.updateRemoteQueueState();
             this.updateRemoteHoldState();
             this.updateRemoteGridState();
-            this.updateRemoteGarbageState();
+            // REMOVED: updateRemoteGarbageState() - garbage handled via explicit messages instead
             this.updateRemoteStatsState(); // NEW: sync remote score/level/lines for game over UI
         });
 
         this.syncSystem.on("remoteStale", () => {
-            console.warn("[NetworkSession] Remote client stopped responding");
+            // DEBUG: Remote client stopped responding (called every frame while stale)
+            // console.warn("[NetworkSession] Remote client stopped responding");
         });
 
         this.syncSystem.on("remoteFresh", () => {
-            console.log("[NetworkSession] Remote client reconnected");
+            // DEBUG: Remote client reconnected (called every frame while fresh)
+            // console.log("[NetworkSession] Remote client reconnected");
         });
 
-        // Start syncing (broadcasts immediately)
-        this.syncSystem.start();
+        // DEFER sync activation until data channel is ready
+        // This prevents "Cannot send: data channel not open" errors
+        // when host creates room before joiner connects
+        if (this._syncReadyToStart) {
+            // console.log("[NetworkSession] Data channel ready - starting sync immediately");
+            this.syncSystem.start();
+        } else {
+            // console.log("[NetworkSession] Data channel not ready - will activate sync on connection");
+            // The networkManager will call activateSyncForGame() when data channel opens
+        }
 
-        // Hook into game manager events to detect local player actions
-        this.hookGameManagerEvents();
+        // Garbage messaging is now handled directly in NetworkedPlayer.sendGarbageToOpponent()
 
         // Start in WAITING state
         this.state = "WAITING";
@@ -241,19 +281,6 @@ class NetworkSession {
     }
 
     /**
-     * Hook into GameManager events to observe local player actions
-     */
-    hookGameManagerEvents() {
-        // Hook into GameManager's sendGarbage to send garbage action over network
-        this.gameManager.sendGarbage = (fromPlayer, toPlayer, lines) => {
-            // Send garbageSent action message if local player is attacking
-            if (fromPlayer === 1 && this.localPlayer) {
-                this.localPlayer.onGarbageSent(lines);
-            }
-        };
-    }
-
-    /**
      * Check if we can start the game
      */
     checkStartConditions() {
@@ -264,13 +291,14 @@ class NetworkSession {
             const remoteReady = remoteMatch ? remoteMatch.ready : false;
             const remoteHostWaiting = remoteMatch ? remoteMatch.hostWaiting : true;
 
-            console.log("[NetworkSession] Checking start conditions:", {
-                users: users.length,
-                localReady: this.ready,
-                remoteReady: remoteReady,
-                remoteHostWaiting: remoteHostWaiting,
-                remoteStale: this.syncSystem ? this.syncSystem.isRemoteStale() : true
-            });
+            // DEBUG: Frame-by-frame start condition logging
+            // console.log("[NetworkSession] Checking start conditions:", {
+            //     users: users.length,
+            //     localReady: this.ready,
+            //     remoteReady: remoteReady,
+            //     remoteHostWaiting: remoteHostWaiting,
+            //     remoteStale: this.syncSystem ? this.syncSystem.isRemoteStale() : true
+            // });
 
             // Only start if:
             // - 2 players present
@@ -286,9 +314,8 @@ class NetworkSession {
             }
         } else if (this.state === "HOST_NOT_READY") {
             // If host canceled waiting, just wait for them to re-enable
-            console.log("[NetworkSession] Host is not ready - waiting for host to resume waiting");
         } else if (this.state === "OPPONENT_DISCONNECTED") {
-            console.log("[NetworkSession] In OPPONENT_DISCONNECTED state - waiting for host to click CONTINUE");
+            // Waiting for user to click CONTINUE on opponent disconnected screen
         }
     }
 
@@ -312,7 +339,7 @@ class NetworkSession {
         {
             this.countdownTimer = 3;
             this.countdownFinished = false;
-            console.log("[NetworkSession] Starting countdown...");
+            // console.log("[NetworkSession] Starting countdown...");
 
             // Reset game state for both players before countdown
             this.resetGameForRematch();
@@ -409,7 +436,7 @@ class NetworkSession {
             const GO_DURATION = 0.7;
 
             if (cd.timer >= GO_DURATION) {
-                console.log("[NetworkSession] Online GO! complete - clearing countdown overlay");
+                // console.log("[NetworkSession] Online GO! complete - clearing countdown overlay");
                 cd.active = false;
                 cd.phase = "waiting";       // reset to neutral so offline logic doesn't mis-read it
                 cd.countdownNumber = 3;     // reset for next countdown
@@ -433,7 +460,7 @@ class NetworkSession {
      */
     startGame() {
         this.state = "PLAYING";
-        console.log("[NetworkSession] Game started!");
+        // console.log("[NetworkSession] Game started!");
         // Do not touch game.countdown here.
         // updateCountdown() already transitions to GO and clears it.
     }
@@ -466,7 +493,7 @@ class NetworkSession {
         this.state = "GAME_OVER";
         {
             const winner = this.gameManager.getActivePlayers()[0];
-            console.log("[NetworkSession] Game over! Winner:", winner?.playerNumber);
+            // console.log("[NetworkSession] Game over! Winner:", winner?.playerNumber);
 
             // Notify local player game over if they lost
             if (!winner || winner.playerNumber !== 1) {
@@ -726,7 +753,7 @@ class NetworkSession {
      * Reset game state for rematch
      */
     resetGameForRematch() {
-        console.log("[NetworkSession] Resetting game state for rematch...");
+        // console.log("[NetworkSession] Resetting game state for rematch...");
 
         // Reset game manager state
         this.gameManager.gameState = "playing";
@@ -784,7 +811,10 @@ class NetworkSession {
             player.lockFlash = 0;
             player.spawnFlash = 0;
             player.lineClearEffect = { active: false, lines: [], progress: 0 };
-        });
+
+            // Reset back-to-back chain
+            player.backToBack = false;
+            });
 
         // Update game state
         this.game.gameState = "onlineMultiplayer";
@@ -798,7 +828,7 @@ class NetworkSession {
      */
     handleGarbageSent(message) {
         // Add garbage to local player
-        console.log("[NetworkSession] Received", message.lines, "garbage lines from opponent");
+        // console.log("[NetworkSession] Received", message.lines, "garbage lines from opponent");
 
         if (this.gameManager) {
             this.gameManager.addGarbageToPlayer(1, message.lines);
@@ -820,6 +850,18 @@ class NetworkSession {
     sendMessage(message) {
         if (this.networkManager && this.networkManager.isInRoom()) {
             this.networkManager.send(message);
+        }
+    }
+
+    /**
+     * Activate sync system (called when data channel becomes ready)
+     * Safe to call multiple times
+     */
+    activateSyncSystem() {
+        if (this.syncSystem && !this.syncSystem.isRunning) {
+            console.log("[NetworkSession] Activating sync system after data channel open");
+            this.syncSystem.start();
+            this._syncReadyToStart = true;
         }
     }
 
@@ -975,6 +1017,9 @@ class NetworkSession {
         if (this.game && this.game.gui) {
             this.game.gui.unregisterMessageHandler("garbageSent");
         }
+
+        // Unregister garbage sent event handler
+
 
         // Note: SyncSystem is managed by GUI - it will stop when room is left
         this.syncSystem = null;

@@ -274,7 +274,7 @@ class WaitingMenusInputManager {
         switch (action) {
             case "cancelRematch":
                 // Cancel rematch through network session
-                console.log("[InputHandler] Canceling rematch request...");
+                // console.log("[InputHandler] Canceling rematch request...");
                 this.game.networkSession.cancelRematch();
                 this.game.playSound("menu_back");
                 // No need to unregister buttons here, as cancelRematch will change game state

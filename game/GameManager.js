@@ -31,8 +31,46 @@ class GameManager {
 
         // Layout manager for UI positioning
         this.layoutManager = new LayoutManager();
+
+        // Event system for network integration
+        this.eventHandlers = new Map();
     }
 
+    /**
+     * Register event handler
+     */
+    on(event, handler) {
+        if (!this.eventHandlers.has(event)) {
+            this.eventHandlers.set(event, []);
+        }
+        this.eventHandlers.get(event).push(handler);
+    }
+
+    /**
+     * Unregister event handler
+     */
+    off(event, handler) {
+        if (!this.eventHandlers.has(event)) return;
+        const handlers = this.eventHandlers.get(event);
+        const index = handlers.indexOf(handler);
+        if (index > -1) {
+            handlers.splice(index, 1);
+        }
+    }
+
+    /**
+     * Emit event
+     */
+    emit(event, data) {
+        if (!this.eventHandlers.has(event)) return;
+        this.eventHandlers.get(event).forEach(handler => {
+            try {
+                handler(data);
+            } catch (e) {
+                console.error(`[GameManager] Error in ${event} handler:`, e);
+            }
+        });
+    }
 
     /**
      * Add a human player to the game
@@ -277,7 +315,7 @@ class GameManager {
      * Initialize the game for multiplayer
      */
     initialize(numPlayers = 2) {
-        console.log(`Initializing ${numPlayers}-player game...`);
+        // console.log(`Initializing ${numPlayers}-player game...`);
 
         // Clear existing players
         this.players = [];
@@ -292,7 +330,7 @@ class GameManager {
         // Add requested number of players
         for (let i = 1; i <= numPlayers; i++) {
             const player = this.addPlayer(i);
-            console.log(`Created player ${i}:`, player);
+            // console.log(`Created player ${i}:`, player);
         }
 
         // Reset game state
@@ -305,7 +343,7 @@ class GameManager {
         // Reset all players
         this.players.forEach((player) => {
             player.reset();
-            console.log(`Reset player ${player.playerNumber}`);
+            // console.log(`Reset player ${player.playerNumber}`);
         });
 
         // Spawn initial pieces for all players
@@ -314,14 +352,14 @@ class GameManager {
         // Initialize targets for 3-4 player games
         this.initializeTargets();
 
-        console.log(`${numPlayers}-Player mode initialized! Players:`, this.players.length);
+        // console.log(`${numPlayers}-Player mode initialized! Players:`, this.players.length);
     }
 
     /**
      * Initialize a game with human player(s) versus CPU player(s)
      */
     initializeVersusCPU(numHumans = 1, numCPUs = 1) {
-        console.log(`Initializing ${numHumans} human vs ${numCPUs} CPU game...`);
+        // console.log(`Initializing ${numHumans} human vs ${numCPUs} CPU game...`);
 
         // Clear existing players
         this.players = [];
@@ -356,7 +394,7 @@ class GameManager {
             if (player.reset && typeof player.reset === "function") {
                 player.reset();
             }
-            console.log(`Reset ${player.thinkingTimer !== undefined ? "CPU" : "Human"} player ${player.playerNumber}`);
+            // console.log(`Reset ${player.thinkingTimer !== undefined ? "CPU" : "Human"} player ${player.playerNumber}`);
         });
 
         // Spawn initial pieces for all players
@@ -365,7 +403,7 @@ class GameManager {
         // Initialize targets for 3-4 player games (if versus CPU is ever 3-4P capable)
         this.initializeTargets();
 
-        console.log(`Versus CPU mode initialized! Total players: ${this.players.length}`);
+        // console.log(`Versus CPU mode initialized! Total players: ${this.players.length}`);
     }
 
     /**
@@ -405,12 +443,16 @@ class GameManager {
         const currentPending = this.pendingGarbage.get(toPlayer) || 0;
         this.pendingGarbage.set(toPlayer, currentPending + garbageLines);
 
-        // Network sync of garbage is handled by NetworkedPlayer / NetworkSession.
-    }
+        // Notify local player to send network message if they're the attacker
+        const attacker = this.getPlayer(fromPlayer);
+        if (attacker && attacker.sendGarbageToOpponent) {
+            attacker.sendGarbageToOpponent(toPlayer, garbageLines);
+        }
+        }
 
-    /**
-     * Add garbage to a player (for network sync)
-     */
+        /**
+        * Add garbage to a player (for network sync)
+        */
     addGarbageToPlayer(playerNumber, lines) {
         const currentPending = this.pendingGarbage.get(playerNumber) || 0;
         this.pendingGarbage.set(playerNumber, currentPending + lines);
@@ -679,7 +721,7 @@ class GameManager {
             // CRITICAL: Before ending game, send gameOver message if local player lost
             this.players.forEach((player) => {
                 if (player.gameOver && player.isLocal && player.onGameOver) {
-                    console.log("[GameManager] Local player lost, sending gameOver message to opponent");
+                    // console.log("[GameManager] Local player lost, sending gameOver message to opponent");
                     player.onGameOver();
                 }
             });
@@ -703,7 +745,7 @@ class GameManager {
         this.gameState = "gameOver";
         this.winner = winnerPlayerNumber;
         this.game.gameState = "gameOver";
-        console.log(`Player ${winnerPlayerNumber} wins!`);
+        // console.log(`Player ${winnerPlayerNumber} wins!`);
         this.game.playSound("victory");
     }
 
