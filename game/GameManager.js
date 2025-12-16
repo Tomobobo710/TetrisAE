@@ -1220,7 +1220,7 @@ class GameManager {
                     const actualWidth = layout.gameArea.cellSize * TETRIS.GRID.COLS;
                     const centerX = layout.gameArea.x + actualWidth / 2;
                     const indicatorY = layout.gameArea.y + 420;
-                    const indicatorText = player.garbageEnabled ? 'SEND GARBAGE ON' : 'SEND GARBAGE OFF';
+                    const indicatorText = player.garbageEnabled ? 'ATTACK ON' : 'ATTACK OFF';
                     const indicatorColor = player.garbageEnabled ? '#00FF00' : '#FF0000';
                     
                     // Create utils for game canvas (drawTextBackdrop needs the right context)
