@@ -117,17 +117,24 @@ class GameplayInputManager {
             }
 
             // Movement (DAS)
-            const leftPressed = this.customInput.isActionPressed('moveLeft');
-            const rightPressed = this.customInput.isActionPressed('moveRight');
-            
-            if (leftPressed || rightPressed) {
-                const direction = leftPressed ? -1 : 1;
-                this.handlePlayerMovement(player, direction, deltaTime);
-            } else {
-                // Reset DAS when no movement input
-                player.dasActive = false;
-                player.dasTimer = 0;
-            }
+             const leftPressed = this.customInput.isActionPressed('moveLeft');
+             const rightPressed = this.customInput.isActionPressed('moveRight');
+             
+             if (leftPressed || rightPressed) {
+                 const direction = leftPressed ? -1 : 1;
+                 this.handlePlayerMovement(player, direction, deltaTime);
+             } else {
+                 // Reset DAS when no movement input
+                 player.dasActive = false;
+                 player.dasTimer = 0;
+             }
+
+             // Target select / garbage toggle
+             if (this.customInput.isActionJustPressed('targetSelect')) {
+                 if (typeof player.toggleGarbage === 'function') {
+                     player.toggleGarbage();
+                 }
+             }
         }
     }
 
@@ -168,10 +175,14 @@ class GameplayInputManager {
             }
         }
 
-        // Handle target cycle input (3-4 player modes only, minimal: one button per player)
-        // This does NOT apply to 1P vs CPU, 2P, or any non-3/4P modes.
-        if (playerCount >= 3 && playerCount <= 4) {
-            if (this.isTargetCycleInputPressed(inputDevice, player.playerNumber)) {
+        // Handle target cycle / garbage toggle input
+        if (this.isTargetCycleInputPressed(inputDevice, player.playerNumber)) {
+            // Online mode: toggle garbage if player has toggleGarbage method (NetworkedPlayer)
+            if (typeof player.toggleGarbage === 'function') {
+                player.toggleGarbage();
+            }
+            // Local 3-4 player modes: cycle targets
+            else if (playerCount >= 3 && playerCount <= 4) {
                 if (this.game.gameManager && typeof this.game.gameManager.cyclePlayerTarget === "function") {
                     this.game.gameManager.cyclePlayerTarget(player.playerNumber);
                 }

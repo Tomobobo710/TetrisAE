@@ -224,8 +224,12 @@ class NetworkSession {
             })
         });
 
-        // REMOVED: Garbage is handled via explicit garbageSent messages (see lines 273-279)
-        // Syncing garbage here would cause duplicate messages to be received
+        // Register garbage toggle state as a sync source
+        this.syncSystem.register("garbageState", {
+            getFields: () => ({
+                enabled: this.localPlayer ? this.localPlayer.garbageEnabled : true
+            })
+        });
 
         // Listen for remote state updates
         this.syncSystem.on("remoteUpdated", () => {
@@ -237,7 +241,7 @@ class NetworkSession {
             this.updateRemoteQueueState();
             this.updateRemoteHoldState();
             this.updateRemoteGridState();
-            // REMOVED: updateRemoteGarbageState() - garbage handled via explicit messages instead
+            this.updateRemoteGarbageToggleState();
             this.updateRemoteStatsState(); // NEW: sync remote score/level/lines for game over UI
         });
 
@@ -634,22 +638,21 @@ class NetworkSession {
     }
 
     /**
-     * Update remote player's pending garbage from synced data
+     * Update remote player's garbage toggle state from synced data
      */
-    updateRemoteGarbageState() {
+    updateRemoteGarbageToggleState() {
         if (this.state !== "PLAYING") {
             return;
         }
 
-        const remoteGarbage = this.syncSystem ? this.syncSystem.getRemote("garbage") : null;
-        if (!remoteGarbage || this.remotePlayers.length === 0) {
+        const remoteGarbageState = this.syncSystem ? this.syncSystem.getRemote("garbageState") : null;
+        if (!remoteGarbageState || this.remotePlayers.length === 0) {
             return;
         }
 
-        // Update pending garbage display for remote player
-        const remotePlayerNum = this.remotePlayers[0].playerNumber;
-        if (this.gameManager && this.gameManager.pendingGarbage) {
-            this.gameManager.pendingGarbage.set(remotePlayerNum, remoteGarbage.pending || 0);
+        // Update remote player's garbage enabled state
+        if (typeof remoteGarbageState.enabled === "boolean") {
+            this.remotePlayers[0].garbageEnabled = remoteGarbageState.enabled;
         }
     }
 
@@ -814,6 +817,9 @@ class NetworkSession {
 
             // Reset back-to-back chain
             player.backToBack = false;
+
+            // Reset garbage toggle state for rematch
+            player.garbageEnabled = true;
             });
 
         // Update game state

@@ -39,11 +39,18 @@ class NetworkedPlayer extends Player {
     }
 
     /**
+     * Toggle garbage sending (online mode only)
+     */
+    toggleGarbage() {
+        this.garbageEnabled = !this.garbageEnabled;
+    }
+
+    /**
      * Override clearLines in GameManager to intercept garbage sends
      */
     sendGarbageToOpponent(toPlayerNumber, garbageLines) {
-        // Local player is sending garbage to opponent
-        if (this.isLocal && garbageLines > 0) {
+        // Local player is sending garbage to opponent (only if garbage is enabled)
+        if (this.isLocal && garbageLines > 0 && this.garbageEnabled) {
             this.session.sendMessage({
                 type: "garbageSent",
                 playerNumber: this.playerNumber,

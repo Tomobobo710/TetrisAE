@@ -18,6 +18,7 @@ class Player {
         this.lines = 0;
         this.combo = -1;
         this.backToBack = false;
+        this.garbageEnabled = true; // Can disable garbage in online mode
 
         // Spin / T-Spin tracking
         this.lastMoveWasRotation = false;

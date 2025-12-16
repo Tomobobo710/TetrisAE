@@ -1213,6 +1213,28 @@ class GameManager {
 
                     ctx.fillText(labelText, x, y);
                 }
+
+                // Draw garbage toggle indicator for networked players - always show this
+                if (player.garbageEnabled !== undefined) {
+                    // Position above each player's game area
+                    const actualWidth = layout.gameArea.cellSize * TETRIS.GRID.COLS;
+                    const centerX = layout.gameArea.x + actualWidth / 2;
+                    const indicatorY = layout.gameArea.y + 420;
+                    const indicatorText = player.garbageEnabled ? 'SEND GARBAGE ON' : 'SEND GARBAGE OFF';
+                    const indicatorColor = player.garbageEnabled ? '#00FF00' : '#FF0000';
+                    
+                    // Create utils for game canvas (drawTextBackdrop needs the right context)
+                    const gameUtils = new UIRenderUtils(this.game.gameCtx);
+                    gameUtils.drawTextBackdrop(
+                        indicatorText,
+                        centerX,
+                        indicatorY,
+                        'bold 14px Arial',
+                        indicatorColor,
+                        theme,
+                        2
+                    );
+                }
             }
         });
     }
