@@ -88,6 +88,7 @@ gulp.task('bundle', function() {
     'actionengine/network/client/ActionNetManager.js',
     'actionengine/network/client/SyncSystem.js',
     'actionengine/network/client/ActionNetManagerGUI.js',
+	'actionengine/network/client/ActionNetManagerP2P.js',
     
     // Action Engine Camera
     'actionengine/camera/actioncamera.js',
