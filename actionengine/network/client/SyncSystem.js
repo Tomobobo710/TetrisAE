@@ -85,12 +85,29 @@ class SyncSystem {
         this.broadcastTimer = null;
         this.isRunning = false;
         
-        console.log('[SyncSystem] Initialized', {
-            broadcastInterval: this.broadcastInterval,
-            staleThreshold: this.staleThreshold
-        });
+        // console.log('[SyncSystem] Initialized', {
+        //     broadcastInterval: this.broadcastInterval,
+        //     staleThreshold: this.staleThreshold
+        // });
     }
     
+    /**
+     * Update the send function (transport pipeline)
+     * Call this when transport conditions change (e.g., new dataChannel available)
+     * 
+     * @param {Function} sendFunction - New send function
+     */
+    setSendFunction(sendFunction) {
+        if (typeof sendFunction !== 'function') {
+            console.error('[SyncSystem] setSendFunction requires a function');
+            return false;
+        }
+        
+        this.sendFunction = sendFunction;
+        // console.log('[SyncSystem] Updated send function');
+        return true;
+    }
+
     /**
      * Register a sync source
      * 
@@ -109,7 +126,7 @@ class SyncSystem {
         }
         
         this.syncSources.set(id, source);
-        console.log(`[SyncSystem] Registered sync source: '${id}'`);
+        // console.log(`[SyncSystem] Registered sync source: '${id}'`);
         
         // Immediately update local data for this source
         this._updateLocalDataForSource(id);
@@ -125,7 +142,7 @@ class SyncSystem {
     unregister(id) {
         if (this.syncSources.delete(id)) {
             delete this.localData[id];
-            console.log(`[SyncSystem] Unregistered sync source: '${id}'`);
+            // console.log(`[SyncSystem] Unregistered sync source: '${id}'`);
             return true;
         }
         return false;
@@ -195,7 +212,7 @@ class SyncSystem {
             return;
         }
         
-        console.log('[SyncSystem] Starting periodic broadcast...');
+        // console.log('[SyncSystem] Starting periodic broadcast...');
         this.isRunning = true;
         
         // Broadcast immediately
@@ -215,7 +232,7 @@ class SyncSystem {
             return;
         }
         
-        console.log('[SyncSystem] Stopping broadcast');
+        // console.log('[SyncSystem] Stopping broadcast');
         this.isRunning = false;
         
         if (this.broadcastTimer) {
@@ -391,7 +408,7 @@ class SyncSystem {
         this.remoteData = {};
         this.lastRemoteUpdate = 0;
         this.wasStale = false;
-        console.log('[SyncSystem] Remote data cleared');
+        // console.log('[SyncSystem] Remote data cleared');
     }
     
     /**

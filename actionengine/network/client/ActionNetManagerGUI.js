@@ -23,7 +23,13 @@ class ActionNetManagerGUI {
         debug: true
     };
 
-    constructor(canvases, input, audio, port = 8000, networkConfig = null, syncConfig = null) {
+    // P2P Network configuration
+    static P2P_NETWORK_CONFIG = {
+        gameId: 'game-id-00000',
+        debug: true
+    };
+
+    constructor(canvases, input, audio, configOrPort = 8000, networkConfig = null, syncConfig = null) {
         // Store Action Engine systems
         this.audio = audio;
         this.input = input;
@@ -38,15 +44,39 @@ class ActionNetManagerGUI {
         this.guiCtx = canvases.guiCtx;
         this.debugCtx = canvases.debugCtx;
 
-        // Initialize networking with custom config or default
-        const config = networkConfig || { ...ActionNetManagerGUI.NETWORK_CONFIG };
-        
-        // Build URL from hostname, port, and protocol
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const hostname = window.location.hostname || 'localhost'; // Fallback to localhost for file:// protocol
-        config.url = `${protocol}//${hostname}:${port}`;
-        
-        this.networkManager = new ActionNetManager(config);
+        // Detect if configOrPort is a config object or a port number
+        let mode = 'websocket';
+        let port = 8000;
+        let p2pConfig = null;
+
+        if (typeof configOrPort === 'object' && configOrPort !== null) {
+            // It's a config object
+            mode = configOrPort.mode || 'websocket';
+            port = configOrPort.port || 8000;
+            p2pConfig = configOrPort.p2pConfig || null;
+        } else if (typeof configOrPort === 'number') {
+            // It's the old style (port number)
+            port = configOrPort;
+        }
+
+        // Store mode for later use
+        this.networkMode = mode;
+
+        // Initialize networking based on mode
+        if (mode === 'p2p') {
+            const config = p2pConfig || { ...ActionNetManagerGUI.P2P_NETWORK_CONFIG };
+            this.networkManager = new ActionNetManagerP2P(config);
+        } else {
+            // WebSocket mode (default)
+            const config = networkConfig || { ...ActionNetManagerGUI.NETWORK_CONFIG };
+
+            // Build URL from hostname, port, and protocol
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname || 'localhost'; // Fallback to localhost for file:// protocol
+            config.url = `${protocol}//${hostname}:${port}`;
+
+            this.networkManager = new ActionNetManager(config);
+        }
 
         // Setup ActionNet event listeners
         this.setupNetworkEvents();
@@ -62,7 +92,7 @@ class ActionNetManagerGUI {
             broadcastInterval: 16,    // ~60fps
             staleThreshold: 200       // ~12 frames
         };
-        
+
         this.syncSystem = new SyncSystem({
             ...defaultSyncConfig,
             ...syncConfig
@@ -92,39 +122,43 @@ class ActionNetManagerGUI {
         this.lastRoomCount = -1;
         this.lastScrollOffset = 0;
 
+        // P2P connection spinner state
+        this.isConnecting = false;
+        this.spinnerFrame = 0;
+
         // Create scrollable room list
         this.roomScroller = new ActionScrollableArea({
-        listAreaX: 250,
-        listAreaY: 380,
-        listAreaWidth: 300,
-        listAreaHeight: 200,
-        itemHeight: 30,
-        scrollBarX: 552,
-        scrollBarY: 400,
-        scrollBarTrackHeight: 160,
-        scrollBarThumbStartY: 400,
+            listAreaX: 250,
+            listAreaY: 380,
+            listAreaWidth: 300,
+            listAreaHeight: 200,
+            itemHeight: 30,
+            scrollBarX: 552,
+            scrollBarY: 400,
+            scrollBarTrackHeight: 160,
+            scrollBarThumbStartY: 400,
 
-        // Enable clipping for precise bounds control
-        enableClipping: true,
-        clipBounds: {
-        x: 250,
-        y: 380,
-        width: 300,
-        height: 200
-        },
+            // Enable clipping for precise bounds control
+            enableClipping: true,
+            clipBounds: {
+                x: 250,
+                y: 380,
+                width: 300,
+                height: 200
+            },
 
             // Let ActionScrollableArea handle input registration automatically with clipping
             generateItemId: (item, index) => `room_item_${index}`,
 
             // Custom styling for monochrome theme
             colors: {
-            track: { normal: "rgba(0, 0, 0, 0.2)", hover: "rgba(0, 0, 0, 0.3)" },
-            thumb: {
-            normal: "rgba(136, 136, 136, 0.3)",
-            hover: "rgba(136, 136, 136, 0.6)",
-            drag: "rgba(136, 136, 136, 0.8)"
-            },
-            thumbBorder: { normal: "rgba(136, 136, 136, 0.5)", drag: "#ffffff" },
+                track: { normal: "rgba(0, 0, 0, 0.2)", hover: "rgba(0, 0, 0, 0.3)" },
+                thumb: {
+                    normal: "rgba(136, 136, 136, 0.3)",
+                    hover: "rgba(136, 136, 136, 0.6)",
+                    drag: "rgba(136, 136, 136, 0.8)"
+                },
+                thumbBorder: { normal: "rgba(136, 136, 136, 0.5)", drag: "#ffffff" },
                 button: {
                     normal: "rgba(136, 136, 136, 0.1)",
                     hover: "rgba(136, 136, 136, 0.3)"
@@ -159,13 +193,16 @@ class ActionNetManagerGUI {
         this.errorModalTitle = '';
         this.errorModalMessage = '';
 
+        // Spinner animation state
+        this.spinnerRotation = 0;
+
         // Initialize UI elements
         this.initializeUIElements();
 
         // Register input elements
         this.registerUIElements();
 
-        console.log("[ActionNetManagerGUI] Initialization completed");
+        // console.log("[ActionNetManagerGUI] Initialization completed");
     }
 
     /**
@@ -218,7 +255,7 @@ class ActionNetManagerGUI {
                 }
                 return;
             }
-            
+
             // Custom handler routing
             if (this.customMessageHandlers.has(message.type)) {
                 const handler = this.customMessageHandlers.get(message.type);
@@ -229,7 +266,7 @@ class ActionNetManagerGUI {
                 }
                 return;
             }
-            
+
             // If no handler found, emit as custom event for developer to catch
             this.emit(`message:${message.type}`, message);
         });
@@ -241,18 +278,18 @@ class ActionNetManagerGUI {
     setupNetworkEvents() {
         // Connection events
         this.networkManager.on("connected", () => {
-            console.log("[ActionNetManagerGUI] Connected to server");
+            // console.log("[ActionNetManagerGUI] Connected to server");
             this.serverStatus = 'ONLINE';
             this.serverStatusColor = '#00ff00';
         });
 
         this.networkManager.on("disconnected", () => {
-            console.log("[ActionNetManagerGUI] Disconnected from server");
+            // console.log("[ActionNetManagerGUI] Disconnected from server");
             this.emit('disconnected');
         });
 
         this.networkManager.on("reconnecting", ({ attempt, delay }) => {
-            console.log(`[ActionNetManagerGUI] Reconnecting... attempt ${attempt}, waiting ${delay}ms`);
+            // console.log(`[ActionNetManagerGUI] Reconnecting... attempt ${attempt}, waiting ${delay}ms`);
         });
 
         this.networkManager.on("error", (error) => {
@@ -264,19 +301,19 @@ class ActionNetManagerGUI {
         });
 
         this.networkManager.on("joinedRoom", (roomName) => {
-            console.log("[ActionNetManagerGUI] Joined room:", roomName);
+            // console.log("[ActionNetManagerGUI] Joined room:", roomName);
             this.emit('joinedRoom', roomName);
         });
 
         this.networkManager.on("leftRoom", (roomName) => {
-            console.log("[ActionNetManagerGUI] Left room:", roomName);
-            
+            // console.log("[ActionNetManagerGUI] Left room:", roomName);
+
             // Stop syncing and clear remote data when leaving room
             if (this.syncSystem) {
                 this.syncSystem.stop();
                 this.syncSystem.clearRemoteData();
             }
-            
+
             this.emit('leftRoom', roomName);
         });
 
@@ -399,6 +436,14 @@ class ActionNetManagerGUI {
                 break;
         }
 
+        // Update spinner rotation
+        this.spinnerRotation = (this.spinnerRotation + 1) % 360; // Rotate 6 degrees per frame
+        
+        // Update spinner frame for P2P connection
+        if (this.isConnecting) {
+            this.spinnerFrame++;
+        }
+
         // Update network manager
         this.networkManager.update();
 
@@ -437,14 +482,29 @@ class ActionNetManagerGUI {
         // Draw back button
         this.renderButton(this.backButton, 'Back', this.selectedIndex === 1);
 
-        // Draw server status (aligned with lobby/no-rooms label row)
-        this.renderLabel(`ActionNet server is: ${this.serverStatus}`, ActionNetManagerGUI.WIDTH / 2, 430, '14px Arial', this.serverStatusColor);
+        // Draw network status only for WebSocket mode (P2P uses DHT, not centralized server)
+        if (this.networkMode !== 'p2p') {
+            this.renderLabel(`Network connection: ${this.serverStatus}`, ActionNetManagerGUI.WIDTH / 2, 430, '14px Arial', this.serverStatusColor);
+        }
+
+        // Show spinner and "Connecting..." message for P2P mode
+        if (this.networkMode === 'p2p' && this.isConnecting) {
+            this.renderLabel('Connecting...', ActionNetManagerGUI.WIDTH / 2, 410);
+            this.renderSpinner(ActionNetManagerGUI.WIDTH / 2, 450, 20, 3);
+        }
     }
 
     /**
      * Render lobby screen
      */
     renderLobbyScreen() {
+        // Render peer count in bottom right
+        if (this.networkMode === 'p2p') {
+            const connectedCount = this.networkManager.getConnectedPeerCount();
+            const discoveredCount = this.networkManager.getDiscoveredPeerCount();
+            const peerLabel = `Connected: ${connectedCount} | Online: ${discoveredCount}`;
+            this.renderLabel(peerLabel, ActionNetManagerGUI.WIDTH - 10, ActionNetManagerGUI.HEIGHT - 10, '12px Arial', '#888888', 'right');
+        }
         this.renderLabel('ActionNet Lobby', ActionNetManagerGUI.WIDTH / 2, 40, '36px Arial', '#808080');
 
         this.renderLabel(`Welcome, ${this.username}!`, ActionNetManagerGUI.WIDTH / 2, 85, '24px Arial', '#ffffff');
@@ -476,10 +536,10 @@ class ActionNetManagerGUI {
      */
     renderButton(button, text, isSelected = false) {
         const isHovered = this.input.isElementHovered(button === this.connectButton ? 'connectButton' :
-                                                     button === this.backButton ? 'backButton' :
-                                                     button === this.createRoomButton ? 'createRoomButton' :
-                                                     button === this.changeNameButton ? 'changeNameButton' :
-                                                     'backToLoginButton');
+            button === this.backButton ? 'backButton' :
+                button === this.createRoomButton ? 'createRoomButton' :
+                    button === this.changeNameButton ? 'changeNameButton' :
+                        'backToLoginButton');
         // Highlight if selected via keyboard/gamepad or hovered via mouse
         const isHighlighted = isSelected || isHovered;
         this.guiCtx.fillStyle = isHighlighted ? '#555555' : '#333333';
@@ -492,6 +552,28 @@ class ActionNetManagerGUI {
         this.guiCtx.textAlign = 'center';
         this.guiCtx.textBaseline = 'middle';
         this.guiCtx.fillText(text.toUpperCase(), button.x + button.width / 2, button.y + button.height / 2);
+    }
+
+    /**
+     * Render spinner for P2P connection
+     */
+    renderSpinner(x, y, size = 30) {
+        const radius = size / 2;
+        const rotation = (this.spinnerFrame % 60) * (Math.PI * 2 / 60); // Full rotation every 60 frames
+
+        this.guiCtx.save();
+        this.guiCtx.translate(x, y);
+        this.guiCtx.rotate(rotation);
+
+        // Draw spinner arc
+        this.guiCtx.strokeStyle = '#ffffff';
+        this.guiCtx.lineWidth = 3;
+        this.guiCtx.lineCap = 'round';
+        this.guiCtx.beginPath();
+        this.guiCtx.arc(0, 0, radius, 0, Math.PI * 1.5); // 3/4 circle
+        this.guiCtx.stroke();
+
+        this.guiCtx.restore();
     }
 
     /**
@@ -575,8 +657,9 @@ class ActionNetManagerGUI {
         const rooms = this.networkManager.getAvailableRooms();
 
         if (rooms.length === 0) {
-            // Draw header and no rooms message (aligned with login server status row)
-            this.renderLabel('No rooms currently available.', ActionNetManagerGUI.WIDTH / 2, 430);
+            // Draw header and spinner animation
+            this.renderLabel('Searching for rooms...', ActionNetManagerGUI.WIDTH / 2, 410);
+            this.renderSpinner(ActionNetManagerGUI.WIDTH / 2, 450, 20, 3);
         } else if (this.roomScroller) {
             // Use the scroller for room list
             this.roomScroller.draw(rooms, (room, index, y) => {
@@ -601,7 +684,10 @@ class ActionNetManagerGUI {
 
                 // New format with player counts
                 const maxDisplay = room.maxPlayers === -1 ? '∞' : room.maxPlayers;
-                const displayText = `${room.name} (${room.playerCount}/${maxDisplay})`;
+                // Support both WebSocket (room.name, room.playerCount) and P2P (room.username, room.currentPlayers) formats
+                const roomName = room.name || room.username || 'Unknown Room';
+                const playerCount = room.playerCount !== undefined ? room.playerCount : room.currentPlayers || 0;
+                const displayText = `${roomName} (${playerCount}/${maxDisplay})`;
 
                 this.guiCtx.fillText(displayText, ActionNetManagerGUI.WIDTH / 2, y + 15);
             }, {
@@ -655,8 +741,8 @@ class ActionNetManagerGUI {
 
             // Only refresh items when needed: initial, scroll change, or content change
             const needsRefresh = currentCount !== this.lastRoomCount ||
-                                currentScroll !== this.lastScrollOffset ||
-                                this.lastRoomCount === -1;
+                currentScroll !== this.lastScrollOffset ||
+                this.lastRoomCount === -1;
 
             if (needsRefresh) {
                 // Use the library's refreshItems method to handle registration properly
@@ -809,7 +895,8 @@ class ActionNetManagerGUI {
                         if (roomIndex >= 0 && roomIndex < availableRooms.length) {
                             console.log("✅ Room selected via keyboard/gamepad:", availableRooms[roomIndex]);
                             this.emit('buttonPressed');
-                            this.selectedRoom = availableRooms[roomIndex].name;
+                            // Support both WebSocket (name) and P2P (peerId) formats
+                            this.selectedRoom = availableRooms[roomIndex].peerId || availableRooms[roomIndex].name;
                             this.joinSelectedRoom();
                         }
                     }
@@ -846,7 +933,8 @@ class ActionNetManagerGUI {
                         if (isPressed && availableRooms[i]) {
                             this.emit('buttonPressed');
                             console.log("✅ Room clicked:", availableRooms[i]);
-                            this.selectedRoom = availableRooms[i].name;
+                            // Support both WebSocket (name) and P2P (peerId) formats
+                            this.selectedRoom = availableRooms[i].peerId || availableRooms[i].name;
                             this.joinSelectedRoom();
                             break;
                         }
@@ -891,7 +979,7 @@ class ActionNetManagerGUI {
     }
 
     /**
-     * Start connection to server
+     * Start connection to server or P2P network
      */
     async startConnection() {
         this.username = this.generateRandomUsername();
@@ -899,11 +987,24 @@ class ActionNetManagerGUI {
         this.serverStatus = 'CONNECTING';
         this.serverStatusColor = '#ffff00';
 
+        // Show spinner for P2P mode
+        if (this.networkMode === 'p2p') {
+            this.isConnecting = true;
+        }
+
         try {
-            await this.networkManager.connectToServer({ username: this.username });
+            if (this.networkMode === 'p2p') {
+                // P2P mode: join the game via DHT
+                await this.networkManager.joinGame(this.networkManager.config.gameId, this.username);
+            } else {
+                // WebSocket mode: connect to server
+                await this.networkManager.connectToServer({ username: this.username });
+            }
+
             // Update status immediately on success
             this.serverStatus = 'ONLINE';
             this.serverStatusColor = '#00ff00';
+            this.isConnecting = false; // Stop spinner
             // Clear server check interval since we're now connected
             if (this.serverCheckInterval) {
                 clearInterval(this.serverCheckInterval);
@@ -916,6 +1017,7 @@ class ActionNetManagerGUI {
             // Update status immediately on failure
             this.serverStatus = 'UNAVAILABLE';
             this.serverStatusColor = '#ff0000';
+            this.isConnecting = false; // Stop spinner
         }
     }
 
@@ -939,15 +1041,26 @@ class ActionNetManagerGUI {
      * Create and join room
      */
     createAndJoinRoom() {
-        const roomName = `${this.username}'s room`;
-        this.networkManager.joinRoom(roomName)
-            .then(() => {
-                // Event will be emitted
-            })
-            .catch((error) => {
-                console.error("Failed to create room:", error);
-                this.showErrorModal("Cannot Create Room", error.message || "Failed to create a new room");
-            });
+        // For P2P mode, create a room (become host)
+        if (this.networkMode === 'p2p') {
+            // P2P needs to call joinGame first to set up currentGameId
+            // Use the default gameId from P2P config
+            const gameId = this.networkManager.config.gameId || 'game-id-00000';
+            this.networkManager.currentGameId = gameId;
+            this.networkManager.createRoom();
+            // console.log("[ActionNetManagerGUI] Created P2P room, waiting for players...");
+        } else {
+            // For WebSocket mode, join a room with a generated name
+            const roomName = `${this.username}'s room`;
+            this.networkManager.joinRoom(roomName)
+                .then(() => {
+                    // Event will be emitted
+                })
+                .catch((error) => {
+                    console.error("Failed to create room:", error);
+                    this.showErrorModal("Cannot Create Room", error.message || "Failed to create a new room");
+                });
+        }
     }
 
     /**
@@ -971,21 +1084,24 @@ class ActionNetManagerGUI {
         const adjectives = [
             'Big', 'Floppy', 'Little', 'Goofy', 'Wiggly',
             'Stinky', 'Chunky', 'Bouncy', 'Silly', 'Noisy',
-            'Tiny', 'Fast', 'Smart', 'Lucky', 'Epic',
-            'Super', 'Mega', 'Giant', 'Double', 'PeePee',
+            'Tiny', 'Cracked', 'Lit', 'Steamy', 'Epic',
+            'Super', 'Mega', 'Giant', 'Double', 'Salty',
             'Farty', 'Smelly', 'Sneaky', 'Gassy', 'Crusty',
-            'Soggy', 'Tooty', 'Rank', 'Nasty', 'Squeaky'
+            'Soggy', 'Tooty', 'Ratchet', 'Nasty', 'Squeaky',
+            'Skibidi', 'Rizzy', 'Saucy', 'Mid', 'Sussy', "Lil' "
         ];
 
         const nouns = [
-            'Farter', 'Butt', 'Booger', 'Nugget', 'Tooter', 'Weiner',
-            'Sniffer', 'Burper', 'DooDoo', 'Pooter', 'Dumper', 'Diaper',
-            'Fart', 'Toilet', 'Pooper', 'Booty', 'Stinker', 'Skidmark'
+            'Farter', 'Butt', 'PooPoo', 'Nugget', 'Tooter', 'Turd',
+            'Poop', 'Squeaker', 'DooDoo', 'Pooter', 'Dumper', 'Keister',
+            'Fart', 'Hiney', 'Pooper', 'Booty', 'Stinker', 'Skidmark',
+            'Ahh', 'Buns', 'Cheeks', 'Tushy', 'Doody'
         ];
 
         const funNumbers = [
             '69', '420', '666', '1337', '123',
-            '007', '101', '999', '321', '777'
+            '007', '101', '999', '321', '777',
+            '67', '911', ''
         ];
 
         const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
@@ -995,9 +1111,14 @@ class ActionNetManagerGUI {
     }
 
     /**
-     * Start server check
+     * Start server check (WebSocket only)
      */
     startServerCheck() {
+        // Skip server check for P2P mode (DHT connectivity is implicit)
+        if (this.networkMode === 'p2p') {
+            return;
+        }
+
         this.serverCheckInterval = setInterval(async () => {
             // Only check if we're not connected (don't override connection status)
             if (!this.networkManager.isConnected()) {
@@ -1018,6 +1139,20 @@ class ActionNetManagerGUI {
      */
     getNetManager() {
         return this.networkManager;
+    }
+
+    /**
+     * Hide the GUI (for when game takes over)
+     */
+    hide() {
+        this.guiVisible = false;
+    }
+
+    /**
+     * Show the GUI (for when returning from game)
+     */
+    show() {
+        this.guiVisible = true;
     }
 
     /**
@@ -1043,14 +1178,14 @@ class ActionNetManagerGUI {
             console.error('[ActionNetManagerGUI] Invalid message type:', messageType);
             return false;
         }
-        
+
         if (typeof handler !== 'function') {
             console.error('[ActionNetManagerGUI] Handler must be a function');
             return false;
         }
-        
+
         this.customMessageHandlers.set(messageType, handler);
-        console.log(`[ActionNetManagerGUI] Registered custom handler: '${messageType}'`);
+        // console.log(`[ActionNetManagerGUI] Registered custom handler: '${messageType}'`);
         return true;
     }
 
@@ -1061,10 +1196,33 @@ class ActionNetManagerGUI {
      */
     unregisterMessageHandler(messageType) {
         if (this.customMessageHandlers.delete(messageType)) {
-            console.log(`[ActionNetManagerGUI] Unregistered handler: '${messageType}'`);
+            // console.log(`[ActionNetManagerGUI] Unregistered handler: '${messageType}'`);
             return true;
         }
         return false;
+    }
+
+    /**
+     * Activate SyncSystem for a room with proper peer connection context
+     * Call this when joining a room to ensure SyncSystem is ready
+     */
+    activateSyncForRoom() {
+        if (this.syncSystem && !this.syncSystem.isRunning) {
+            console.log("[ActionNetManagerGUI] Activating SyncSystem for room");
+            this.syncSystem.start();
+        }
+    }
+
+    /**
+     * Deactivate SyncSystem when leaving a room
+     * Call this when leaving a room to clean up
+     */
+    deactivateSyncForRoom() {
+        if (this.syncSystem && this.syncSystem.isRunning) {
+            console.log("[ActionNetManagerGUI] Deactivating SyncSystem for room");
+            this.syncSystem.stop();
+            this.syncSystem.clearRemoteData();
+        }
     }
 
     /**
@@ -1247,5 +1405,54 @@ class ActionNetManagerGUI {
             this.hideErrorModal();
             this.input.removeElement('error_modal_back_button');
         }
+    }
+
+    /**
+    * Render a rotating spinner wheel
+    */
+    renderSpinner(x, y, radius = 20, lineWidth = 3) {
+        this.guiCtx.save();
+
+        // Translate to center
+        this.guiCtx.translate(x, y);
+        this.guiCtx.rotate((this.spinnerRotation * Math.PI) / 180);
+
+        // Draw spoke with trail/fade effect
+        const trailLength = 40; // Number of trail segments
+        const trailSpacing = 10; // Rotation degrees between trail segments
+
+        for (let i = trailLength; i > 0; i--) {
+            // Calculate opacity (fade as we go back in trail)
+            const opacity = i / trailLength;
+            const trailRotation = i * trailSpacing;
+
+            // Save and rotate for this trail segment
+            this.guiCtx.save();
+            this.guiCtx.rotate((trailRotation * Math.PI) / 180);
+
+            this.guiCtx.strokeStyle = `rgba(136, 136, 136, ${opacity * 0.8})`;
+            this.guiCtx.lineWidth = lineWidth;
+            this.guiCtx.lineCap = 'round';
+
+            const x1 = 0;
+            const y1 = -(radius / 3);
+            const x2 = 0;
+            const y2 = -radius;
+
+            this.guiCtx.beginPath();
+            this.guiCtx.moveTo(x1, y1);
+            this.guiCtx.lineTo(x2, y2);
+            this.guiCtx.stroke();
+
+            this.guiCtx.restore();
+        }
+
+        // Draw outer circle
+        this.guiCtx.strokeStyle = '#666666';
+        this.guiCtx.beginPath();
+        this.guiCtx.arc(0, 0, radius, 0, Math.PI * 2);
+        this.guiCtx.stroke();
+
+        this.guiCtx.restore();
     }
 }
