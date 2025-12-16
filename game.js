@@ -175,7 +175,19 @@ class Game {
         this.gameSettings = this.loadSettings();
 
         /******* Network System (for online multiplayer) *******/
-        this.gui = new ActionNetManagerGUI(canvases, input, audio, Game.TETRIS_SERVER_PORT);
+        this.gui = new ActionNetManagerGUI(canvases, input, audio, {
+            mode: 'p2p',
+            p2pConfig: {
+                gameId: 'game-id-00001-tetrisae-version-1',
+                debug: true
+            }
+        });
+
+        //this.gui = new ActionNetManagerGUI(canvases, input, audio, {
+        //    mode: 'websocket',
+        //    port: 8000
+        //});
+
         this.networkManager = this.gui.getNetManager();
         this.networkSession = null; // Will be created when joining a room
 
