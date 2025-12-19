@@ -7,6 +7,11 @@ gulp.task('bundle', function() {
     // 3rd party libs
     'actionengine/3rdparty/goblin/goblin.js',
     
+    // ActionNetP2P Library Modules
+    'actionengine/network/p2p/ActionNetPeer.js',
+    'actionengine/network/p2p/ActionNetTrackerClient.js',
+    'actionengine/network/p2p/DataConnection.js',
+    
     // Action Engine Math
     'actionengine/math/geometry/triangle.js',
     'actionengine/math/geometry/triangleutils.js',
