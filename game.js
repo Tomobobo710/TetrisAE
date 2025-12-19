@@ -179,7 +179,15 @@ class Game {
             mode: 'p2p',
             p2pConfig: {
                 gameId: 'game-id-00001-tetrisae-version-1',
-                debug: true
+                debug: true,
+                iceServers: [
+                    { urls: "stun:stun.l.google.com:19302" },
+                    { urls: "stun:stun1.l.google.com:19302" },
+                    { urls: "stun:stun.cloudflare.com:3478" },
+                    { urls: "stun:stun.linphone.org:3478" },
+                    { urls: "stun:stun.ekiga.net:3478" },
+                    { urls: "stun:stun.services.mozilla.com:3478" }
+                ]
             }
         });
 
