@@ -1462,10 +1462,10 @@ class ActionNetManagerGUI {
         this.guiCtx.strokeRect(modalX, modalY, modalWidth, modalHeight);
 
         // Title
-        this.renderLabel(this.errorModalTitle, ActionNetManagerGUI.WIDTH / 2, modalY + 40, 'bold 24px Arial', '#ffffff');
+        this.renderLabel(this.errorModalTitle, ActionNetManagerGUI.WIDTH / 2, modalY + 40, 'bold 32px Arial', '#ffffff', 'center', 'middle', 8, false);
 
         // Message
-        this.renderLabel(this.errorModalMessage, ActionNetManagerGUI.WIDTH / 2, modalY + 90, '18px Arial', '#cccccc');
+        this.renderLabel(this.errorModalMessage, ActionNetManagerGUI.WIDTH / 2, modalY + 90, '24px Arial', '#cccccc', 'center', 'middle', 8, false);
 
         // Back button (centered)
         const buttonWidth = 120;
@@ -1612,7 +1612,7 @@ class ActionNetManagerGUI {
         this.guiCtx.strokeRect(modalX, modalY, modalWidth, modalHeight);
 
         // Title
-        this.renderLabel('Joining Game', ActionNetManagerGUI.WIDTH / 2, modalY + 40, 'bold 24px Arial', '#ffffff');
+        this.renderLabel('Joining Game', ActionNetManagerGUI.WIDTH / 2, modalY + 40, 'bold 32px Arial', '#ffffff', 'center', 'middle', 8, false);
 
         // Status messages
         const statuses = {
@@ -1626,7 +1626,7 @@ class ActionNetManagerGUI {
         const statusMessage = statuses[this.joinModalStatus] || 'Connecting...';
         
         // Centered message with spinner below
-        this.renderLabel(statusMessage, ActionNetManagerGUI.WIDTH / 2, modalY + 100, '16px Arial', '#ffffff');
+        this.renderLabel(statusMessage, ActionNetManagerGUI.WIDTH / 2, modalY + 100, '22px Arial', '#ffffff', 'center', 'middle', 8, false);
         this.renderSpinner(ActionNetManagerGUI.WIDTH / 2, modalY + 145, 15, 2);
 
         // Cancel button
