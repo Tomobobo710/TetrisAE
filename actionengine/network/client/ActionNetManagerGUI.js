@@ -1067,23 +1067,38 @@ class ActionNetManagerGUI {
      * Join selected room
      */
     joinSelectedRoom() {
-        if (!this.selectedRoom) return;
+         if (!this.selectedRoom) return;
 
-        // P2P mode: do granular join with step-by-step messages
-        if (this.networkMode === 'p2p') {
-            this.performP2PJoin(this.selectedRoom);
-        } else {
-            // WebSocket mode: simple one-shot join
-            this.networkManager.joinRoom(this.selectedRoom)
-                .then(() => {
-                    // Event will be emitted by setupNetworkEvents
-                })
-                .catch((error) => {
-                    console.error("Failed to join room:", error);
-                    this.showErrorModal("Cannot Join Room", error.message || "Failed to join the selected room");
-                });
-        }
-    }
+         // Check if room is full before attempting to join
+         const availableRooms = this.networkManager.getAvailableRooms();
+         const selectedRoomData = availableRooms.find(r => (r.peerId || r.name) === this.selectedRoom);
+         
+         if (selectedRoomData) {
+             const maxDisplay = selectedRoomData.maxPlayers === -1 ? '∞' : selectedRoomData.maxPlayers;
+             const currentPlayers = selectedRoomData.playerCount !== undefined ? selectedRoomData.playerCount : selectedRoomData.currentPlayers || 0;
+             const isFull = selectedRoomData.maxPlayers > 0 && currentPlayers >= selectedRoomData.maxPlayers;
+             
+             if (isFull) {
+                 this.showErrorModal("Room Full", `This room is full (${currentPlayers}/${maxDisplay}).`);
+                 return;
+             }
+         }
+
+         // P2P mode: do granular join with step-by-step messages
+         if (this.networkMode === 'p2p') {
+             this.performP2PJoin(this.selectedRoom);
+         } else {
+             // WebSocket mode: simple one-shot join
+             this.networkManager.joinRoom(this.selectedRoom)
+                 .then(() => {
+                     // Event will be emitted by setupNetworkEvents
+                 })
+                 .catch((error) => {
+                     console.error("Failed to join room:", error);
+                     this.showErrorModal("Cannot Join Room", error.message || "Failed to join the selected room");
+                 });
+         }
+     }
 
     /**
      * Perform P2P join with granular steps and modal progress
@@ -1612,7 +1627,7 @@ class ActionNetManagerGUI {
         
         // Centered message with spinner below
         this.renderLabel(statusMessage, ActionNetManagerGUI.WIDTH / 2, modalY + 100, '16px Arial', '#ffffff');
-        this.renderSpinner(ActionNetManagerGUI.WIDTH / 2 - 15, modalY + 135, 15, 2);
+        this.renderSpinner(ActionNetManagerGUI.WIDTH / 2, modalY + 145, 15, 2);
 
         // Cancel button
         const buttonWidth = 120;
