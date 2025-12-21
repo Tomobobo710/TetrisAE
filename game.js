@@ -19,6 +19,65 @@ class Game {
     // Network configuration for online multiplayer
     static TETRIS_SERVER_PORT = 9053;
 
+    // STUN server list URLs
+    static DYNAMIC_STUN_LIST_URL = "https://raw.githubusercontent.com/pradt2/always-online-stun/master/valid_ipv4s.txt";
+    static GEOIP_CACHE_URL = "https://raw.githubusercontent.com/pradt2/always-online-stun/master/geoip_cache.txt";
+    static USER_GEOLOC_URL = "https://geolocation-db.com/json/";
+
+    // Hardcoded fallback list (all tested servers)
+    static FALLBACK_STUN_SERVERS = [
+        "stun.l.google.com:19302",
+        "stun1.l.google.com:19302",
+        "stun2.l.google.com:19302",
+        "stun3.l.google.com:19302",
+        "stun4.l.google.com:19302",
+        "stun.cloudflare.com:3478",
+        "stun.linphone.org:3478",
+        "stun.ekiga.net:3478",
+        "stun.12voip.com:3478",
+        "stun.aa.net.uk:3478",
+        "stun.phone.com:3478",
+        "stun.voip.blackberry.com:3478",
+        "stun.voipbuster.com:3478",
+        "stun.voipbusterpro.com:3478",
+        "stun.vo.lu:3478",
+        "stun.tel.lu:3478",
+        "stun.srce.hr:3478",
+        "stun.voys.nl:3478",
+        "stun.actionvoip.com:3478",
+        "stun.jumblo.com:3478",
+        "stun.justvoip.com:3478",
+        "stun.liveo.fr:3478",
+        "stun.ozekiphone.com:3478",
+        "stun.poivy.com:3478",
+        "stun.rolmail.net:3478",
+        "stun.rockenstein.de:3478",
+        "stun.schlund.de:3478",
+        "stun.sip.us:3478",
+        "stun.t-online.de:3478",
+        "stun.telbo.com:3478",
+        "stun.uls.co.za:3478",
+        "stun.usfamily.net:3478",
+        "stun.voicetrading.com:3478",
+        "stun.voip.eutelia.it:3478",
+        "stun.voipinfocenter.com:3478",
+        "stun.zadarma.com:3478",
+        "stun.nextcloud.com:443",
+        "relay.webwormhole.io:3478",
+        "stun.flashdance.cx:3478",
+        "stun.netappel.com:3478",
+        "stun.ippi.fr:3478",
+        "stun.ipfire.org:3478",
+        "stun.halonet.pl:3478",
+        "stun.callromania.ro:3478",
+        "stun.antisip.com:3478",
+        "stun.1und1.de:3478",
+        "stun.12connect.com:3478",
+        "stun.acrobits.cz:3478",
+        "stun.annatel.net:3478",
+        "stun.fbsbx.com:3478"
+    ];
+
     constructor(canvases, input, audio) {
         /******* ActionEngine System References *******/
         this.input = input;
@@ -175,28 +234,28 @@ class Game {
         this.gameSettings = this.loadSettings();
 
         /******* Network System (for online multiplayer) *******/
-        this.gui = new ActionNetManagerGUI(canvases, input, audio, {
-            mode: 'p2p',
-            p2pConfig: {
-                gameId: 'game-id-00001-tetrisae-version-1',
-                debug: true,
-                iceServers: [
-                    { urls: "stun:stun.l.google.com:19302" },
-                    { urls: "stun:stun1.l.google.com:19302" },
-                    { urls: "stun:stun.cloudflare.com:3478" },
-                    { urls: "stun:stun.linphone.org:3478" },
-                    { urls: "stun:stun.ekiga.net:3478" },
-                    { urls: "stun:stun.services.mozilla.com:3478" }
-                ]
-            }
-        });
-
         //this.gui = new ActionNetManagerGUI(canvases, input, audio, {
         //    mode: 'websocket',
         //    port: 8000
         //});
+        
+        // Initialize with fallback servers; will be updated with closest server asynchronously
+        this.gui = new ActionNetManagerGUI(canvases, input, audio, {
+            mode: 'p2p',
+            p2pConfig: {
+                gameId: 'game-id-00001-tetrisae-version-1',
+                debug: false,
+                maxAnnounceInterval: 30000,
+                backoffMultiplier: 1.05,
+                iceServers: Game.FALLBACK_STUN_SERVERS.map(addr => this.stunAddrToIceServer(addr))
+            }
+        });
 
         this.networkManager = this.gui.getNetManager();
+
+        // Fetch and use the closest STUN server asynchronously
+        this.initializeOptimalStunServer();
+
         this.networkSession = null; // Will be created when joining a room
 
         /******* Modular Systems *******/
@@ -242,6 +301,168 @@ class Game {
     }
 
     /******* NETWORK SETUP *******/
+
+    /**
+     * Fetch the dynamic STUN server list from pradt2/always-online-stun
+     * Falls back to hardcoded list if unavailable
+     */
+    async fetchStunServerList() {
+        try {
+            const response = await fetch(Game.DYNAMIC_STUN_LIST_URL);
+            if (!response.ok) throw new Error("Failed to fetch dynamic list");
+            const text = await response.text();
+            const servers = text.trim().split('\n').filter(line => line.trim());
+            console.log(`Fetched ${servers.length} STUN servers from dynamic list`);
+            return servers;
+        } catch (error) {
+            console.warn("Could not fetch dynamic STUN list, using fallback:", error);
+            return Game.FALLBACK_STUN_SERVERS;
+        }
+    }
+
+    /**
+     * Fetch geolocation cache for STUN servers
+     */
+    async fetchGeoLocationCache() {
+        try {
+            const response = await fetch(Game.GEOIP_CACHE_URL);
+            if (!response.ok) throw new Error("Failed to fetch geo cache");
+            const geoLocs = await response.json();
+            console.log(`Fetched geolocation data for ${Object.keys(geoLocs).length} servers`);
+            return geoLocs;
+        } catch (error) {
+            console.warn("Could not fetch geoip cache:", error);
+            return {};
+        }
+    }
+
+    /**
+     * Get user's geolocation
+     */
+    async getUserGeolocation() {
+        try {
+            const response = await fetch(Game.USER_GEOLOC_URL);
+            if (!response.ok) throw new Error("Failed to fetch user geolocation");
+            const data = await response.json();
+            console.log(`User location: ${data.latitude}, ${data.longitude}`);
+            return { latitude: data.latitude, longitude: data.longitude };
+        } catch (error) {
+            console.warn("Could not fetch user geolocation:", error);
+            // Default to approximate center of Earth (won't be great, but something)
+            return { latitude: 0, longitude: 0 };
+        }
+    }
+
+    /**
+     * Calculate Euclidean distance between two points
+     */
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
+    }
+
+    /**
+     * Sort servers by distance, closest first, but return all of them
+     * Let WebRTC try all servers until one works
+     */
+    sortServersByDistance(servers, userLocation, geoLocs) {
+        if (!servers || servers.length === 0) return [];
+
+        // Calculate distances for servers with geo data
+        const withDistance = [];
+        const withoutDistance = [];
+
+        for (const addr of servers) {
+            const [ip] = addr.split(':');
+            
+            if (geoLocs[ip]) {
+                const [stunLat, stunLon] = geoLocs[ip];
+                const distance = this.calculateDistance(
+                    userLocation.latitude,
+                    userLocation.longitude,
+                    stunLat,
+                    stunLon
+                );
+                withDistance.push({ addr, distance });
+            } else {
+                withoutDistance.push(addr);
+            }
+        }
+
+        // Sort servers with distance info by distance (closest first)
+        withDistance.sort((a, b) => a.distance - b.distance);
+        
+        // Return sorted servers first, then servers without geo data
+        const sorted = withDistance.map(item => item.addr);
+        sorted.push(...withoutDistance);
+        
+        console.log(`Sorted ${sorted.length} servers by distance (${withDistance.length} with geo data, ${withoutDistance.length} without)`);
+        return sorted;
+    }
+
+    /**
+     * Get all STUN servers, sorted by distance (closest first)
+     * Merges fetched servers with fallback servers and deduplicates
+     */
+    async getOptimalStunServers() {
+        try {
+            // Fetch dynamic list (or fallback if fetch fails)
+            const fetchedServers = await this.fetchStunServerList();
+            
+            // Merge fetched servers with fallback servers (remove duplicates)
+            const allServers = Array.from(new Set([...fetchedServers, ...Game.FALLBACK_STUN_SERVERS]));
+            
+            // Fetch geolocation data for servers
+            const geoLocs = await this.fetchGeoLocationCache();
+            
+            // Fetch user's location
+            const userLocation = await this.getUserGeolocation();
+            
+            // Sort all servers by distance (closest first)
+            const sorted = this.sortServersByDistance(allServers, userLocation, geoLocs);
+            
+            if (sorted && sorted.length > 0) {
+                console.log(`Using combined ${sorted.length} STUN servers (${fetchedServers.length} fetched + ${Game.FALLBACK_STUN_SERVERS.length} fallback), sorted by distance`);
+                return sorted;
+            } else {
+                console.warn("No STUN servers found, using fallback list");
+                return Game.FALLBACK_STUN_SERVERS;
+            }
+        } catch (error) {
+            console.error("Error getting optimal STUN servers:", error);
+            return Game.FALLBACK_STUN_SERVERS;
+        }
+    }
+
+    /**
+     * Convert STUN server address to ICE server object
+     */
+    stunAddrToIceServer(addr) {
+        return { urls: `stun:${addr}` };
+    }
+
+    /**
+     * Initialize with all STUN servers, optimally sorted
+     * Fetches and sorts servers, then stores them for use when joining a game
+     */
+    async initializeOptimalStunServer() {
+        try {
+            const optimalServers = await this.getOptimalStunServers();
+            
+            // Convert to ICE server format
+            const iceServers = optimalServers.map(addr => this.stunAddrToIceServer(addr));
+            
+            // Store the servers in the network manager config
+            // This will be used the next time joinGame() is called
+            if (this.networkManager && this.networkManager.config) {
+                this.networkManager.config.iceServers = iceServers;
+                console.log(`Network configured with ${iceServers.length} STUN servers (sorted by distance)`);
+            }
+        } catch (error) {
+            console.error("Failed to initialize optimal STUN servers:", error);
+            // Config already has fallback servers, so we're fine
+        }
+    }
+
     /******* INITIALIZATION *******/
     initializeGame() {
         this.score = 0;
