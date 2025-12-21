@@ -971,19 +971,23 @@ class NetworkSession {
      * Handle host leaving the room
      */
     handleHostLeft(message) {
-        console.log("[NetworkSession] Host left - showing room shutdown screen...");
-
         // Check if we're the host (we shouldn't receive this message if we are)
         if (this.networkManager.isCurrentUserHost()) {
             console.warn("[NetworkSession] Received hostLeft but we are the host?");
             return;
         }
 
-        // Show room shut down screen
-        console.log("[NetworkSession] Showing room shut down screen");
-        this.game.gameState = "roomShutDown";
-        this.game.roomShutDownMenu.selectedIndex = 0;
-        this.game.roomShutDownMenu.buttonsRegistered = false;
+        // Only show room shutdown screen if we were actually in a game
+        // If we're still waiting to join, return to lobby instead
+        if (this.state === "PLAYING") {
+            console.log("[NetworkSession] Host left during game - showing room shutdown screen...");
+            this.game.gameState = "roomShutDown";
+            this.game.roomShutDownMenu.selectedIndex = 0;
+            this.game.roomShutDownMenu.buttonsRegistered = false;
+        } else {
+            console.log("[NetworkSession] Host left while waiting - returning to lobby...");
+            this.returnToLobbyAfterShutdown();
+        }
     }
 
     /**
