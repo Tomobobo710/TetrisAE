@@ -1,6 +1,6 @@
 # Tetris - ActionEngine Edition
 
-A fully-featured Tetris implementation built on **ActionEngineJS**
+A fully-featured Tetris implementation built with **ActionEngineJS**
 
 <img width="2371" height="1784" alt="image" src="https://github.com/user-attachments/assets/8fe68389-4c1d-4a1e-bc62-a72be908c635" />
 
