@@ -2,7 +2,7 @@
 
 A fully-featured Tetris implementation built on **ActionEngineJS**
 
-<img width="2374" height="1789" alt="image" src="https://github.com/user-attachments/assets/2e0f4a62-f6fe-4a82-b33c-2c5225b1c4ca" />
+<img width="2371" height="1784" alt="image" src="https://github.com/user-attachments/assets/8fe68389-4c1d-4a1e-bc62-a72be908c635" />
 
 ## What's Here
 TetrisAE is a complete game built as an example and showcases the ActionEngine framework's capabilities for end-to-end game development. Particularly, the focus is on demonstrating ActionEngineJS's networking, input, and audio systems.
