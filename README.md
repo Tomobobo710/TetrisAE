@@ -26,16 +26,15 @@ Fully-featured Tetris with competitive mechanics and gorgeous presentation:
 - **Online Multiplayer**: Battle players from all over the world
 
 ### Online Multiplayer
-- **Built on ActionEngine's networking layer** (ActionNetManager + ActionNetManagerP2P): Unified API for WebSocket and P2P modes
+- **Built on ActionEngine's networking layer** ActionNetManagerGUI provides a "one line" networking GUI which handles game room managment and peer connection
+- **Event-driven API**: Peer/user discovery, room list/user list updates, join/leave notifications, connection lifecycle events
 - **Dual-mode networking**: Pure P2P via tracker discovery OR centralized WebSocket server (configurable at runtime)
-- **Decentralized P2P** (ActionNetManagerP2P): WebSocket tracker announces (using public infrastructure like OpenWebTorrent), peer discovery, offer/answer/ICE candidate relay, direct peer-to-peer gameplay
+- **Decentralized P2P** (ActionNetManagerP2P): WebSocket tracker announces (using public bittorrent infrastructure), peer discovery, offer/answer/ICE candidate relay, direct peer-to-peer gameplay
 - **Centralized server mode** (ActionNetManager): Node.js WebSocket server for room/lobby management, client registration, message routing (state-agnostic relay)
 - **Two-phase WebRTC** (P2P only): Signaling channel via tracker for metadata, separate RTCDataChannel for low-latency game state (ActionNetTrackerClient, DataConnection, ActionNetPeer)
 - **SyncSystem**: Generic, transport-agnostic state synchronization engine. Registers game state sources (match state, player stats, piece positions, next queue), periodically broadcasts with staleness detection and remote liveness tracking
-- **Tracker-based discovery** (P2P): SHA-1 game ID → infohash, announces to 40+ tracker pool (hardcoded + dynamically fetched), handles offer/answer/ICE flows
+- **Tracker-based discovery** (P2P): SHA-1 game ID → infohash, announces to websocket tracker pool (hardcoded + dynamically fetched), handles offer/answer/ICE flows
 - **Automatic STUN selection** (P2P): Geolocation-aware closest server selection from 40+ hardcoded servers + dynamic discovery
-- **Host model** (P2P): First peer becomes host, subsequent peers request join, host manages countdown/state
-- **Event-driven API**: Peer/user discovery, room list/user list updates, join/leave notifications, connection lifecycle events
 
 ### Visual Themes (16 Dynamic Themes)
 Each theme is a fully rendered procedural background system with its own animation loop, heavily inspired by classic demoscene effects and retro computing aesthetics. Themes dynamically respond to game state, with many featuring interactive effects that react to gameplay, grid state, and special events like Tetris clears.
