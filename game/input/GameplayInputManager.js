@@ -178,7 +178,7 @@ class GameplayInputManager {
         // Handle target cycle / garbage toggle input
         if (this.isTargetCycleInputPressed(inputDevice, player.playerNumber)) {
             // Online mode: toggle garbage if player has toggleGarbage method (NetworkedPlayer)
-            if (typeof player.toggleGarbage === 'function') {
+            if (this.game.gameMode === "online" && typeof player.toggleGarbage === 'function') {
                 player.toggleGarbage();
             }
             // Local 3-4 player modes: cycle targets

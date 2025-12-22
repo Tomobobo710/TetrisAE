@@ -1214,8 +1214,8 @@ class GameManager {
                     ctx.fillText(labelText, x, y);
                 }
 
-                // Draw garbage toggle indicator for networked players - always show this
-                if (player.garbageEnabled !== undefined) {
+                // Draw garbage toggle indicator only for online multiplayer
+                if (player.garbageEnabled !== undefined && this.game.gameMode === "online") {
                     // Position above each player's game area
                     const actualWidth = layout.gameArea.cellSize * TETRIS.GRID.COLS;
                     const centerX = layout.gameArea.x + actualWidth / 2;
