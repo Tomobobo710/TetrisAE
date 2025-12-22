@@ -4,9 +4,7 @@ A fully-featured Tetris implementation built on **ActionEngineJS**
 
 <img width="2371" height="1784" alt="image" src="https://github.com/user-attachments/assets/8fe68389-4c1d-4a1e-bc62-a72be908c635" />
 
-<img width="2375" height="1778" alt="image" src="https://github.com/user-attachments/assets/6525be02-3b6b-4323-a3c5-8101b07cc76a" />
 
-<img width="2370" height="1782" alt="image" src="https://github.com/user-attachments/assets/65390434-880a-4ac8-88e6-1d8b808e71a3" />
 
 ## What's Here
 TetrisAE is a complete game built as an example and showcases the ActionEngine framework's capabilities for end-to-end game development. Particularly, the focus is on demonstrating ActionEngineJS's networking, input, and audio systems.
@@ -20,6 +18,8 @@ Fully-featured Tetris with competitive mechanics and gorgeous presentation:
 - **Responsive Controls**: DAS (Delayed Auto Shift) and ARR (Auto Repeat Rate) for fluid, arcade-style piece movement
 - **Line Clear Scoring**: Single/Double/Triple/Tetris with proper T-spin variants (T-Spin Single/Double/Triple), guideline-accurate bonus points
 
+<img width="2370" height="1782" alt="image" src="https://github.com/user-attachments/assets/65390434-880a-4ac8-88e6-1d8b808e71a3" />
+
 ### Game Modes
 - **Single Player**: Perfect for practice and score attacks with progressive difficulty scaling
 - **Local Multiplayer**: 2-4 player split-screen with dynamic UI layouts (2P side-by-side, 3P triangle, 4P quadrant)
@@ -28,6 +28,8 @@ Fully-featured Tetris with competitive mechanics and gorgeous presentation:
   - **Perfect Execution**: 0% mistake rate on hard difficulty with lightning-fast reaction times (60ms)
   - **Garbage Attack**: Sends garbage lines based on clears and back-to-back bonuses
 - **Online Multiplayer**: Battle players from all over the world
+
+<img width="2375" height="1778" alt="image" src="https://github.com/user-attachments/assets/6525be02-3b6b-4323-a3c5-8101b07cc76a" />
 
 ### Online Multiplayer
 - **Built on ActionEngine's networking layer** ActionNetManagerGUI provides a "one line" networking GUI which handles game room managment and peer connection
@@ -39,6 +41,8 @@ Fully-featured Tetris with competitive mechanics and gorgeous presentation:
 - **SyncSystem**: Generic, transport-agnostic state synchronization engine. Registers game state sources (match state, player stats, piece positions, next queue), periodically broadcasts with staleness detection and remote liveness tracking
 - **Tracker-based discovery** (P2P): SHA-1 game ID → infohash, announces to websocket tracker pool (hardcoded + dynamically fetched), handles offer/answer/ICE flows
 - **Automatic STUN selection** (P2P): Geolocation-aware closest server selection from 40+ hardcoded servers + dynamic discovery
+
+<img width="2380" height="1794" alt="image" src="https://github.com/user-attachments/assets/4a5621b0-73b6-4772-b1e5-f2f08a4b8ef1" />
 
 ### Visual Themes (16 Dynamic Themes)
 Each theme is a fully rendered procedural background system with its own animation loop, heavily inspired by classic demoscene effects and retro computing aesthetics. Themes dynamically respond to game state, with many featuring interactive effects that react to gameplay, grid state, and special events like Tetris clears.
