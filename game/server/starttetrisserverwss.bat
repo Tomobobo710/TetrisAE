@@ -25,5 +25,5 @@ if not exist ..\..\actionengine\network\server\node_modules (
 echo.
 echo Starting Secure Game server...
 echo.
-node ..\..\actionengine\network\server\ActionNetServerSSL.js 9053 2
+node ..\..\actionengine\network\server\ActionNetServerSSL.js 8000 2
 pause

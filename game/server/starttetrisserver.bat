@@ -25,5 +25,5 @@ if not exist ..\..\actionengine\network\server\node_modules (
 echo.
 echo Starting Game server...
 echo.
-node ..\..\actionengine\network\server\ActionNetServer.js 9053 2
+node ..\..\actionengine\network\server\ActionNetServer.js 8000 2
 pause
