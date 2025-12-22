@@ -92,9 +92,13 @@ Procedurally generated sound design with zero audio files:
 ### Easter Egg
 A hidden minigame awaits the curious explorer...
 
-## How to Run
+## How to Play
 
-Open `index.html` in a modern browser.
+The game is hosted on Github Pages
+
+https://tomobobo710.github.io/TetrisAE/
+
+Alternatively, clone the repository and open `index.html` in a modern browser.
 
 ## What This Demonstrates
 
