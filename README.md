@@ -68,6 +68,8 @@ Each theme is a fully rendered procedural background system with its own animati
 
 Toggle themes on/off individually or select all at once. Themes persist across sessions.
 
+<img width="2376" height="1784" alt="image" src="https://github.com/user-attachments/assets/45f93da2-0f20-44bc-aeb2-a76b3d38a745" />
+
 ### Dynamic Audio
 Procedurally generated sound design with zero audio files:
 - **Gameplay SFX**: Move (sweep), rotate (triangle sweep), lock (complex harmonic blend), hard drop (descending sweep), line clear (sawtooth polyphony), tetris bonus (6-frequency chord), hold (FM synthesis), failed hold (pitch bend)
