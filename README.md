@@ -75,6 +75,8 @@ Procedurally generated sound design with zero audio files:
 - **Level Up & Game Over**: Complex FM-based state signals with attack/decay envelopes
 - **Synthesis Techniques**: Sweep sounds, FM modulation, complex multi-frequency mixing, ADSR envelopes, echo/reverb effects
 
+<img width="2378" height="1790" alt="image" src="https://github.com/user-attachments/assets/726ef6f9-2267-4e53-835d-715182027b4a" />
+
 ### Input & Controls
 - Full 4-gamepad support with automatic device assignment
 - Customizable key/button remapping (keyboard + gamepad) with a dedicated controls window
