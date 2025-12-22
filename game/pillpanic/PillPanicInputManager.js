@@ -57,7 +57,7 @@ class PillPanicInputManager {
         };
 
         // Game settings
-        this.selectedVirusLevel = 1;
+        this.selectedVirusLevel = 10;
         this.selectedSpeed = 1;
 
         // Register menu elements for mouse interaction

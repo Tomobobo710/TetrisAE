@@ -30,7 +30,7 @@ class PillPanicGameLogic {
         this.ghostY = 0;
         
         /******* Game Settings *******/
-        this.selectedVirusLevel = 1;
+        this.selectedVirusLevel = 10;
         this.selectedSpeed = 1;
         
         /******* Visual Effects *******/
