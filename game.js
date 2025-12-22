@@ -17,7 +17,7 @@ class Game {
     static HEIGHT = TETRIS.HEIGHT;
 
     // Network configuration for online multiplayer
-    static TETRIS_SERVER_PORT = 9053;
+    static TETRIS_SERVER_PORT = 8000;
 
     // STUN server list URLs
     static DYNAMIC_STUN_LIST_URL = "https://raw.githubusercontent.com/pradt2/always-online-stun/master/valid_ipv4s.txt";
