@@ -4,9 +4,6 @@ const uglify = require('gulp-uglify');
 
 gulp.task('bundle', function() {
   return gulp.src([
-    // 3rd party libs
-    'actionengine/3rdparty/goblin/goblin.js',
-    
     // ActionNetP2P Library Modules
     'actionengine/network/p2p/ActionNetPeer.js',
     'actionengine/network/p2p/ActionNetTrackerClient.js',
@@ -14,70 +11,10 @@ gulp.task('bundle', function() {
     
     // Action Engine Math
     'actionengine/math/geometry/triangle.js',
-    'actionengine/math/geometry/triangleutils.js',
-    'actionengine/math/geometry/geometrybuilder.js',
-    'actionengine/math/geometry/glbloader.js',
-    'actionengine/math/geometry/glbexporter.js',
-    'actionengine/math/geometry/modelcodegenerator.js',
-    'actionengine/math/vector2.js',
     'actionengine/math/vector3.js',
-    'actionengine/math/matrix4.js',
-    'actionengine/math/quaternion.js',
-    'actionengine/math/mathutils.js',
-    'actionengine/math/viewfrustum.js',
     
-    // Action Engine Rendering
-    'actionengine/display/graphics/renderableobject.js',
-    'actionengine/display/graphics/actionmodel3D.js',
-    'actionengine/display/graphics/actionsprite3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer2D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/actionrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/objectrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/weatherrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/waterrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/sunrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/spriterenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/debugrenderer3D.js',
-    'actionengine/display/graphics/renderers/actionrenderer3D/canvasmanager3D.js',
-    
-    // Action Engine Lighting
-    'actionengine/display/graphics/lighting/lightingconstants.js',
-    'actionengine/display/graphics/lighting/actionlight.js',
-    'actionengine/display/graphics/lighting/actiondirectionalshadowlight.js',
-    'actionengine/display/graphics/lighting/actionomnidirectionalshadowlight.js',
-    'actionengine/display/graphics/lighting/lightmanager.js',
-    
-    // Action Engine Debug
-    'actionengine/debug/basedebugpanel.js',
-    
-    // Image Texture System
-    'actionengine/display/graphics/texture/proceduraltexture.js',
-    'actionengine/display/graphics/texture/texturemanager.js',
-    'actionengine/display/graphics/texture/textureregistry.js',
-    
-    // GL Shader Management
-    'actionengine/display/gl/programmanager.js',
-    'actionengine/display/gl/shaders/objectshader.js',
-    'actionengine/display/gl/shaders/lineshader.js',
-    'actionengine/display/gl/shaders/spriteshader.js',
-    'actionengine/display/gl/shaders/shadowshader.js',
-    'actionengine/display/gl/shaders/watershader.js',
-    'actionengine/display/gl/shaders/particleshader.js',
-    
-    // Action Engine Physics
-    'actionengine/math/physics/actionphysicsworld3D.js',
-    'actionengine/math/physics/actionphysicsobject3D.js',
-    'actionengine/math/physics/shapes/actionphysicsplane3D.js',
-    'actionengine/math/physics/shapes/actionphysicsbox3D.js',
-    'actionengine/math/physics/shapes/actionphysicssphere3D.js',
-    'actionengine/math/physics/shapes/actionphysicscapsule3D.js',
-    'actionengine/math/physics/shapes/actionphysicscone3D.js',
-    'actionengine/math/physics/shapes/actionphysicscylinder3D.js',
-    'actionengine/math/physics/shapes/actionphysicscompoundshape3D.js',
-    'actionengine/math/physics/shapes/actionphysicsconvexshape3D.js',
-    'actionengine/math/physics/shapes/actionphysicsmesh3D.js',
-    'actionengine/math/physics/actionraycast.js',
-    'actionengine/math/physics/actionphysics.js',
+    // Action Engine 3-Layer Canvas System
+    'actionengine/display/canvasmanager.js',
     
     // Action Engine Sound
     'actionengine/sound/soundfont/actionreverb.js',
@@ -94,17 +31,6 @@ gulp.task('bundle', function() {
     'actionengine/network/client/SyncSystem.js',
     'actionengine/network/client/ActionNetManagerGUI.js',
 	'actionengine/network/client/ActionNetManagerP2P.js',
-    
-    // Action Engine Camera
-    'actionengine/camera/actioncamera.js',
-    'actionengine/camera/cameracollisionhandler.js',
-    
-    // Action Engine 3-Layer Canvas System
-    'actionengine/display/canvasmanager.js',
-    
-    // Action Engine Character Controller
-    'actionengine/character/actioncharacter.js',
-    'actionengine/character/actioncharacter3D.js',
     
     // Action Engine Bootstrap
     'actionengine/core/app.js',
