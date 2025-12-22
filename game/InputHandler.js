@@ -29,6 +29,32 @@ class InputHandler {
         // Centralized ActionNet input/signaling manager
         // Owns multiplayer login/lobby/ready/rematch meta-input so Game + InputHandler don't poke NetworkSession/GUI directly.
         this.actionNetInputManager = new ActionNetInputManager(game, this.input);
+        
+        // Wire up pause button directly from DOM to avoid snapshot timing issues
+        this.setupPauseButtonListener();
+    }
+    
+    setupPauseButtonListener() {
+        const pauseBtn = document.getElementById("pauseButton");
+        if (pauseBtn) {
+            pauseBtn.addEventListener("mouseup", () => {
+                // Check if we're in a state where pausing is allowed
+                if (this.game.gameState === "playing" || 
+                    this.game.gameState === "paused" ||
+                    this.game.gameState === "onlineMultiplayer" ||
+                    this.game.gameState === "onlineMultiplayerPaused") {
+                    this.handlePauseUnpause();
+                }
+            });
+            pauseBtn.addEventListener("touchend", () => {
+                if (this.game.gameState === "playing" || 
+                    this.game.gameState === "paused" ||
+                    this.game.gameState === "onlineMultiplayer" ||
+                    this.game.gameState === "onlineMultiplayerPaused") {
+                    this.handlePauseUnpause();
+                }
+            });
+        }
     }
 
     /**
@@ -165,14 +191,15 @@ class InputHandler {
             return;
         }
 
-        // Handle pause/unpause input - use custom controls if available
+        // Handle pause/unpause input - use custom controls if available or keyboard/gamepad
+        // (UI pause button is handled separately via DOM event listener)
         const customInput = this.input.getCustomControlsAdapter();
         let pausePressed = false;
         
         if (customInput) {
             pausePressed = customInput.isActionJustPressed('pause');
         } else {
-            // Fallback to original controls
+            // Fallback to keyboard/gamepad controls
             pausePressed = this.input.isKeyJustPressed("Action7") ||
                 this.input.isGamepadButtonJustPressed(9, 0) ||
                 this.input.isGamepadButtonJustPressed(9, 1) ||
