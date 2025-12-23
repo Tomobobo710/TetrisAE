@@ -278,6 +278,17 @@ class Game {
         // Input handling system
         this.inputHandler = new InputHandler(this);
         
+        // Monkey-patch the framework's input handler to support custom controls
+        // This keeps the framework clean while allowing games to use custom control schemes
+        this.input.customControlsAdapter = null;
+        this.input.setCustomControlsAdapter = function(adapter) {
+            this.customControlsAdapter = adapter;
+            console.log('[ActionInputHandler] Custom controls adapter set');
+        };
+        this.input.getCustomControlsAdapter = function() {
+            return this.customControlsAdapter;
+        };
+        
         // Custom controls system
         this.customControls = new CustomControlsIntegration(this);
 
